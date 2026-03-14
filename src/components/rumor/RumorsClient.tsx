@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Flame, Search, Filter, TrendingUp, Clock, CheckCircle, X, AlertCircle, HelpCircle } from 'lucide-react'
+import {
+  Flame, Search, TrendingUp, Clock, CheckCircle, X,
+  AlertCircle, HelpCircle, Terminal, Hash, MessageCircle, Zap
+} from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 
 interface Rumor {
@@ -22,11 +25,11 @@ interface Rumor {
 }
 
 const VERDICT_CONFIG = {
-  TRUE: { label: 'TRUE', color: '#22c55e', icon: CheckCircle },
+  TRUE: { label: 'CONFIRMED', color: 'var(--green)', icon: CheckCircle },
   MISLEADING: { label: 'MISLEADING', color: '#f97316', icon: AlertCircle },
-  FALSE: { label: 'FALSE', color: '#ef4444', icon: X },
-  PARTLY_TRUE: { label: 'PARTLY TRUE', color: '#eab308', icon: AlertCircle },
-  UNPROVEN: { label: 'UNPROVEN', color: '#6b7280', icon: HelpCircle },
+  FALSE: { label: 'DEBUNKED', color: 'var(--red)', icon: X },
+  PARTLY_TRUE: { label: 'PARTIAL', color: '#fbbf24', icon: AlertCircle },
+  UNPROVEN: { label: 'UNPROVEN', color: 'var(--text-dim)', icon: HelpCircle },
 }
 
 export default function RumorsClient({ rumors, userId }: { rumors: Rumor[]; userId: string }) {
@@ -48,14 +51,19 @@ export default function RumorsClient({ rumors, userId }: { rumors: Rumor[]; user
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-4xl text-gradient-gold" style={{ fontFamily: "'Bebas Neue', cursive" }}>
-            RUMOR MILL
+          <div className="text-[9px] text-[var(--text-dim)] tracking-[0.3em] uppercase mb-1">
+            // INTEL_DATABASE
+          </div>
+          <h1 className="text-2xl font-extrabold text-glow-cyan uppercase tracking-wider">
+            RUMOR_MILL
           </h1>
-          <p className="text-zinc-500 font-mono text-xs mt-1">Every story has two sides. What&apos;s yours?</p>
+          <p className="text-[10px] text-[var(--text-dim)] mt-1 tracking-wider">
+            EVERY_STORY_HAS_TWO_SIDES. WHAT&apos;S_YOURS?
+          </p>
         </div>
         <Link href="/rumors/new">
-          <motion.button className="btn-primary px-4 py-2 rounded-xl text-xs flex items-center gap-2" whileTap={{ scale: 0.95 }}>
-            <Flame className="w-4 h-4" />DROP ONE
+          <motion.button className="btn-execute px-4 py-2 text-[10px] flex items-center gap-2" whileTap={{ scale: 0.95 }}>
+            <Flame className="w-3.5 h-3.5" />DROP_INTEL
           </motion.button>
         </Link>
       </div>
@@ -63,30 +71,40 @@ export default function RumorsClient({ rumors, userId }: { rumors: Rumor[]; user
       {/* Search + filters */}
       <div className="space-y-3 mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-dim)]" />
           <input
             type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search the rumors..."
-            className="input-cyber w-full rounded-xl pl-10 pr-4 py-3 text-sm"
+            placeholder="SEARCH_RUMORS..."
+            className="input-terminal w-full pl-10 pr-4 py-3 text-xs"
           />
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 bg-white/5 rounded-full p-1">
+          <div className="flex items-center gap-1">
             <button onClick={() => setSort('heat')}
-              className={`px-3 py-1 rounded-full text-xs font-tech transition-all ${sort === 'heat' ? 'bg-yellow-400 text-black' : 'text-zinc-400'}`}>
-              <TrendingUp className="w-3 h-3 inline mr-1" />HOT
+              className={`flex items-center gap-1 px-3 py-1.5 text-[10px] tracking-[0.1em] border transition-all ${
+                sort === 'heat'
+                  ? 'text-[var(--cyan)] border-[var(--cyan-border)] bg-[var(--cyan-ghost)]'
+                  : 'text-[var(--text-dim)] border-[var(--cyan-border)]'
+              }`}>
+              <TrendingUp className="w-3 h-3" />HOT
             </button>
             <button onClick={() => setSort('new')}
-              className={`px-3 py-1 rounded-full text-xs font-tech transition-all ${sort === 'new' ? 'bg-yellow-400 text-black' : 'text-zinc-400'}`}>
-              <Clock className="w-3 h-3 inline mr-1" />NEW
+              className={`flex items-center gap-1 px-3 py-1.5 text-[10px] tracking-[0.1em] border transition-all ${
+                sort === 'new'
+                  ? 'text-[var(--cyan)] border-[var(--cyan-border)] bg-[var(--cyan-ghost)]'
+                  : 'text-[var(--text-dim)] border-[var(--cyan-border)]'
+              }`}>
+              <Clock className="w-3 h-3" />NEW
             </button>
           </div>
 
           {categories.map(cat => (
             <button key={cat} onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-              className={`px-3 py-1.5 rounded-full text-xs font-mono transition-all ${
-                selectedCategory === cat ? 'bg-yellow-400 text-black' : 'bg-white/5 text-zinc-400 border border-white/5'
+              className={`px-3 py-1.5 text-[10px] tracking-[0.1em] border transition-all uppercase ${
+                selectedCategory === cat
+                  ? 'text-[var(--cyan)] border-[var(--cyan-border)] bg-[var(--cyan-ghost)]'
+                  : 'text-[var(--text-dim)] border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)]'
               }`}>
               {cat}
             </button>
@@ -94,44 +112,54 @@ export default function RumorsClient({ rumors, userId }: { rumors: Rumor[]; user
         </div>
       </div>
 
-      {/* Rumors grid */}
-      <div className="space-y-4">
+      {/* Rumors list */}
+      <div className="space-y-3">
         {filtered.map((rumor, i) => {
           const verdict = rumor.verdict ? VERDICT_CONFIG[rumor.verdict as keyof typeof VERDICT_CONFIG] : null
           const VerdictIcon = verdict?.icon
+          const heatLevel = rumor.heat_score > 50 ? 'hot' : rumor.heat_score > 20 ? 'warm' : 'cold'
 
           return (
             <motion.div key={rumor.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
               <Link href={`/rumors/${rumor.id}`}>
-                <div className="card-dark p-5 cursor-pointer group">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs text-zinc-500">{rumor.anonymous_alias}</span>
-                      <span className="text-zinc-700">•</span>
-                      <span className="font-mono text-xs text-zinc-600">{formatRelativeTime(rumor.created_at)}</span>
-                      {rumor.category && (
-                        <span className="bg-white/5 text-zinc-500 text-xs font-mono px-2 py-0.5 rounded-full">
-                          {rumor.category}
+                <div className="terminal group cursor-pointer hover:border-[var(--cyan)] transition-colors">
+                  <div className="terminal-body">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[9px] text-[var(--text-dim)] tracking-wider">{rumor.anonymous_alias}</span>
+                        <span className="text-[var(--text-ghost)]">·</span>
+                        <span className="text-[9px] text-[var(--text-ghost)]">{formatRelativeTime(rumor.created_at)}</span>
+                        {rumor.category && (
+                          <span className="text-[8px] text-[var(--text-dim)] border border-[var(--cyan-border)] px-2 py-0.5 tracking-wider uppercase">
+                            {rumor.category}
+                          </span>
+                        )}
+                      </div>
+                      {verdict && VerdictIcon && (
+                        <span className="flex items-center gap-1 text-[9px] font-bold tracking-wider px-2 py-1 border uppercase"
+                          style={{ color: verdict.color, borderColor: verdict.color }}>
+                          <VerdictIcon className="w-3 h-3" />{verdict.label}
                         </span>
                       )}
                     </div>
-                    {verdict && VerdictIcon && (
-                      <span className="flex items-center gap-1 text-xs font-tech px-2 py-1 rounded-full border"
-                        style={{ color: verdict.color, borderColor: `${verdict.color}40`, background: `${verdict.color}15` }}>
-                        <VerdictIcon className="w-3 h-3" />{verdict.label}
+
+                    <h3 className="font-bold text-white text-sm mb-1.5 group-hover:text-[var(--cyan)] transition-colors line-clamp-1 uppercase tracking-wide">
+                      {rumor.title}
+                    </h3>
+                    <p className="text-[var(--text-dim)] text-[11px] line-clamp-2 leading-relaxed">{rumor.content}</p>
+
+                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[var(--cyan-border)] text-[9px] text-[var(--text-dim)]">
+                      <span className="flex items-center gap-1">
+                        <Zap className="w-3 h-3" />{rumor.rumor_votes.length} VOTES
                       </span>
-                    )}
-                  </div>
-
-                  <h3 className="font-bold text-white text-sm mb-2 group-hover:text-yellow-400 transition-colors line-clamp-1">
-                    {rumor.title}
-                  </h3>
-                  <p className="text-zinc-400 text-xs font-mono line-clamp-2 leading-relaxed">{rumor.content}</p>
-
-                  <div className="flex items-center gap-4 mt-4 text-xs font-mono text-zinc-600">
-                    <span>{rumor.rumor_votes.length} votes</span>
-                    <span>{rumor.rumor_comments.length} comments</span>
-                    <span className="text-orange-400/70 ml-auto">heat: {Math.floor(rumor.heat_score)}</span>
+                      <span className="flex items-center gap-1">
+                        <MessageCircle className="w-3 h-3" />{rumor.rumor_comments.length} COMMENTS
+                      </span>
+                      <span className="ml-auto" style={{ color: heatLevel === 'hot' ? 'var(--red)' : heatLevel === 'warm' ? '#fbbf24' : 'var(--text-dim)' }}>
+                        {heatLevel === 'hot' && <Flame className="w-3 h-3 inline mr-1" />}
+                        HEAT: {Math.floor(rumor.heat_score)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Link>
@@ -140,9 +168,17 @@ export default function RumorsClient({ rumors, userId }: { rumors: Rumor[]; user
         })}
 
         {filtered.length === 0 && (
-          <div className="text-center py-20 text-zinc-600 font-mono">
-            <HelpCircle className="w-10 h-10 mx-auto mb-3 opacity-20" />
-            <p>No rumors match your search.</p>
+          <div className="terminal">
+            <div className="terminal-header">
+              <div className="terminal-dots"><span /><span /><span /></div>
+              <div className="terminal-title">
+                <Terminal className="w-3 h-3" /> NO_RESULTS
+              </div>
+            </div>
+            <div className="terminal-body text-center py-12">
+              <HelpCircle className="w-8 h-8 mx-auto mb-3 text-[var(--text-dim)] opacity-30" />
+              <p className="text-[var(--text-dim)] text-xs tracking-wider">NO_RUMORS_MATCH_YOUR_QUERY.</p>
+            </div>
           </div>
         )}
       </div>

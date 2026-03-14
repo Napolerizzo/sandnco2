@@ -2,7 +2,7 @@ import Navbar from '@/components/layout/Navbar'
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#030303]">
+    <div className="min-h-screen bg-black text-[var(--cyan)] font-mono">
       <Navbar />
       <main className="pt-14">
         {children}

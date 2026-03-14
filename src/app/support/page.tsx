@@ -4,8 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import {
-  MessageCircle, Send, Loader, Bot, User, Plus,
-  ChevronRight, Ticket, HelpCircle, Zap, CreditCard, Bug, Scale
+  MessageCircle, Send, Loader, Bot, User, Terminal,
+  Ticket, HelpCircle, Zap, CreditCard, Bug, Scale, Lock, Shield
 } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 
@@ -16,19 +16,19 @@ interface Message {
 }
 
 const TICKET_CATEGORIES = [
-  { id: 'payment', icon: CreditCard, label: 'Payment Issue', description: 'Problems with deposits or withdrawals' },
-  { id: 'wallet', icon: Zap, label: 'Wallet Problem', description: 'Balance or transaction issues' },
-  { id: 'membership', icon: Bot, label: 'Membership', description: 'Premium membership questions' },
-  { id: 'bug', icon: Bug, label: 'Bug Report', description: 'Something broken? Tell us.' },
-  { id: 'appeal', icon: Scale, label: 'Moderation Appeal', description: 'Contest a moderation decision' },
-  { id: 'general', icon: HelpCircle, label: 'General Help', description: 'Anything else' },
+  { id: 'payment', icon: CreditCard, label: 'PAYMENT_ISSUE', description: 'Problems with deposits or withdrawals' },
+  { id: 'wallet', icon: Zap, label: 'WALLET_ERROR', description: 'Balance or transaction issues' },
+  { id: 'membership', icon: Bot, label: 'MEMBERSHIP', description: 'Premium membership questions' },
+  { id: 'bug', icon: Bug, label: 'BUG_REPORT', description: 'Something broken? Tell us.' },
+  { id: 'appeal', icon: Scale, label: 'MOD_APPEAL', description: 'Contest a moderation decision' },
+  { id: 'general', icon: HelpCircle, label: 'GENERAL', description: 'Anything else' },
 ]
 
 export default function SupportPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hey! I'm Suno, your city guide. What do you need help with today? I can assist with account questions, wallet issues, challenges, or anything platform-related. If I can't help, I'll connect you with a human.",
+      content: "SUNO_ONLINE. I'm your city guide. What do you need help with? I can assist with account questions, wallet issues, challenges, or anything platform-related. If I can't resolve it, I'll connect you with a human agent.",
       timestamp: new Date(),
     }
   ])
@@ -68,7 +68,7 @@ export default function SupportPage() {
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "I'm having trouble connecting. Please try again or email sandncolol@gmail.com.",
+        content: "CONNECTION_ERROR. Please retry or email sandncolol@gmail.com.",
         timestamp: new Date(),
       }])
     } finally {
@@ -91,34 +91,39 @@ export default function SupportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030303] grid-bg">
+    <div className="min-h-screen bg-black text-[var(--cyan)] font-mono">
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
-        <motion.div className="text-center mb-10" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div className="text-center mb-8" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex justify-center mb-4">
-            <div className="relative w-14 h-14">
-              <Image src="/logo.png" alt="Support" fill className="object-contain crown-animate" />
+            <div className="relative w-12 h-12">
+              <Image src="/logo.png" alt="Support" fill className="object-contain" />
             </div>
           </div>
-          <h1 className="font-display text-4xl text-gradient-gold mb-2" style={{ fontFamily: "'Bebas Neue', cursive" }}>
-            SUPPORT CENTER
+          <div className="text-[9px] text-[var(--text-dim)] tracking-[0.3em] uppercase mb-2">
+            // ASSISTANCE_PROTOCOL
+          </div>
+          <h1 className="text-3xl font-extrabold text-glow-cyan uppercase tracking-wider mb-2">
+            SUPPORT_CENTER
           </h1>
-          <p className="font-mono text-xs text-zinc-500">
-            Chat with Suno our AI or open a ticket. Email us: <span className="text-yellow-400">sandncolol@gmail.com</span>
+          <p className="text-[10px] text-[var(--text-dim)] tracking-wider">
+            CHAT_WITH_SUNO_AI OR OPEN_A_TICKET. EMAIL: <span className="text-[var(--cyan)]">SANDNCOLOL@GMAIL.COM</span>
           </p>
         </motion.div>
 
         {/* Mode toggle */}
         <div className="flex gap-2 justify-center mb-8">
           {[
-            { id: 'chat', icon: MessageCircle, label: 'AI Chat' },
-            { id: 'ticket', icon: Ticket, label: 'Open Ticket' },
+            { id: 'chat', icon: MessageCircle, label: 'AI_CHAT' },
+            { id: 'ticket', icon: Ticket, label: 'OPEN_TICKET' },
           ].map(({ id, icon: Icon, label }) => (
             <button key={id} onClick={() => setMode(id as 'chat' | 'ticket')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-tech transition-all ${
-                mode === id ? 'bg-yellow-400 text-black font-bold' : 'glass text-zinc-400 hover:text-white'
+              className={`flex items-center gap-2 px-6 py-2.5 text-[10px] tracking-[0.15em] border transition-all ${
+                mode === id
+                  ? 'text-[var(--cyan)] border-[var(--cyan)] bg-[var(--cyan-ghost)]'
+                  : 'text-[var(--text-dim)] border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)]'
               }`}>
-              <Icon className="w-4 h-4" />{label}
+              <Icon className="w-3.5 h-3.5" />{label}
             </button>
           ))}
         </div>
@@ -126,57 +131,53 @@ export default function SupportPage() {
         <AnimatePresence mode="wait">
           {mode === 'chat' && (
             <motion.div key="chat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <div className="glass-gold rounded-2xl overflow-hidden">
+              <div className="terminal">
                 {/* Chat header */}
-                <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-black" />
-                  </div>
-                  <div>
-                    <p className="font-tech text-sm text-white font-bold">Suno</p>
-                    <div className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                      <span className="font-mono text-xs text-zinc-500">Platform Assistant</span>
-                    </div>
+                <div className="terminal-header">
+                  <div className="terminal-dots"><span /><span /><span /></div>
+                  <div className="terminal-title flex items-center gap-2">
+                    <Bot className="w-3 h-3" /> SUNO_ASSISTANT
+                    <span className="w-1.5 h-1.5 bg-[var(--green)] animate-pulse" />
+                    <span className="text-[7px] text-[var(--green)]">ONLINE</span>
                   </div>
                 </div>
 
                 {/* Messages */}
-                <div className="h-96 overflow-y-auto p-5 space-y-4">
+                <div className="h-96 overflow-y-auto p-4 space-y-3">
                   {messages.map((msg, i) => (
                     <motion.div
                       key={i}
                       className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                     >
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      <div className={`w-7 h-7 border flex items-center justify-center flex-shrink-0 ${
                         msg.role === 'assistant'
-                          ? 'bg-gradient-to-br from-yellow-400 to-orange-400'
-                          : 'bg-white/10 border border-white/10'
+                          ? 'border-[var(--cyan)] bg-[var(--cyan-ghost)]'
+                          : 'border-[var(--cyan-border)] bg-transparent'
                       }`}>
-                        {msg.role === 'assistant' ? <Bot className="w-3.5 h-3.5 text-black" /> : <User className="w-3.5 h-3.5 text-zinc-300" />}
+                        {msg.role === 'assistant' ? <Bot className="w-3 h-3 text-[var(--cyan)]" /> : <User className="w-3 h-3 text-[var(--text-dim)]" />}
                       </div>
                       <div className={`max-w-[80%] ${msg.role === 'user' ? 'text-right' : ''}`}>
-                        <div className={`rounded-2xl px-4 py-2.5 text-sm font-mono leading-relaxed ${
+                        <div className={`px-4 py-2.5 text-[11px] leading-relaxed ${
                           msg.role === 'assistant'
-                            ? 'bg-white/5 text-zinc-200 rounded-tl-none'
-                            : 'bg-yellow-400/10 border border-yellow-400/20 text-zinc-200 rounded-tr-none'
+                            ? 'border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] text-[var(--text-dim)]'
+                            : 'border border-[var(--cyan)] bg-[var(--cyan)]/5 text-[var(--cyan)]'
                         }`}>
                           {msg.content}
                         </div>
-                        <p className="font-mono text-xs text-zinc-600 mt-1">{formatRelativeTime(msg.timestamp)}</p>
+                        <p className="text-[8px] text-[var(--text-ghost)] mt-1 tracking-wider">{formatRelativeTime(msg.timestamp)}</p>
                       </div>
                     </motion.div>
                   ))}
                   {loading && (
                     <div className="flex gap-3">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center">
-                        <Bot className="w-3.5 h-3.5 text-black" />
+                      <div className="w-7 h-7 border border-[var(--cyan)] bg-[var(--cyan-ghost)] flex items-center justify-center">
+                        <Bot className="w-3 h-3 text-[var(--cyan)]" />
                       </div>
-                      <div className="bg-white/5 rounded-2xl rounded-tl-none px-4 py-3">
+                      <div className="border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] px-4 py-3">
                         <div className="flex gap-1">
                           {[0, 1, 2].map(i => (
-                            <div key={i} className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                            <div key={i} className="w-1.5 h-1.5 bg-[var(--cyan)] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                           ))}
                         </div>
                       </div>
@@ -186,29 +187,34 @@ export default function SupportPage() {
                 </div>
 
                 {/* Input */}
-                <div className="flex gap-3 p-4 border-t border-white/5">
+                <div className="flex gap-2 p-3 border-t border-[var(--cyan-border)]">
                   <input
                     type="text"
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                    placeholder="Ask Suno anything..."
-                    className="input-cyber flex-1 rounded-xl px-4 py-2.5 text-sm"
+                    placeholder="ASK_SUNO..."
+                    className="input-terminal flex-1 text-[10px]"
                   />
                   <motion.button
                     onClick={sendMessage}
                     disabled={loading || !input.trim()}
-                    className="btn-primary px-4 py-2.5 rounded-xl disabled:opacity-50"
+                    className="btn-execute px-4 py-2 text-[10px]"
                     whileTap={{ scale: 0.95 }}
                   >
-                    {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {loading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   </motion.button>
+                </div>
+
+                <div className="terminal-footer">
+                  <Shield className="w-3 h-3" />
+                  AI_POWERED | INPUTS_NOT_STORED
                 </div>
               </div>
 
-              <p className="text-center font-mono text-xs text-zinc-600 mt-4">
-                Suno can&apos;t resolve all issues. For urgent matters,{' '}
-                <button onClick={() => setMode('ticket')} className="text-yellow-400 hover:underline">open a ticket</button>.
+              <p className="text-center text-[9px] text-[var(--text-ghost)] mt-4 tracking-wider">
+                SUNO_CANNOT_RESOLVE_ALL_ISSUES. FOR_URGENT_MATTERS,{' '}
+                <button onClick={() => setMode('ticket')} className="text-[var(--cyan)] hover:underline">OPEN_A_TICKET</button>.
               </p>
             </motion.div>
           )}
@@ -216,67 +222,95 @@ export default function SupportPage() {
           {mode === 'ticket' && (
             <motion.div key="ticket" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {ticketSubmitted ? (
-                <div className="glass-gold rounded-2xl p-10 text-center">
-                  <div className="text-5xl mb-4">✅</div>
-                  <h3 className="font-display text-2xl text-gradient-gold mb-2" style={{ fontFamily: "'Bebas Neue', cursive" }}>
-                    TICKET SUBMITTED
-                  </h3>
-                  <p className="font-mono text-sm text-zinc-400">
-                    We&apos;ll respond within 24-48 hours at <span className="text-yellow-400">sandncolol@gmail.com</span>
-                  </p>
-                  <button onClick={() => setMode('chat')} className="btn-ghost px-6 py-2 rounded-xl text-xs mt-6 font-mono">
-                    Back to chat
-                  </button>
-                </div>
-              ) : (
-                <div className="glass-gold rounded-2xl p-8">
-                  <h3 className="font-tech text-sm text-yellow-400 tracking-widest uppercase mb-6">Open Support Ticket</h3>
-
-                  {/* Category */}
-                  <div className="mb-5">
-                    <label className="font-tech text-xs text-zinc-400 tracking-wider uppercase block mb-3">Category</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {TICKET_CATEGORIES.map(({ id, icon: Icon, label, description }) => (
-                        <button key={id} onClick={() => setTicketCategory(id)}
-                          className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
-                            ticketCategory === id
-                              ? 'border-yellow-400/40 bg-yellow-400/5 text-white'
-                              : 'border-white/5 text-zinc-400 hover:border-white/10'
-                          }`}>
-                          <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${ticketCategory === id ? 'text-yellow-400' : ''}`} />
-                          <div>
-                            <p className="font-mono text-xs font-bold">{label}</p>
-                            <p className="font-mono text-xs text-zinc-600 mt-0.5">{description}</p>
-                          </div>
-                        </button>
-                      ))}
+                <div className="terminal">
+                  <div className="terminal-header">
+                    <div className="terminal-dots"><span /><span /><span /></div>
+                    <div className="terminal-title">
+                      <Ticket className="w-3 h-3" /> TICKET_SUBMITTED
                     </div>
                   </div>
+                  <div className="terminal-body text-center py-10">
+                    <div className="text-4xl mb-4">✅</div>
+                    <h3 className="text-xl font-extrabold text-glow-cyan uppercase tracking-wider mb-2">
+                      TICKET_DEPLOYED
+                    </h3>
+                    <p className="text-[10px] text-[var(--text-dim)] tracking-wider">
+                      RESPONSE_ETA: 24-48_HOURS AT <span className="text-[var(--cyan)]">SANDNCOLOL@GMAIL.COM</span>
+                    </p>
+                    <button onClick={() => setMode('chat')} className="btn-outline px-6 py-2 text-[10px] mt-6">
+                      BACK_TO_CHAT
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="terminal">
+                  <div className="terminal-header">
+                    <div className="terminal-dots"><span /><span /><span /></div>
+                    <div className="terminal-title">
+                      <Ticket className="w-3 h-3" /> NEW_TICKET
+                    </div>
+                  </div>
+                  <div className="terminal-body">
+                    {/* Category */}
+                    <div className="mb-5">
+                      <label className="label-terminal">
+                        <Terminal className="w-3 h-3" /> CATEGORY
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {TICKET_CATEGORIES.map(({ id, icon: Icon, label, description }) => (
+                          <button key={id} onClick={() => setTicketCategory(id)}
+                            className={`flex items-start gap-3 p-3 border text-left transition-all ${
+                              ticketCategory === id
+                                ? 'border-[var(--cyan)] bg-[var(--cyan-ghost)] text-white'
+                                : 'border-[var(--cyan-border)] text-[var(--text-dim)] hover:bg-[var(--cyan-ghost)]'
+                            }`}>
+                            <Icon className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${ticketCategory === id ? 'text-[var(--cyan)]' : ''}`} />
+                            <div>
+                              <p className="text-[10px] font-bold tracking-wider">{label}</p>
+                              <p className="text-[8px] text-[var(--text-ghost)] mt-0.5">{description}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                  {ticketCategory && (
-                    <>
-                      <div className="mb-4">
-                        <label className="font-tech text-xs text-zinc-400 tracking-wider uppercase block mb-2">Subject</label>
-                        <input type="text" value={ticketSubject} onChange={e => setTicketSubject(e.target.value)}
-                          placeholder="Brief description of the issue"
-                          className="input-cyber w-full rounded-xl px-4 py-3 text-sm" />
-                      </div>
-                      <div className="mb-5">
-                        <label className="font-tech text-xs text-zinc-400 tracking-wider uppercase block mb-2">Description</label>
-                        <textarea value={ticketDesc} onChange={e => setTicketDesc(e.target.value)}
-                          placeholder="Detailed description of the problem. Include any relevant IDs or screenshots."
-                          rows={5} className="input-cyber w-full rounded-xl px-4 py-3 text-sm resize-none" />
-                      </div>
-                      <motion.button
-                        onClick={submitTicket}
-                        disabled={submittingTicket || !ticketSubject || !ticketDesc}
-                        className="btn-primary w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        {submittingTicket ? <><Loader className="w-4 h-4 animate-spin" />SUBMITTING...</> : <><Ticket className="w-4 h-4" />SUBMIT TICKET</>}
-                      </motion.button>
-                    </>
-                  )}
+                    {ticketCategory && (
+                      <>
+                        <div className="mb-4">
+                          <label className="label-terminal">
+                            <Terminal className="w-3 h-3" /> SUBJECT
+                          </label>
+                          <input type="text" value={ticketSubject} onChange={e => setTicketSubject(e.target.value)}
+                            placeholder="BRIEF_DESCRIPTION_OF_ISSUE"
+                            className="input-terminal w-full" />
+                        </div>
+                        <div className="mb-5">
+                          <label className="label-terminal">
+                            <Terminal className="w-3 h-3" /> DESCRIPTION
+                          </label>
+                          <textarea value={ticketDesc} onChange={e => setTicketDesc(e.target.value)}
+                            placeholder="DETAILED_DESCRIPTION. INCLUDE_RELEVANT_IDS_OR_SCREENSHOTS."
+                            rows={5} className="input-terminal w-full resize-none" />
+                        </div>
+                        <motion.button
+                          onClick={submitTicket}
+                          disabled={submittingTicket || !ticketSubject || !ticketDesc}
+                          className="btn-execute w-full"
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <span className="relative z-10 flex items-center justify-center gap-3">
+                            {submittingTicket
+                              ? <><Loader className="w-4 h-4 animate-spin" />SUBMITTING...</>
+                              : <><Ticket className="w-4 h-4" />DEPLOY_TICKET</>}
+                          </span>
+                        </motion.button>
+                      </>
+                    )}
+                  </div>
+                  <div className="terminal-footer">
+                    <Lock className="w-3 h-3" />
+                    SUPPORT: SANDNCOLOL@GMAIL.COM
+                  </div>
                 </div>
               )}
             </motion.div>

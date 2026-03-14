@@ -4,18 +4,80 @@ import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { Flame, Trophy, Crown, Zap, Eye, Shield, ArrowRight, Star, Users, TrendingUp } from 'lucide-react'
+import {
+  Flame, Trophy, Crown, Zap, Eye, Shield, ArrowRight,
+  Users, TrendingUp, Terminal, ChevronRight, Lock,
+  Crosshair, Cpu, Activity, Radio, Skull, Star
+} from 'lucide-react'
 import { RANKS } from '@/lib/ranks'
 
 const RANK_KEYS = Object.keys(RANKS) as (keyof typeof RANKS)[]
 
+// Typed terminal text effect
+function TypeWriter({ text, delay = 0 }: { text: string; delay?: number }) {
+  const [displayed, setDisplayed] = useState('')
+  const [started, setStarted] = useState(false)
+
+  useEffect(() => {
+    const startTimeout = setTimeout(() => setStarted(true), delay)
+    return () => clearTimeout(startTimeout)
+  }, [delay])
+
+  useEffect(() => {
+    if (!started) return
+    let i = 0
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        setDisplayed(text.slice(0, i + 1))
+        i++
+      } else {
+        clearInterval(interval)
+      }
+    }, 40)
+    return () => clearInterval(interval)
+  }, [started, text])
+
+  return (
+    <span>
+      {displayed}
+      <span className="animate-pulse text-[var(--cyan)]">█</span>
+    </span>
+  )
+}
+
 export default function LandingPage() {
   const [currentRank, setCurrentRank] = useState(0)
   const [glitchActive, setGlitchActive] = useState(false)
+  const [bootSequence, setBootSequence] = useState(true)
+  const [bootLines, setBootLines] = useState<string[]>([])
   const heroRef = useRef<HTMLDivElement>(null)
   const { scrollY } = useScroll()
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0])
-  const heroY = useTransform(scrollY, [0, 400], [0, -100])
+  const heroY = useTransform(scrollY, [0, 400], [0, -80])
+
+  // Boot sequence
+  useEffect(() => {
+    const lines = [
+      '> INITIALIZING_KING_OF_GOOD_TIMES_V2...',
+      '> LOADING_CITY_DATABASE................ OK',
+      '> ESTABLISHING_SECURE_CONNECTION....... OK',
+      '> RUMOR_ENGINE_ONLINE.................. OK',
+      '> CHALLENGE_PROTOCOL_ACTIVE............ OK',
+      '> RANK_SYSTEM_CALIBRATED............... OK',
+      '> WELCOME_TO_THE_CITY.',
+    ]
+    let i = 0
+    const interval = setInterval(() => {
+      if (i < lines.length) {
+        setBootLines(prev => [...prev, lines[i]])
+        i++
+      } else {
+        clearInterval(interval)
+        setTimeout(() => setBootSequence(false), 600)
+      }
+    }, 200)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const rankInterval = setInterval(() => {
@@ -24,7 +86,7 @@ export default function LandingPage() {
     const glitchInterval = setInterval(() => {
       setGlitchActive(true)
       setTimeout(() => setGlitchActive(false), 150)
-    }, 6000)
+    }, 8000)
     return () => { clearInterval(rankInterval); clearInterval(glitchInterval) }
   }, [])
 
@@ -32,90 +94,164 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: Flame, title: 'Drop Rumors', color: '#f97316',
+      icon: Flame, title: 'DROP_RUMORS', color: 'var(--red)',
       desc: 'Post anonymous city secrets. Let the streets decide what\'s real.',
+      cmd: '$ rumor --post --anonymous --city=all',
     },
     {
-      icon: Eye, title: 'Bust Myths', color: '#06b6d4',
+      icon: Eye, title: 'BUST_MYTHS', color: 'var(--cyan)',
       desc: 'Investigate. Present evidence. Flip the narrative or confirm the chaos.',
+      cmd: '$ mythbust --investigate --evidence=submit',
     },
     {
-      icon: Trophy, title: 'Win Challenges', color: '#a855f7',
+      icon: Trophy, title: 'WIN_CHALLENGES', color: '#a855f7',
       desc: 'Compete in city challenges. Put your money where your mouth is.',
+      cmd: '$ challenge --enter --stake=100 --mode=pvp',
     },
     {
-      icon: Crown, title: 'Claim Your Rank', color: '#fbbf24',
+      icon: Crown, title: 'CLAIM_YOUR_RANK', color: '#fbbf24',
       desc: 'Rise from Ghost in the City to the one true King of Good Times.',
+      cmd: '$ rank --climb --target=king_of_good_times',
     },
   ]
 
   const stats = [
-    { label: 'City Players', value: '10K+', icon: Users },
-    { label: 'Rumors Dropped', value: '50K+', icon: Flame },
-    { label: 'Challenges Won', value: '₹5L+', icon: Trophy },
-    { label: 'Myths Busted', value: '8K+', icon: Star },
+    { label: 'ACTIVE_AGENTS', value: '10K+', icon: Users },
+    { label: 'RUMORS_DEPLOYED', value: '50K+', icon: Flame },
+    { label: 'PRIZE_POOL', value: '₹5L+', icon: Trophy },
+    { label: 'MYTHS_BUSTED', value: '8K+', icon: Crosshair },
   ]
 
-  return (
-    <div className="min-h-screen bg-[#030303] overflow-hidden">
-      {/* Animated grid background */}
-      <div className="fixed inset-0 grid-bg opacity-60 pointer-events-none" />
+  // Boot sequence overlay
+  if (bootSequence) {
+    return (
+      <div className="min-h-screen bg-black text-[var(--cyan)] font-mono flex items-center justify-center p-6">
+        <div className="max-w-xl w-full">
+          <div className="terminal">
+            <div className="terminal-header">
+              <div className="terminal-dots"><span /><span /><span /></div>
+              <div className="terminal-title">
+                <Terminal className="w-3 h-3" /> BOOT_SEQUENCE
+              </div>
+            </div>
+            <div className="terminal-body text-xs leading-loose">
+              {bootLines.map((line, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={line.includes('OK') ? 'text-[var(--green)]' : 'text-[var(--cyan)]'}
+                >
+                  {line}
+                </motion.div>
+              ))}
+              <span className="animate-pulse">█</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-      {/* Moving scanline */}
+  return (
+    <div className="min-h-screen bg-black text-[var(--cyan)] font-mono overflow-hidden">
+
+      {/* Grid background */}
+      <div className="fixed inset-0 grid-bg pointer-events-none" style={{ maskImage: 'radial-gradient(ellipse 80% 50% at 50% 50%, black, transparent)' }} />
+
+      {/* Scanning line */}
       <motion.div
-        className="fixed inset-x-0 h-px bg-gradient-to-r from-transparent via-yellow-400/15 to-transparent pointer-events-none z-10"
-        animate={{ y: ['-100vh', '100vh'] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+        className="fixed left-0 w-full h-[2px] pointer-events-none z-10"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.4), transparent)', boxShadow: '0 0 20px rgba(0,255,245,0.3)' }}
+        animate={{ top: ['-5%', '105%'] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
       />
 
-      {/* Radial glow */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(251,191,36,0.06),transparent)] pointer-events-none" />
+      {/* Corner brackets */}
+      <div className="fixed top-6 left-6 w-12 h-12 border-l-2 border-t-2 border-[var(--cyan-border)] pointer-events-none z-40" />
+      <div className="fixed top-6 right-6 w-12 h-12 border-r-2 border-t-2 border-[var(--cyan-border)] pointer-events-none z-40" />
+      <div className="fixed bottom-6 left-6 w-12 h-12 border-l-2 border-b-2 border-[var(--cyan-border)] pointer-events-none z-40" />
+      <div className="fixed bottom-6 right-6 w-12 h-12 border-r-2 border-b-2 border-[var(--cyan-border)] pointer-events-none z-40" />
 
-      {/* Nav */}
-      <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 h-14">
-        <div className="flex items-center gap-2">
-          <div className="relative w-8 h-8">
-            <Image src="/logo.png" alt="KGT" fill className="object-contain crown-animate" />
+      {/* Glitch overlay */}
+      <AnimatePresence>
+        {glitchActive && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.15, 0, 0.1, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 bg-[var(--cyan)] mix-blend-screen pointer-events-none z-20"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── NAV ── */}
+      <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 h-14 bg-black/80 backdrop-blur-sm border-b border-[var(--cyan-border)]">
+        <div className="flex items-center gap-3">
+          <div className="relative w-7 h-7">
+            <Image src="/logo.png" alt="KGT" fill className="object-contain" />
           </div>
-          <span className="font-display text-xl tracking-wider text-gradient-gold" style={{ fontFamily: "'Bebas Neue', cursive" }}>
-            KING OF GOOD TIMES
+          <span className="text-xs font-bold tracking-[0.25em] text-glow-cyan uppercase hidden sm:inline">
+            KING_OF_GOOD_TIMES
+          </span>
+          <span className="text-[8px] text-[var(--text-dim)] tracking-wider hidden md:inline">
+            // V2.0
           </span>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/login">
-            <button className="btn-ghost px-4 py-2 rounded-xl text-xs font-mono">Sign In</button>
+            <motion.button
+              className="btn-outline px-4 py-2 text-[10px]"
+              whileTap={{ scale: 0.97 }}
+            >
+              <Lock className="w-3 h-3 inline mr-1.5" />
+              LOGIN
+            </motion.button>
           </Link>
           <Link href="/signup">
             <motion.button
-              className="btn-primary px-5 py-2 rounded-xl text-xs flex items-center gap-1.5"
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              className="btn-execute px-5 py-2 text-[10px]"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
             >
-              JOIN THE CITY <ArrowRight className="w-3.5 h-3.5" />
+              <Zap className="w-3 h-3 inline mr-1.5" />
+              REGISTER_AGENT
             </motion.button>
           </Link>
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* ── HERO ── */}
       <motion.section
         ref={heroRef}
         className="relative min-h-screen flex items-center justify-center pt-14"
         style={{ opacity: heroOpacity, y: heroY }}
       >
-        <div className="text-center px-6 max-w-5xl mx-auto">
-          {/* Floating rank badge */}
+        <div className="text-center px-6 max-w-4xl mx-auto">
+
+          {/* Cycling rank badge */}
           <motion.div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-white/10 mb-8"
-            animate={{ y: [0, -8, 0] }}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] mb-8"
+            animate={{ y: [0, -6, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
           >
+            <Activity className="w-3 h-3 text-[var(--text-dim)]" />
             <AnimatePresence mode="wait">
-              <motion.span key={currentRank} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}>
-                <span className="font-tech text-xs tracking-wider" style={{ color: rank.color }}>
-                  {rank.emoji} {rank.label}
-                </span>
+              <motion.span
+                key={currentRank}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="text-[10px] tracking-[0.2em] font-bold uppercase"
+                style={{ color: rank.color }}
+              >
+                {rank.emoji} {rank.label.toUpperCase().replace(/\s+/g, '_')}
               </motion.span>
             </AnimatePresence>
+            <span className="text-[8px] text-[var(--text-dim)]">
+              [{rank.xpRequired.toLocaleString()} XP]
+            </span>
           </motion.div>
 
           {/* Main heading */}
@@ -124,53 +260,62 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1
-              className="font-display leading-none mb-4"
-              style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 'clamp(4rem, 12vw, 10rem)' }}
-            >
+            <h1 className="leading-none mb-6" style={{ fontSize: 'clamp(3rem, 10vw, 8rem)' }}>
               <motion.span
-                className="block text-gradient-gold"
-                animate={{ filter: glitchActive ? 'hue-rotate(30deg) brightness(1.5)' : 'none' }}
+                className="block font-extrabold text-glow-cyan"
+                animate={{ filter: glitchActive ? 'hue-rotate(40deg) brightness(2)' : 'none' }}
               >
                 KING OF
               </motion.span>
-              <span className="block text-white">GOOD TIMES</span>
+              <span className="block font-extrabold text-white" style={{ textShadow: '0 0 40px rgba(255,255,255,0.15)' }}>
+                GOOD TIMES
+              </span>
             </h1>
           </motion.div>
 
-          <motion.p
-            className="font-mono text-lg text-zinc-400 max-w-2xl mx-auto mb-4"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          <motion.div
+            className="text-sm text-[var(--text-dim)] max-w-xl mx-auto mb-3 leading-relaxed"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
           >
-            Post anonymous rumors. Bust myths. Enter challenges. Earn real money. Climb the city ranks.
-          </motion.p>
+            <TypeWriter text="Post anonymous rumors. Bust myths. Enter challenges. Earn real money. Climb the city ranks." delay={300} />
+          </motion.div>
 
           <motion.p
-            className="font-tech text-xs text-zinc-600 tracking-[0.4em] uppercase mb-10"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+            className="text-[9px] text-[var(--text-ghost)] tracking-[0.5em] uppercase mb-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
           >
-            sandnco.lol — v2
+            SANDNCO.LOL — SECURE_TERMINAL_V2
           </motion.p>
 
+          {/* CTA buttons */}
           <motion.div
             className="flex items-center justify-center gap-4 flex-wrap"
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
           >
             <Link href="/signup">
               <motion.button
-                className="btn-primary px-8 py-4 rounded-2xl text-base flex items-center gap-2 glow-gold"
-                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+                className="btn-execute px-8 py-4 text-sm flex items-center gap-2"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
               >
-                <Crown className="w-5 h-5" />
-                CLAIM YOUR THRONE
+                <Shield className="w-4 h-4" />
+                INITIALIZE_AGENT
+                <ArrowRight className="w-4 h-4" />
               </motion.button>
             </Link>
             <Link href="/login">
               <motion.button
-                className="btn-ghost px-8 py-4 rounded-2xl text-base font-mono"
-                whileHover={{ scale: 1.02 }}
+                className="btn-outline px-8 py-4 text-sm flex items-center gap-2"
+                whileHover={{ scale: 1.01 }}
               >
-                Sign In →
+                <Terminal className="w-4 h-4" />
+                ACCESS_TERMINAL
               </motion.button>
             </Link>
           </motion.div>
@@ -179,149 +324,267 @@ export default function LandingPage() {
         {/* Scroll indicator */}
         <motion.div
           className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-          animate={{ y: [0, 8, 0] }} transition={{ duration: 2, repeat: Infinity }}
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
         >
-          <div className="w-px h-12 bg-gradient-to-b from-yellow-400/40 to-transparent" />
-          <span className="font-mono text-xs text-zinc-600">scroll</span>
+          <div className="w-px h-12 bg-gradient-to-b from-[var(--cyan)]/40 to-transparent" />
+          <span className="text-[8px] text-[var(--text-dim)] tracking-[0.3em] uppercase">SCROLL_DOWN</span>
         </motion.div>
       </motion.section>
 
-      {/* Stats */}
+      {/* ── STATS ── */}
       <section className="py-16 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map(({ label, value, icon: Icon }, i) => (
-            <motion.div
-              key={label}
-              className="glass rounded-2xl p-5 text-center"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              viewport={{ once: true }}
-            >
-              <Icon className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
-              <p className="font-display text-3xl text-gradient-gold" style={{ fontFamily: "'Bebas Neue', cursive" }}>{value}</p>
-              <p className="font-mono text-xs text-zinc-500 mt-1">{label}</p>
-            </motion.div>
-          ))}
+        <div className="max-w-5xl mx-auto">
+          <div className="terminal">
+            <div className="terminal-header">
+              <div className="terminal-dots"><span /><span /><span /></div>
+              <div className="terminal-title">
+                <Activity className="w-3 h-3" /> CITY_METRICS
+              </div>
+            </div>
+            <div className="terminal-body">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {stats.map(({ label, value, icon: Icon }, i) => (
+                  <motion.div
+                    key={label}
+                    className="border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] p-5 text-center"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    viewport={{ once: true }}
+                  >
+                    <Icon className="w-5 h-5 text-[var(--cyan)] mx-auto mb-2" />
+                    <p className="text-2xl font-extrabold text-glow-cyan">{value}</p>
+                    <p className="text-[9px] text-[var(--text-dim)] mt-1 tracking-[0.15em] uppercase">{label}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Features */}
+      {/* ── FEATURES ── */}
       <section className="py-16 px-6">
         <div className="max-w-5xl mx-auto">
           <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+            className="text-center mb-10"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
           >
-            <h2 className="font-display text-5xl text-white mb-3" style={{ fontFamily: "'Bebas Neue', cursive" }}>
-              THE CITY <span className="text-gradient-gold">AWAITS</span>
+            <div className="text-[9px] text-[var(--text-dim)] tracking-[0.3em] uppercase mb-3">
+              // SYSTEM_CAPABILITIES
+            </div>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-white uppercase tracking-wider mb-3">
+              THE CITY <span className="text-glow-cyan">PROTOCOLS</span>
             </h2>
-            <p className="font-mono text-zinc-500 text-sm">Four ways to rule the streets</p>
+            <p className="text-xs text-[var(--text-dim)]">Four ways to dominate the streets</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {features.map(({ icon: Icon, title, color, desc }, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {features.map(({ icon: Icon, title, color, desc, cmd }, i) => (
               <motion.div
                 key={title}
-                className="card-dark p-7 group"
+                className="terminal group"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
                 viewport={{ once: true }}
-                whileHover={{ scale: 1.01 }}
               >
-                <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-                  style={{ background: `${color}15`, border: `1px solid ${color}30` }}
-                >
-                  <Icon className="w-6 h-6" style={{ color }} />
+                <div className="terminal-header">
+                  <div className="terminal-dots"><span /><span /><span /></div>
+                  <div className="terminal-title">
+                    <Icon className="w-3 h-3" style={{ color }} /> {title}
+                  </div>
                 </div>
-                <h3 className="font-tech text-base font-bold text-white mb-2">{title}</h3>
-                <p className="font-mono text-sm text-zinc-400 leading-relaxed">{desc}</p>
+                <div className="terminal-body">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div
+                      className="w-10 h-10 border flex items-center justify-center flex-shrink-0"
+                      style={{ borderColor: color, background: `${color}10` }}
+                    >
+                      <Icon className="w-5 h-5" style={{ color }} />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-1">{title.replace(/_/g, ' ')}</h3>
+                      <p className="text-[11px] text-[var(--text-dim)] leading-relaxed">{desc}</p>
+                    </div>
+                  </div>
+                  <div className="text-[9px] text-[var(--green)] bg-black/50 px-3 py-2 border border-[var(--cyan-border)] font-mono">
+                    {cmd}
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Rank showcase */}
+      {/* ── RANK SHOWCASE ── */}
       <section className="py-16 px-6">
         <div className="max-w-5xl mx-auto">
-          <motion.div className="text-center mb-10" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
-            <h2 className="font-display text-5xl text-white mb-3" style={{ fontFamily: "'Bebas Neue', cursive" }}>
-              10 RANKS TO <span className="text-gradient-gold">ROYALTY</span>
-            </h2>
-            <p className="font-mono text-zinc-500 text-sm">Every action earns XP. Every XP brings you closer to the crown.</p>
-          </motion.div>
+          <div className="terminal">
+            <div className="terminal-header">
+              <div className="terminal-dots"><span /><span /><span /></div>
+              <div className="terminal-title">
+                <Crown className="w-3 h-3" /> RANK_HIERARCHY
+              </div>
+            </div>
+            <div className="terminal-body">
+              <motion.div
+                className="text-center mb-8"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+              >
+                <h2 className="text-2xl md:text-3xl font-extrabold text-white uppercase tracking-wider mb-2">
+                  10 RANKS TO <span className="text-glow-cyan">ROYALTY</span>
+                </h2>
+                <p className="text-[10px] text-[var(--text-dim)] tracking-[0.2em]">
+                  EVERY_ACTION_EARNS_XP. EVERY_XP_BRINGS_YOU_CLOSER_TO_THE_CROWN.
+                </p>
+              </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {RANK_KEYS.map((key, i) => {
-              const r = RANKS[key]
-              return (
-                <motion.div
-                  key={key}
-                  className={`p-4 rounded-xl text-center ${i === RANK_KEYS.length - 1 ? 'glass-gold' : 'glass'}`}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.06 }}
-                  viewport={{ once: true }}
-                >
-                  <span className="text-3xl block mb-2">{r.emoji}</span>
-                  <p className="font-tech text-xs font-bold" style={{ color: r.color }}>{r.label}</p>
-                  <p className="font-mono text-xs text-zinc-600 mt-1">{r.xpRequired.toLocaleString()} XP</p>
-                </motion.div>
-              )
-            })}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {RANK_KEYS.map((key, i) => {
+                  const r = RANKS[key]
+                  const isKing = i === RANK_KEYS.length - 1
+                  return (
+                    <motion.div
+                      key={key}
+                      className={`p-4 text-center border ${
+                        isKing
+                          ? 'border-[#fbbf24]/50 bg-[#fbbf24]/5'
+                          : 'border-[var(--cyan-border)] bg-[var(--cyan-ghost)]'
+                      }`}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.06 }}
+                      viewport={{ once: true }}
+                      whileHover={{
+                        borderColor: r.color,
+                        boxShadow: `0 0 15px ${r.glowColor}`,
+                      }}
+                    >
+                      <span className="text-2xl block mb-2">{r.emoji}</span>
+                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: r.color }}>
+                        {r.label.toUpperCase().replace(/\s+/g, '_')}
+                      </p>
+                      <p className="text-[9px] text-[var(--text-dim)] mt-1">
+                        {r.xpRequired.toLocaleString()} XP
+                      </p>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="terminal-footer">
+              <Cpu className="w-3 h-3" />
+              RANK_ENGINE: ACTIVE | AUTO_CALIBRATION: ENABLED
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
+      {/* ── CTA ── */}
       <section className="py-20 px-6">
         <motion.div
-          className="max-w-2xl mx-auto text-center glass-gold rounded-3xl p-12 relative overflow-hidden"
+          className="max-w-2xl mx-auto terminal"
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
         >
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.08),transparent_70%)] pointer-events-none" />
-          <div className="relative">
-            <span className="text-5xl block mb-4 crown-animate">👑</span>
-            <h2 className="font-display text-5xl text-gradient-gold mb-3" style={{ fontFamily: "'Bebas Neue', cursive" }}>
-              READY TO RULE?
+          <div className="terminal-header">
+            <div className="terminal-dots"><span /><span /><span /></div>
+            <div className="terminal-title">
+              <Radio className="w-3 h-3" /> TRANSMISSION_INCOMING
+            </div>
+          </div>
+          <div className="terminal-body text-center py-8">
+            <motion.div
+              className="inline-block p-4 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] mb-6 relative"
+              animate={{ boxShadow: ['0 0 0px rgba(0,255,245,0)', '0 0 30px rgba(0,255,245,0.3)', '0 0 0px rgba(0,255,245,0)'] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              <Crown className="w-10 h-10 text-[#fbbf24]" />
+              <motion.div
+                className="absolute inset-0 border-2 border-[var(--cyan)]"
+                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </motion.div>
+
+            <h2 className="text-3xl font-extrabold text-glow-cyan uppercase tracking-wider mb-3">
+              READY_TO_RULE?
             </h2>
-            <p className="font-mono text-zinc-400 text-sm mb-8">
-              Join thousands of city players. Drop rumors, win challenges, and rise to the throne.
+            <p className="text-xs text-[var(--text-dim)] mb-8 max-w-sm mx-auto leading-relaxed">
+              Join thousands of city agents. Drop rumors, win challenges, and rise to the throne.
+              The city is waiting for its next King.
             </p>
             <Link href="/signup">
               <motion.button
-                className="btn-primary px-10 py-4 rounded-2xl text-base"
-                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+                className="btn-execute px-10 py-4 text-sm"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
               >
-                JOIN THE CITY — FREE
+                <span className="relative z-10 flex items-center justify-center gap-3">
+                  <Shield className="w-4 h-4" />
+                  JOIN_THE_CITY — FREE
+                  <ArrowRight className="w-4 h-4" />
+                </span>
               </motion.button>
             </Link>
+          </div>
+          <div className="terminal-footer">
+            <Zap className="w-3 h-3" />
+            SIGNAL_STRENGTH: MAXIMUM | ENCRYPTION: AES-256
           </div>
         </motion.div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-10 px-6 border-t border-white/5">
+      {/* ── FOOTER ── */}
+      <footer className="py-10 px-6 border-t border-[var(--cyan-border)]">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="relative w-6 h-6">
-              <Image src="/logo.png" alt="KGT" fill className="object-contain" />
+          <div className="flex items-center gap-3">
+            <div className="relative w-5 h-5">
+              <Image src="/logo.png" alt="KGT" fill className="object-contain opacity-50" />
             </div>
-            <span className="font-mono text-xs text-zinc-500">sandnco.lol v2 · King of Good Times</span>
+            <span className="text-[9px] text-[var(--text-dim)] tracking-[0.2em] uppercase">
+              SANDNCO.LOL V2 · KING_OF_GOOD_TIMES
+            </span>
           </div>
-          <div className="flex items-center gap-4 text-xs font-mono text-zinc-600">
-            <Link href="/legal/tos" className="hover:text-yellow-400 transition-colors">Terms</Link>
-            <Link href="/legal/privacy" className="hover:text-yellow-400 transition-colors">Privacy</Link>
-            <Link href="/support" className="hover:text-yellow-400 transition-colors">Support</Link>
-            <a href="mailto:sandncolol@gmail.com" className="hover:text-yellow-400 transition-colors">Contact</a>
+          <div className="flex items-center gap-5 text-[9px] text-[var(--text-dim)] tracking-[0.15em] uppercase">
+            <Link href="/legal/tos" className="hover:text-[var(--cyan)] transition-colors">
+              TERMS
+            </Link>
+            <Link href="/legal/privacy" className="hover:text-[var(--cyan)] transition-colors">
+              PRIVACY
+            </Link>
+            <Link href="/support" className="hover:text-[var(--cyan)] transition-colors">
+              SUPPORT
+            </Link>
+            <a href="mailto:sandncolol@gmail.com" className="hover:text-[var(--cyan)] transition-colors">
+              CONTACT
+            </a>
           </div>
         </div>
       </footer>
+
+      {/* Watermark */}
+      <motion.div
+        className="fixed bottom-4 left-4 z-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1 }}
+      >
+        <div className="flex items-center gap-2">
+          <div className="relative w-5 h-5">
+            <Image src="/logo.png" alt="" fill className="object-contain opacity-30 hover:opacity-80 transition-opacity" />
+          </div>
+          <span className="text-[7px] text-[var(--text-ghost)] tracking-[0.3em] uppercase">SANDNCO.LOL</span>
+        </div>
+      </motion.div>
     </div>
   )
 }
