@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!adminRole) redirect('/')
 
   return (
-    <div className="min-h-screen bg-[#030303] flex">
+    <div className="min-h-screen bg-black text-[var(--cyan)] font-mono flex">
       <AdminSidebar role={adminRole.role} permissions={adminRole.permissions} />
       <main className="flex-1 ml-64 p-8">
         {children}
