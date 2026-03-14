@@ -101,7 +101,7 @@ function LoginContent() {
       {/* Scanning line */}
       <motion.div
         className="fixed left-0 w-full h-[2px] pointer-events-none z-10"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.6), transparent)', boxShadow: '0 0 20px rgba(0,255,245,0.5)' }}
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.6), transparent)', boxShadow: '0 0 20px rgba(0,255,245,0.5)', top: '-5%' }}
         animate={{ top: ['-5%', '105%'] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
       />
