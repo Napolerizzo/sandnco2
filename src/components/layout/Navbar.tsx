@@ -7,7 +7,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home, Flame, Trophy, Wallet, User, Bell, Settings,
-  LogOut, Menu, X, Crown, Shield, Zap, MessageCircle
+  LogOut, Menu, X, Crown, Shield, Zap, MessageCircle,
+  Terminal, ChevronRight, Lock, Activity
 } from 'lucide-react'
 import { useSupabase } from '@/components/providers/SupabaseProvider'
 import { RANKS, type RankTier } from '@/lib/ranks'
@@ -58,15 +59,15 @@ export default function Navbar() {
 
   const handleSignout = async () => {
     await supabase.auth.signOut()
-    toast.success('See you in the city.')
+    toast.success('SESSION_TERMINATED')
     router.push('/login')
   }
 
   const navLinks = [
-    { href: '/feed', icon: Home, label: 'Feed' },
-    { href: '/rumors', icon: Flame, label: 'Rumors' },
-    { href: '/challenges', icon: Trophy, label: 'Challenges' },
-    { href: '/leaderboard', icon: Crown, label: 'Leaderboard' },
+    { href: '/feed', icon: Home, label: 'FEED' },
+    { href: '/rumors', icon: Flame, label: 'RUMORS' },
+    { href: '/challenges', icon: Trophy, label: 'CHALLENGES' },
+    { href: '/leaderboard', icon: Crown, label: 'RANKS' },
   ]
 
   const rank = profile ? RANKS[profile.rank] : null
@@ -75,7 +76,9 @@ export default function Navbar() {
     <>
       <motion.nav
         className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-          scrolled ? 'glass border-b border-white/5' : 'bg-transparent'
+          scrolled
+            ? 'bg-black/90 backdrop-blur-sm border-b border-[var(--cyan-border)]'
+            : 'bg-black/60 backdrop-blur-sm border-b border-[var(--cyan-border)]'
         }`}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -84,11 +87,11 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           {/* Logo */}
           <Link href="/feed" className="flex items-center gap-2 group">
-            <div className="relative w-8 h-8">
+            <div className="relative w-7 h-7">
               <Image src="/logo.png" alt="KGT" fill className="object-contain transition-transform group-hover:scale-110" />
             </div>
-            <span className="font-display text-xl tracking-wider text-gradient-gold hidden sm:block" style={{ fontFamily: "'Bebas Neue', cursive" }}>
-              KING OF GOOD TIMES
+            <span className="text-xs font-bold tracking-[0.2em] text-glow-cyan uppercase hidden sm:block">
+              KING_OF_GOOD_TIMES
             </span>
           </Link>
 
@@ -97,14 +100,14 @@ export default function Navbar() {
             {navLinks.map(({ href, icon: Icon, label }) => (
               <Link key={href} href={href}>
                 <motion.div
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono tracking-[0.15em] transition-all border ${
                     pathname?.startsWith(href)
-                      ? 'text-yellow-400 bg-yellow-400/10'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                      ? 'text-[var(--cyan)] border-[var(--cyan-border)] bg-[var(--cyan-ghost)]'
+                      : 'text-[var(--text-dim)] border-transparent hover:text-[var(--cyan)] hover:border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)]'
                   }`}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className="w-3 h-3" />
                   {label}
                 </motion.div>
               </Link>
@@ -116,16 +119,16 @@ export default function Navbar() {
             {user && profile ? (
               <>
                 {/* Wallet balance */}
-                <Link href="/wallet" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-400/10 border border-yellow-400/20 hover:bg-yellow-400/15 transition-all">
-                  <Zap className="w-3 h-3 text-yellow-400" />
-                  <span className="font-tech text-xs text-yellow-400">{formatCurrency(profile.wallet_balance)}</span>
+                <Link href="/wallet" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] hover:bg-[var(--cyan)]/10 transition-all">
+                  <Zap className="w-3 h-3 text-[var(--cyan)]" />
+                  <span className="text-[10px] font-mono text-[var(--cyan)] tracking-wider">{formatCurrency(profile.wallet_balance)}</span>
                 </Link>
 
                 {/* Notifications */}
-                <Link href="/notifications" className="relative p-2 rounded-lg hover:bg-white/5 transition-all">
-                  <Bell className="w-4 h-4 text-zinc-400 hover:text-white transition-colors" />
+                <Link href="/notifications" className="relative p-2 border border-transparent hover:border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)] transition-all">
+                  <Bell className="w-3.5 h-3.5 text-[var(--text-dim)] hover:text-[var(--cyan)] transition-colors" />
                   {notifCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center text-black font-bold text-[9px]">
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[var(--red)] rounded-none flex items-center justify-center text-black font-bold text-[8px] border border-[var(--red)]">
                       {notifCount > 9 ? '9+' : notifCount}
                     </span>
                   )}
@@ -142,10 +145,14 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center gap-2">
                 <Link href="/login">
-                  <button className="btn-ghost px-4 py-1.5 rounded-lg text-xs font-mono">Sign in</button>
+                  <button className="btn-outline px-4 py-1.5 text-[10px]">
+                    <Lock className="w-3 h-3 inline mr-1" />LOGIN
+                  </button>
                 </Link>
                 <Link href="/signup">
-                  <button className="btn-primary px-4 py-1.5 rounded-lg text-xs">Join Now</button>
+                  <button className="btn-execute px-4 py-1.5 text-[10px]">
+                    <Zap className="w-3 h-3 inline mr-1" />REGISTER
+                  </button>
                 </Link>
               </div>
             )}
@@ -153,9 +160,11 @@ export default function Navbar() {
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-white/5 transition-all"
+              className="md:hidden p-2 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] hover:bg-[var(--cyan)]/10 transition-all"
             >
-              {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              {mobileOpen
+                ? <X className="w-4 h-4 text-[var(--cyan)]" />
+                : <Menu className="w-4 h-4 text-[var(--cyan)]" />}
             </button>
           </div>
         </div>
@@ -170,26 +179,28 @@ export default function Navbar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+            <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
             <motion.div
-              className="absolute top-14 inset-x-0 glass border-b border-white/5 p-4 space-y-1"
+              className="absolute top-14 inset-x-0 bg-black border-b border-[var(--cyan-border)] p-3 space-y-1"
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -20, opacity: 0 }}
             >
               {navLinks.map(({ href, icon: Icon, label }) => (
                 <Link key={href} href={href} onClick={() => setMobileOpen(false)}>
-                  <div className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-mono ${
-                    pathname?.startsWith(href) ? 'text-yellow-400 bg-yellow-400/10' : 'text-zinc-400'
+                  <div className={`flex items-center gap-3 px-4 py-3 text-[10px] font-mono tracking-[0.15em] border transition-all ${
+                    pathname?.startsWith(href)
+                      ? 'text-[var(--cyan)] border-[var(--cyan-border)] bg-[var(--cyan-ghost)]'
+                      : 'text-[var(--text-dim)] border-transparent'
                   }`}>
-                    <Icon className="w-4 h-4" />{label}
+                    <Icon className="w-3.5 h-3.5" />{label}
                   </div>
                 </Link>
               ))}
               {user && (
                 <Link href="/wallet" onClick={() => setMobileOpen(false)}>
-                  <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-mono text-zinc-400">
-                    <Wallet className="w-4 h-4" />Wallet
+                  <div className="flex items-center gap-3 px-4 py-3 text-[10px] font-mono tracking-[0.15em] text-[var(--text-dim)] border border-transparent">
+                    <Wallet className="w-3.5 h-3.5" />WALLET
                   </div>
                 </Link>
               )}
@@ -216,20 +227,20 @@ function ProfileDropdown({
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/5 transition-all"
+        className="flex items-center gap-2 p-1.5 border border-transparent hover:border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)] transition-all"
       >
         {/* Avatar */}
         <div
-          className="w-7 h-7 rounded-full border border-white/10 flex items-center justify-center text-xs font-bold overflow-hidden"
-          style={rank ? { background: `linear-gradient(135deg, ${rank.color}40, ${rank.color}20)`, borderColor: `${rank.color}30` } : {}}
+          className="w-7 h-7 border flex items-center justify-center text-[10px] font-bold overflow-hidden"
+          style={rank ? { background: `linear-gradient(135deg, ${rank.color}20, ${rank.color}10)`, borderColor: `${rank.color}40` } : { borderColor: 'var(--cyan-border)' }}
         >
           {profile.profile_picture_url ? (
             <Image src={profile.profile_picture_url} alt="pfp" width={28} height={28} className="object-cover" />
           ) : (
-            <span style={{ color: rank?.color }}>{profile.display_name?.[0]?.toUpperCase() || '?'}</span>
+            <span style={{ color: rank?.color || 'var(--cyan)' }}>{profile.display_name?.[0]?.toUpperCase() || '?'}</span>
           )}
         </div>
-        {rank && <span className="text-lg">{rank.emoji}</span>}
+        {rank && <span className="text-sm">{rank.emoji}</span>}
       </button>
 
       <AnimatePresence>
@@ -237,54 +248,68 @@ function ProfileDropdown({
           <>
             <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
             <motion.div
-              className="absolute right-0 top-full mt-2 w-56 glass-gold rounded-xl overflow-hidden z-20"
+              className="absolute right-0 top-full mt-2 w-56 bg-black border border-[var(--cyan-border)] overflow-hidden z-20"
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15 }}
             >
-              <div className="p-4 border-b border-white/5">
+              {/* Profile info header */}
+              <div className="p-4 border-b border-[var(--cyan-border)] bg-[var(--cyan-ghost)]">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-mono text-sm text-white font-bold">{profile.display_name || profile.username}</span>
-                  {profile.is_premium && <Crown className="w-3 h-3 text-yellow-400" />}
+                  <span className="text-xs text-white font-bold uppercase tracking-wider">{profile.display_name || profile.username}</span>
+                  {profile.is_premium && <Crown className="w-3 h-3 text-[#fbbf24]" />}
                 </div>
-                <span className="text-zinc-500 font-mono text-xs">@{profile.username}</span>
+                <span className="text-[var(--text-dim)] text-[9px] tracking-wider">@{profile.username}</span>
                 {rank && (
                   <div className="mt-2">
-                    <span className={`badge-rank rank-${profile.rank.split('_')[0]}`}>
-                      {rank.emoji} {rank.label}
+                    <span
+                      className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-2 py-1 border"
+                      style={{ color: rank.color, borderColor: `${rank.color}40`, background: `${rank.color}10` }}
+                    >
+                      {rank.emoji} {rank.label.toUpperCase().replace(/\s+/g, '_')}
                     </span>
                   </div>
                 )}
               </div>
-              <div className="p-2">
+
+              {/* Menu items */}
+              <div className="p-1">
                 {[
-                  { icon: User, label: 'Profile', href: `/profile/${profile.username}` },
-                  { icon: Settings, label: 'Settings', href: '/settings' },
-                  { icon: MessageCircle, label: 'Support', href: '/support' },
+                  { icon: User, label: 'PROFILE', href: `/profile/${profile.username}` },
+                  { icon: Settings, label: 'SETTINGS', href: '/settings' },
+                  { icon: MessageCircle, label: 'SUPPORT', href: '/support' },
                 ].map(({ icon: Icon, label, href }) => (
                   <button
                     key={href}
                     onClick={() => { router.push(href); setOpen(false) }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-mono tracking-[0.1em] text-[var(--text-dim)] hover:text-[var(--cyan)] hover:bg-[var(--cyan-ghost)] transition-all"
                   >
-                    <Icon className="w-3.5 h-3.5" />{label}
+                    <Icon className="w-3 h-3" />
+                    <ChevronRight className="w-2 h-2" />
+                    {label}
                   </button>
                 ))}
                 {isAdmin && (
                   <button
                     onClick={() => { router.push('/admin'); setOpen(false) }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono text-yellow-400 hover:bg-yellow-400/10 transition-all"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-mono tracking-[0.1em] text-[#fbbf24] hover:bg-[#fbbf24]/10 transition-all"
                   >
-                    <Shield className="w-3.5 h-3.5" />Admin Panel
+                    <Shield className="w-3 h-3" />
+                    <ChevronRight className="w-2 h-2" />
+                    ADMIN_PANEL
                   </button>
                 )}
-                <button
-                  onClick={() => { onSignout(); setOpen(false) }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono text-red-400 hover:bg-red-400/10 transition-all mt-1"
-                >
-                  <LogOut className="w-3.5 h-3.5" />Sign Out
-                </button>
+                <div className="border-t border-[var(--cyan-border)] mt-1 pt-1">
+                  <button
+                    onClick={() => { onSignout(); setOpen(false) }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-mono tracking-[0.1em] text-[var(--red)] hover:bg-[var(--red)]/10 transition-all"
+                  >
+                    <LogOut className="w-3 h-3" />
+                    <ChevronRight className="w-2 h-2" />
+                    TERMINATE_SESSION
+                  </button>
+                </div>
               </div>
             </motion.div>
           </>

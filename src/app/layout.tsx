@@ -37,7 +37,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700;900&family=Orbitron:wght@400;700;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap"
           rel="stylesheet"
         />
       </head>
@@ -49,14 +49,16 @@ export default function RootLayout({
               position="bottom-right"
               toastOptions={{
                 style: {
-                  background: '#151515',
-                  color: '#f4f4f5',
-                  border: '1px solid rgba(251,191,36,0.2)',
-                  fontFamily: "'Space Mono', monospace",
-                  fontSize: '12px',
+                  background: '#000',
+                  color: '#00fff5',
+                  border: '1px solid rgba(0,255,245,0.2)',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '11px',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase' as const,
                 },
-                success: { iconTheme: { primary: '#fbbf24', secondary: '#000' } },
-                error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+                success: { iconTheme: { primary: '#00ff41', secondary: '#000' } },
+                error: { iconTheme: { primary: '#ff3b3b', secondary: '#000' } },
               }}
             />
           </PostHogProvider>
