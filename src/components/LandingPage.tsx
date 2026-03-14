@@ -1,591 +1,444 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Flame, Trophy, Crown, Zap, Eye, Shield, ArrowRight,
-  Users, TrendingUp, Terminal, ChevronRight, Lock,
-  Crosshair, Cpu, Activity, Radio, Skull, Star
+  Users, TrendingUp, Activity, MessageCircle, ChevronRight
 } from 'lucide-react'
 import { RANKS } from '@/lib/ranks'
 
 const RANK_KEYS = Object.keys(RANKS) as (keyof typeof RANKS)[]
 
-// Typed terminal text effect
-function TypeWriter({ text, delay = 0 }: { text: string; delay?: number }) {
-  const [displayed, setDisplayed] = useState('')
-  const [started, setStarted] = useState(false)
+const BOOT_LINES = [
+  '> KING OF GOOD TIMES V2 — INITIALIZING...',
+  '> CITY DATABASE ················· ONLINE',
+  '> RUMOR ENGINE ················· ACTIVE',
+  '> CHALLENGE PROTOCOL ············ READY',
+  '> WELCOME TO THE CITY.',
+]
 
-  useEffect(() => {
-    const startTimeout = setTimeout(() => setStarted(true), delay)
-    return () => clearTimeout(startTimeout)
-  }, [delay])
-
-  useEffect(() => {
-    if (!started) return
-    let i = 0
-    const interval = setInterval(() => {
-      if (i < text.length) {
-        setDisplayed(text.slice(0, i + 1))
-        i++
-      } else {
-        clearInterval(interval)
-      }
-    }, 40)
-    return () => clearInterval(interval)
-  }, [started, text])
-
+function BootScreen({ lines }: { lines: string[] }) {
   return (
-    <span>
-      {displayed}
-      <span className="animate-pulse text-[var(--cyan)]">█</span>
-    </span>
+    <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+      <div className="max-w-lg w-full px-8">
+        <div className="mb-10 flex items-center gap-3">
+          <Crown className="w-8 h-8 text-cyan-400" />
+          <span className="text-xs text-cyan-400/50 tracking-[0.4em] uppercase font-mono">System Boot</span>
+        </div>
+        <div className="space-y-3">
+          {lines.map((line, i) => (
+            <motion.p
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.15 }}
+              className={`font-mono text-sm ${
+                line.includes('ONLINE') || line.includes('ACTIVE') || line.includes('READY')
+                  ? 'text-green-400'
+                  : 'text-cyan-400/60'
+              }`}
+            >
+              {line}
+            </motion.p>
+          ))}
+          {lines.length > 0 && lines.length < BOOT_LINES.length && (
+            <span className="text-cyan-400 animate-pulse font-mono">█</span>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
 export default function LandingPage() {
-  const [currentRank, setCurrentRank] = useState(0)
-  const [glitchActive, setGlitchActive] = useState(false)
-  const [bootSequence, setBootSequence] = useState(true)
+  const [bootDone, setBootDone] = useState(false)
   const [bootLines, setBootLines] = useState<string[]>([])
-  const heroRef = useRef<HTMLDivElement>(null)
-  const { scrollY } = useScroll()
-  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0])
-  const heroY = useTransform(scrollY, [0, 400], [0, -80])
+  const [currentRank, setCurrentRank] = useState(0)
 
-  // Boot sequence
   useEffect(() => {
-    const lines = [
-      '> INITIALIZING_KING_OF_GOOD_TIMES_V2...',
-      '> LOADING_CITY_DATABASE................ OK',
-      '> ESTABLISHING_SECURE_CONNECTION....... OK',
-      '> RUMOR_ENGINE_ONLINE.................. OK',
-      '> CHALLENGE_PROTOCOL_ACTIVE............ OK',
-      '> RANK_SYSTEM_CALIBRATED............... OK',
-      '> WELCOME_TO_THE_CITY.',
-    ]
+    // Only show boot sequence once per session
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('kgt_boot')) {
+      setBootDone(true)
+      return
+    }
     let i = 0
-    const interval = setInterval(() => {
-      if (i < lines.length) {
-        const line = lines[i]
+    const timer = setInterval(() => {
+      if (i < BOOT_LINES.length) {
+        const line = BOOT_LINES[i]
         setBootLines(prev => [...prev, line])
         i++
       } else {
-        clearInterval(interval)
-        setTimeout(() => setBootSequence(false), 600)
+        clearInterval(timer)
+        setTimeout(() => {
+          sessionStorage.setItem('kgt_boot', '1')
+          setBootDone(true)
+        }, 400)
       }
-    }, 200)
-    return () => clearInterval(interval)
+    }, 180)
+    return () => clearInterval(timer)
   }, [])
 
   useEffect(() => {
-    const rankInterval = setInterval(() => {
+    const timer = setInterval(() => {
       setCurrentRank(prev => (prev + 1) % RANK_KEYS.length)
-    }, 2000)
-    const glitchInterval = setInterval(() => {
-      setGlitchActive(true)
-      setTimeout(() => setGlitchActive(false), 150)
-    }, 8000)
-    return () => { clearInterval(rankInterval); clearInterval(glitchInterval) }
+    }, 2500)
+    return () => clearInterval(timer)
   }, [])
 
   const rank = RANKS[RANK_KEYS[currentRank]]
 
-  const features = [
-    {
-      icon: Flame, title: 'DROP_RUMORS', color: 'var(--red)',
-      desc: 'Post anonymous city secrets. Let the streets decide what\'s real.',
-      cmd: '$ rumor --post --anonymous --city=all',
-    },
-    {
-      icon: Eye, title: 'BUST_MYTHS', color: 'var(--cyan)',
-      desc: 'Investigate. Present evidence. Flip the narrative or confirm the chaos.',
-      cmd: '$ mythbust --investigate --evidence=submit',
-    },
-    {
-      icon: Trophy, title: 'WIN_CHALLENGES', color: '#a855f7',
-      desc: 'Compete in city challenges. Put your money where your mouth is.',
-      cmd: '$ challenge --enter --stake=100 --mode=pvp',
-    },
-    {
-      icon: Crown, title: 'CLAIM_YOUR_RANK', color: '#fbbf24',
-      desc: 'Rise from Ghost in the City to the one true King of Good Times.',
-      cmd: '$ rank --climb --target=king_of_good_times',
-    },
-  ]
-
-  const stats = [
-    { label: 'ACTIVE_AGENTS', value: '10K+', icon: Users },
-    { label: 'RUMORS_DEPLOYED', value: '50K+', icon: Flame },
-    { label: 'PRIZE_POOL', value: '₹5L+', icon: Trophy },
-    { label: 'MYTHS_BUSTED', value: '8K+', icon: Crosshair },
-  ]
-
-  // Boot sequence overlay
-  if (bootSequence) {
-    return (
-      <div className="min-h-screen bg-black text-[var(--cyan)] font-mono flex items-center justify-center p-6">
-        <div className="max-w-xl w-full">
-          <div className="terminal">
-            <div className="terminal-header">
-              <div className="terminal-dots"><span /><span /><span /></div>
-              <div className="terminal-title">
-                <Terminal className="w-3 h-3" /> BOOT_SEQUENCE
-              </div>
-            </div>
-            <div className="terminal-body text-xs leading-loose">
-              {bootLines.map((line, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={line.includes('OK') ? 'text-[var(--green)]' : 'text-[var(--cyan)]'}
-                >
-                  {line}
-                </motion.div>
-              ))}
-              <span className="animate-pulse">█</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-black text-[var(--cyan)] font-mono overflow-hidden">
-
-      {/* Grid background */}
-      <div className="fixed inset-0 grid-bg pointer-events-none" style={{ maskImage: 'radial-gradient(ellipse 80% 50% at 50% 50%, black, transparent)' }} />
-
-      {/* Scanning line */}
-      <motion.div
-        className="fixed left-0 w-full h-[2px] pointer-events-none z-10"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.4), transparent)', boxShadow: '0 0 20px rgba(0,255,245,0.3)', top: '-5%' }}
-        animate={{ top: ['-5%', '105%'] }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-      />
-
-      {/* Corner brackets */}
-      <div className="fixed top-6 left-6 w-12 h-12 border-l-2 border-t-2 border-[var(--cyan-border)] pointer-events-none z-40" />
-      <div className="fixed top-6 right-6 w-12 h-12 border-r-2 border-t-2 border-[var(--cyan-border)] pointer-events-none z-40" />
-      <div className="fixed bottom-6 left-6 w-12 h-12 border-l-2 border-b-2 border-[var(--cyan-border)] pointer-events-none z-40" />
-      <div className="fixed bottom-6 right-6 w-12 h-12 border-r-2 border-b-2 border-[var(--cyan-border)] pointer-events-none z-40" />
-
-      {/* Glitch overlay */}
+    <>
       <AnimatePresence>
-        {glitchActive && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.15, 0, 0.1, 0] }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-[var(--cyan)] mix-blend-screen pointer-events-none z-20"
-          />
+        {!bootDone && (
+          <motion.div exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+            <BootScreen lines={bootLines} />
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── NAV ── */}
-      <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 h-14 bg-black/80 backdrop-blur-sm border-b border-[var(--cyan-border)]">
-        <div className="flex items-center gap-3">
-          <div className="relative w-7 h-7">
-            <Image src="/logo.png" alt="KGT" fill className="object-contain" />
-          </div>
-          <span className="text-xs font-bold tracking-[0.25em] text-glow-cyan uppercase hidden sm:inline">
-            KING_OF_GOOD_TIMES
-          </span>
-          <span className="text-[8px] text-[var(--text-dim)] tracking-wider hidden md:inline">
-            // V2.0
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/login">
-            <motion.button
-              className="btn-outline px-4 py-2 text-[10px]"
-              whileTap={{ scale: 0.97 }}
-            >
-              <Lock className="w-3 h-3 inline mr-1.5" />
-              LOGIN
-            </motion.button>
-          </Link>
-          <Link href="/signup">
-            <motion.button
-              className="btn-execute px-5 py-2 text-[10px]"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              <Zap className="w-3 h-3 inline mr-1.5" />
-              REGISTER_AGENT
-            </motion.button>
-          </Link>
-        </div>
-      </nav>
-
-      {/* ── HERO ── */}
-      <motion.section
-        ref={heroRef}
-        className="relative min-h-screen flex items-center justify-center pt-14"
-        style={{ opacity: heroOpacity, y: heroY }}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: bootDone ? 1 : 0 }}
+        transition={{ duration: 0.4 }}
+        className="min-h-screen bg-black text-white overflow-x-hidden"
       >
-        <div className="text-center px-6 max-w-4xl mx-auto">
+        {/* Grid background */}
+        <div
+          className="fixed inset-0 pointer-events-none opacity-50"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(0,255,245,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,245,0.04) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
+          }}
+        />
 
-          {/* Cycling rank badge */}
-          <motion.div
-            className="inline-flex items-center gap-2 px-4 py-2 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] mb-8"
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <Activity className="w-3 h-3 text-[var(--text-dim)]" />
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={currentRank}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="text-[10px] tracking-[0.2em] font-bold uppercase"
-                style={{ color: rank.color }}
-              >
-                {rank.emoji} {rank.label.toUpperCase().replace(/\s+/g, '_')}
-              </motion.span>
-            </AnimatePresence>
-            <span className="text-[8px] text-[var(--text-dim)]">
-              [{rank.xpRequired.toLocaleString()} XP]
-            </span>
-          </motion.div>
+        {/* Scan line — CSS animation, no framer-motion */}
+        <div
+          className="fixed left-0 w-full h-px pointer-events-none z-10"
+          style={{
+            background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.5), transparent)',
+            animation: 'scan 10s linear infinite',
+            top: '-5%',
+          }}
+        />
 
-          {/* Main heading */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <h1 className="leading-none mb-6" style={{ fontSize: 'clamp(3rem, 10vw, 8rem)' }}>
-              <motion.span
-                className="block font-extrabold text-glow-cyan"
-                animate={{ filter: glitchActive ? 'hue-rotate(40deg) brightness(2)' : 'none' }}
-              >
-                KING OF
-              </motion.span>
-              <span className="block font-extrabold text-white" style={{ textShadow: '0 0 40px rgba(255,255,255,0.15)' }}>
-                GOOD TIMES
-              </span>
-            </h1>
-          </motion.div>
-
-          <motion.div
-            className="text-sm text-[var(--text-dim)] max-w-xl mx-auto mb-3 leading-relaxed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <TypeWriter text="Post anonymous rumors. Bust myths. Enter challenges. Earn real money. Climb the city ranks." delay={300} />
-          </motion.div>
-
-          <motion.p
-            className="text-[9px] text-[var(--text-ghost)] tracking-[0.5em] uppercase mb-10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-          >
-            SANDNCO.LOL — SECURE_TERMINAL_V2
-          </motion.p>
-
-          {/* CTA buttons */}
-          <motion.div
-            className="flex items-center justify-center gap-4 flex-wrap"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-          >
-            <Link href="/signup">
-              <motion.button
-                className="btn-execute px-8 py-4 text-sm flex items-center gap-2"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                <Shield className="w-4 h-4" />
-                INITIALIZE_AGENT
-                <ArrowRight className="w-4 h-4" />
-              </motion.button>
-            </Link>
+        {/* ── NAVBAR ── */}
+        <nav className="fixed top-0 inset-x-0 z-50 h-16 flex items-center justify-between px-6 md:px-10 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="relative w-8 h-8">
+              <Image src="/logo.png" alt="KGT" fill className="object-contain" />
+            </div>
+            <span className="text-base font-bold tracking-wide text-white hidden sm:block">King of Good Times</span>
+          </Link>
+          <div className="flex items-center gap-3">
             <Link href="/login">
-              <motion.button
-                className="btn-outline px-8 py-4 text-sm flex items-center gap-2"
-                whileHover={{ scale: 1.01 }}
-              >
-                <Terminal className="w-4 h-4" />
-                ACCESS_TERMINAL
-              </motion.button>
+              <button className="px-5 py-2.5 text-sm text-gray-400 border border-white/10 hover:border-cyan-400/40 hover:text-cyan-400 transition-all font-mono tracking-wide">
+                Login
+              </button>
             </Link>
-          </motion.div>
-        </div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <div className="w-px h-12 bg-gradient-to-b from-[var(--cyan)]/40 to-transparent" />
-          <span className="text-[8px] text-[var(--text-dim)] tracking-[0.3em] uppercase">SCROLL_DOWN</span>
-        </motion.div>
-      </motion.section>
-
-      {/* ── STATS ── */}
-      <section className="py-16 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="terminal">
-            <div className="terminal-header">
-              <div className="terminal-dots"><span /><span /><span /></div>
-              <div className="terminal-title">
-                <Activity className="w-3 h-3" /> CITY_METRICS
-              </div>
-            </div>
-            <div className="terminal-body">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {stats.map(({ label, value, icon: Icon }, i) => (
-                  <motion.div
-                    key={label}
-                    className="border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] p-5 text-center"
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    viewport={{ once: true }}
-                  >
-                    <Icon className="w-5 h-5 text-[var(--cyan)] mx-auto mb-2" />
-                    <p className="text-2xl font-extrabold text-glow-cyan">{value}</p>
-                    <p className="text-[9px] text-[var(--text-dim)] mt-1 tracking-[0.15em] uppercase">{label}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+            <Link href="/signup">
+              <button className="px-5 py-2.5 text-sm font-bold bg-cyan-400 text-black hover:bg-cyan-300 transition-all tracking-wide">
+                Join Free
+              </button>
+            </Link>
           </div>
-        </div>
-      </section>
+        </nav>
 
-      {/* ── FEATURES ── */}
-      <section className="py-16 px-6">
-        <div className="max-w-5xl mx-auto">
-          <motion.div
-            className="text-center mb-10"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <div className="text-[9px] text-[var(--text-dim)] tracking-[0.3em] uppercase mb-3">
-              // SYSTEM_CAPABILITIES
-            </div>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-white uppercase tracking-wider mb-3">
-              THE CITY <span className="text-glow-cyan">PROTOCOLS</span>
-            </h2>
-            <p className="text-xs text-[var(--text-dim)]">Four ways to dominate the streets</p>
-          </motion.div>
+        {/* ── HERO ── */}
+        <section className="relative min-h-screen flex items-center justify-center pt-16">
+          <div className="max-w-5xl mx-auto px-6 text-center">
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {features.map(({ icon: Icon, title, color, desc, cmd }, i) => (
-              <motion.div
-                key={title}
-                className="terminal group"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <div className="terminal-header">
-                  <div className="terminal-dots"><span /><span /><span /></div>
-                  <div className="terminal-title">
-                    <Icon className="w-3 h-3" style={{ color }} /> {title}
-                  </div>
-                </div>
-                <div className="terminal-body">
-                  <div className="flex items-start gap-3 mb-4">
-                    <div
-                      className="w-10 h-10 border flex items-center justify-center flex-shrink-0"
-                      style={{ borderColor: color, background: `${color}10` }}
-                    >
-                      <Icon className="w-5 h-5" style={{ color }} />
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-1">{title.replace(/_/g, ' ')}</h3>
-                      <p className="text-[11px] text-[var(--text-dim)] leading-relaxed">{desc}</p>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-[var(--green)] bg-black/50 px-3 py-2 border border-[var(--cyan-border)] font-mono">
-                    {cmd}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── RANK SHOWCASE ── */}
-      <section className="py-16 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="terminal">
-            <div className="terminal-header">
-              <div className="terminal-dots"><span /><span /><span /></div>
-              <div className="terminal-title">
-                <Crown className="w-3 h-3" /> RANK_HIERARCHY
-              </div>
-            </div>
-            <div className="terminal-body">
-              <motion.div
-                className="text-center mb-8"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-              >
-                <h2 className="text-2xl md:text-3xl font-extrabold text-white uppercase tracking-wider mb-2">
-                  10 RANKS TO <span className="text-glow-cyan">ROYALTY</span>
-                </h2>
-                <p className="text-[10px] text-[var(--text-dim)] tracking-[0.2em]">
-                  EVERY_ACTION_EARNS_XP. EVERY_XP_BRINGS_YOU_CLOSER_TO_THE_CROWN.
-                </p>
-              </motion.div>
-
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {RANK_KEYS.map((key, i) => {
-                  const r = RANKS[key]
-                  const isKing = i === RANK_KEYS.length - 1
-                  return (
-                    <motion.div
-                      key={key}
-                      className={`p-4 text-center border ${
-                        isKing
-                          ? 'border-[#fbbf24]/50 bg-[#fbbf24]/5'
-                          : 'border-[var(--cyan-border)] bg-[var(--cyan-ghost)]'
-                      }`}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: i * 0.06 }}
-                      viewport={{ once: true }}
-                      whileHover={{
-                        borderColor: r.color,
-                        boxShadow: `0 0 15px ${r.glowColor}`,
-                      }}
-                    >
-                      <span className="text-2xl block mb-2">{r.emoji}</span>
-                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: r.color }}>
-                        {r.label.toUpperCase().replace(/\s+/g, '_')}
-                      </p>
-                      <p className="text-[9px] text-[var(--text-dim)] mt-1">
-                        {r.xpRequired.toLocaleString()} XP
-                      </p>
-                    </motion.div>
-                  )
-                })}
-              </div>
-            </div>
-            <div className="terminal-footer">
-              <Cpu className="w-3 h-3" />
-              RANK_ENGINE: ACTIVE | AUTO_CALIBRATION: ENABLED
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section className="py-20 px-6">
-        <motion.div
-          className="max-w-2xl mx-auto terminal"
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-        >
-          <div className="terminal-header">
-            <div className="terminal-dots"><span /><span /><span /></div>
-            <div className="terminal-title">
-              <Radio className="w-3 h-3" /> TRANSMISSION_INCOMING
-            </div>
-          </div>
-          <div className="terminal-body text-center py-8">
+            {/* Rank cycling badge */}
             <motion.div
-              className="inline-block p-4 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] mb-6 relative"
-              animate={{ boxShadow: ['0 0 0px rgba(0,255,245,0)', '0 0 30px rgba(0,255,245,0.3)', '0 0 0px rgba(0,255,245,0)'] }}
-              transition={{ duration: 3, repeat: Infinity }}
+              className="inline-flex items-center gap-3 px-5 py-2.5 border border-white/10 text-sm text-gray-400 mb-10"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: bootDone ? 1 : 0, y: bootDone ? 0 : 10 }}
+              transition={{ delay: 0.1 }}
             >
-              <Crown className="w-10 h-10 text-[#fbbf24]" />
-              <motion.div
-                className="absolute inset-0 border-2 border-[var(--cyan)]"
-                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
+              <Activity className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Anonymous · Competitive · City-Native</span>
+              <div className="w-px h-4 bg-white/15" />
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={currentRank}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  className="font-bold text-sm"
+                  style={{ color: rank.color }}
+                >
+                  {rank.emoji} {rank.label}
+                </motion.span>
+              </AnimatePresence>
             </motion.div>
 
-            <h2 className="text-3xl font-extrabold text-glow-cyan uppercase tracking-wider mb-3">
-              READY_TO_RULE?
+            {/* Main heading */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: bootDone ? 1 : 0, y: bootDone ? 0 : 30 }}
+              transition={{ delay: 0.15 }}
+            >
+              <h1 className="font-black leading-none mb-8 uppercase tracking-tighter" style={{ fontSize: 'clamp(3.5rem, 11vw, 9rem)' }}>
+                <span className="block text-white">King of</span>
+                <span
+                  className="block text-cyan-400"
+                  style={{ textShadow: '0 0 80px rgba(0,255,245,0.35), 0 0 160px rgba(0,255,245,0.15)' }}
+                >
+                  Good Times
+                </span>
+              </h1>
+            </motion.div>
+
+            <motion.p
+              className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: bootDone ? 1 : 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              Post anonymous city rumors. Bust myths. Enter challenges for real money.
+              Climb 10 ranks and become the King of Good Times.
+            </motion.p>
+
+            {/* CTAs */}
+            <motion.div
+              className="flex items-center justify-center gap-4 flex-wrap"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: bootDone ? 1 : 0, y: bootDone ? 0 : 20 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Link href="/signup">
+                <button className="px-8 py-4 text-base font-bold bg-cyan-400 text-black hover:bg-cyan-300 transition-all flex items-center gap-2.5 tracking-wide">
+                  <Zap className="w-5 h-5" />
+                  Join the City — Free
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </Link>
+              <Link href="/login">
+                <button className="px-8 py-4 text-base text-gray-300 border border-white/15 hover:border-cyan-400/50 hover:text-cyan-400 transition-all flex items-center gap-2.5 tracking-wide">
+                  Already an Agent
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </Link>
+            </motion.div>
+
+            {/* Stats */}
+            <motion.div
+              className="flex items-center justify-center gap-10 md:gap-16 mt-20 flex-wrap"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: bootDone ? 1 : 0 }}
+              transition={{ delay: 0.45 }}
+            >
+              {[
+                { value: '10,000+', label: 'Active Agents', icon: Users },
+                { value: '50,000+', label: 'Rumors Dropped', icon: Flame },
+                { value: '₹5L+', label: 'Prize Money', icon: Trophy },
+                { value: '8,000+', label: 'Myths Busted', icon: Eye },
+              ].map(({ value, label, icon: Icon }) => (
+                <div key={label} className="text-center">
+                  <p className="text-3xl font-black text-cyan-400">{value}</p>
+                  <p className="text-sm text-gray-500 mt-1 tracking-wide flex items-center gap-1.5 justify-center">
+                    <Icon className="w-3.5 h-3.5" /> {label}
+                  </p>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+
+          {/* Scroll indicator */}
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-px h-12 bg-gradient-to-b from-cyan-400/30 to-transparent"
+            />
+          </div>
+        </section>
+
+        {/* ── FEATURES ── */}
+        <section className="py-28 px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <p className="text-xs text-cyan-400/50 tracking-[0.4em] uppercase mb-4 font-mono">// The Game</p>
+              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-white">
+                Four Ways to <span className="text-cyan-400">Dominate</span>
+              </h2>
+              <p className="text-gray-400 mt-5 text-lg max-w-xl mx-auto leading-relaxed">
+                This isn't just a social app. It's a city-wide game where every action has consequences.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                {
+                  icon: Flame,
+                  title: 'Drop Rumors',
+                  color: '#ff3366',
+                  tag: 'Anonymous',
+                  desc: 'Post city secrets and gossip under a random alias. Total anonymity guaranteed. Let the streets decide what\'s real.',
+                },
+                {
+                  icon: Eye,
+                  title: 'Bust Myths',
+                  color: '#00fff5',
+                  tag: 'Investigator',
+                  desc: 'Investigate posted rumors. Submit evidence. Get verdicts: CONFIRMED, DEBUNKED, or MISLEADING from the community.',
+                },
+                {
+                  icon: Trophy,
+                  title: 'Win Challenges',
+                  color: '#a855f7',
+                  tag: 'Real Money',
+                  desc: 'Compete in city-wide challenges with real stakes. Put money on the line. Win big. PvP and community formats.',
+                },
+                {
+                  icon: Crown,
+                  title: 'Claim Your Rank',
+                  color: '#fbbf24',
+                  tag: '10 Ranks',
+                  desc: 'Start as a Ghost in the City. Every action earns XP. Rise through 10 ranks to become the King of Good Times.',
+                },
+              ].map(({ icon: Icon, title, color, tag, desc }, i) => (
+                <motion.div
+                  key={title}
+                  className="relative bg-[#050a0e] border border-white/[0.08] p-8 hover:border-cyan-400/25 transition-all group"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                  viewport={{ once: true }}
+                >
+                  {/* Top accent line */}
+                  <div
+                    className="absolute top-0 left-0 right-0 h-px"
+                    style={{ background: `linear-gradient(90deg, transparent, ${color}50, transparent)` }}
+                  />
+
+                  <div className="flex items-start gap-5">
+                    <div
+                      className="w-12 h-12 flex items-center justify-center flex-shrink-0 border"
+                      style={{ borderColor: `${color}40`, background: `${color}10` }}
+                    >
+                      <Icon className="w-6 h-6" style={{ color }} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-xl font-bold text-white">{title}</h3>
+                        <span
+                          className="text-xs font-bold px-2.5 py-1 border uppercase tracking-wider font-mono"
+                          style={{ color, borderColor: `${color}35`, background: `${color}10` }}
+                        >
+                          {tag}
+                        </span>
+                      </div>
+                      <p className="text-gray-400 text-base leading-relaxed">{desc}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── RANKS ── */}
+        <section className="py-28 px-6 border-y border-white/[0.05]">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <p className="text-xs text-cyan-400/50 tracking-[0.4em] uppercase mb-4 font-mono">// The Hierarchy</p>
+              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-white">
+                10 Ranks to <span className="text-cyan-400">Royalty</span>
+              </h2>
+              <p className="text-gray-400 mt-5 text-lg">
+                Every action earns XP. Every XP brings you closer to the crown.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {RANK_KEYS.map((key, i) => {
+                const r = RANKS[key]
+                const isKing = i === RANK_KEYS.length - 1
+                return (
+                  <motion.div
+                    key={key}
+                    className={`p-5 text-center border transition-all cursor-default ${
+                      isKing
+                        ? 'border-yellow-400/30 bg-yellow-400/5'
+                        : 'border-white/[0.08] bg-[#050a0e] hover:border-cyan-400/25'
+                    }`}
+                    initial={{ opacity: 0, scale: 0.92 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.05 }}
+                    viewport={{ once: true }}
+                  >
+                    <span className="text-3xl block mb-3">{r.emoji}</span>
+                    <p className="text-sm font-bold leading-tight" style={{ color: r.color }}>{r.label}</p>
+                    <p className="text-xs text-gray-600 mt-1.5 font-mono">{r.xpRequired.toLocaleString()} XP</p>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── FINAL CTA ── */}
+        <section className="py-36 px-6">
+          <motion.div
+            className="max-w-3xl mx-auto text-center"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <motion.div
+              animate={{ boxShadow: ['0 0 0px rgba(251,191,36,0)', '0 0 60px rgba(251,191,36,0.25)', '0 0 0px rgba(251,191,36,0)'] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="inline-block p-5 border border-yellow-400/25 bg-yellow-400/5 mb-10"
+            >
+              <Crown className="w-14 h-14 text-yellow-400" />
+            </motion.div>
+
+            <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tight text-white mb-6">
+              Ready to <span className="text-cyan-400">Rule?</span>
             </h2>
-            <p className="text-xs text-[var(--text-dim)] mb-8 max-w-sm mx-auto leading-relaxed">
+            <p className="text-xl text-gray-400 mb-12 leading-relaxed max-w-xl mx-auto">
               Join thousands of city agents. Drop rumors, win challenges, and rise to the throne.
               The city is waiting for its next King.
             </p>
             <Link href="/signup">
               <motion.button
-                className="btn-execute px-10 py-4 text-sm"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+                className="px-12 py-5 text-lg font-black bg-cyan-400 text-black hover:bg-cyan-300 transition-all inline-flex items-center gap-3 tracking-wide"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <span className="relative z-10 flex items-center justify-center gap-3">
-                  <Shield className="w-4 h-4" />
-                  JOIN_THE_CITY — FREE
-                  <ArrowRight className="w-4 h-4" />
-                </span>
+                <Shield className="w-6 h-6" />
+                Join the City — Free
+                <ArrowRight className="w-6 h-6" />
               </motion.button>
             </Link>
-          </div>
-          <div className="terminal-footer">
-            <Zap className="w-3 h-3" />
-            SIGNAL_STRENGTH: MAXIMUM | ENCRYPTION: AES-256
-          </div>
-        </motion.div>
-      </section>
+          </motion.div>
+        </section>
 
-      {/* ── FOOTER ── */}
-      <footer className="py-10 px-6 border-t border-[var(--cyan-border)]">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="relative w-5 h-5">
-              <Image src="/logo.png" alt="KGT" fill className="object-contain opacity-50" />
+        {/* ── FOOTER ── */}
+        <footer className="py-10 px-6 border-t border-white/[0.05]">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5">
+            <div className="flex items-center gap-3">
+              <div className="relative w-6 h-6">
+                <Image src="/logo.png" alt="" fill className="object-contain opacity-40" />
+              </div>
+              <span className="text-sm text-gray-600 tracking-wide font-mono">
+                sandnco.lol · King of Good Times
+              </span>
             </div>
-            <span className="text-[9px] text-[var(--text-dim)] tracking-[0.2em] uppercase">
-              SANDNCO.LOL V2 · KING_OF_GOOD_TIMES
-            </span>
+            <div className="flex items-center gap-6 text-sm text-gray-600">
+              <Link href="/legal/tos" className="hover:text-cyan-400 transition-colors">Terms</Link>
+              <Link href="/legal/privacy" className="hover:text-cyan-400 transition-colors">Privacy</Link>
+              <Link href="/support" className="hover:text-cyan-400 transition-colors">Support</Link>
+              <a href="mailto:sandncolol@gmail.com" className="hover:text-cyan-400 transition-colors">Contact</a>
+            </div>
           </div>
-          <div className="flex items-center gap-5 text-[9px] text-[var(--text-dim)] tracking-[0.15em] uppercase">
-            <Link href="/legal/tos" className="hover:text-[var(--cyan)] transition-colors">
-              TERMS
-            </Link>
-            <Link href="/legal/privacy" className="hover:text-[var(--cyan)] transition-colors">
-              PRIVACY
-            </Link>
-            <Link href="/support" className="hover:text-[var(--cyan)] transition-colors">
-              SUPPORT
-            </Link>
-            <a href="mailto:sandncolol@gmail.com" className="hover:text-[var(--cyan)] transition-colors">
-              CONTACT
-            </a>
-          </div>
-        </div>
-      </footer>
-
-      {/* Watermark */}
-      <motion.div
-        className="fixed bottom-4 left-4 z-50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="relative w-5 h-5">
-            <Image src="/logo.png" alt="" fill className="object-contain opacity-30 hover:opacity-80 transition-opacity" />
-          </div>
-          <span className="text-[7px] text-[var(--text-ghost)] tracking-[0.3em] uppercase">SANDNCO.LOL</span>
-        </div>
+        </footer>
       </motion.div>
-    </div>
+    </>
   )
 }
