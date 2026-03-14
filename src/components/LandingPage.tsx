@@ -162,7 +162,7 @@ export default function LandingPage() {
       {/* Scanning line */}
       <motion.div
         className="fixed left-0 w-full h-[2px] pointer-events-none z-10"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.4), transparent)', boxShadow: '0 0 20px rgba(0,255,245,0.3)' }}
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.4), transparent)', boxShadow: '0 0 20px rgba(0,255,245,0.3)', top: '-5%' }}
         animate={{ top: ['-5%', '105%'] }}
         transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
       />
