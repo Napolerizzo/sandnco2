@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, ArrowUpRight, ArrowDownLeft, Crown, Clock, CheckCircle, XCircle, Loader, TrendingUp, Trophy, Gift } from 'lucide-react'
+import {
+  Zap, ArrowUpRight, ArrowDownLeft, Crown, Clock, Loader,
+  TrendingUp, Trophy, Gift, Terminal, Shield, Lock, Activity
+} from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { loadRazorpayScript } from '@/lib/razorpay'
 import toast from 'react-hot-toast'
@@ -34,12 +37,12 @@ const DEPOSIT_AMOUNTS = [100, 200, 500, 1000, 2000, 5000]
 const MEMBERSHIP_PRICE = 299
 
 const TX_ICONS: Record<string, { icon: typeof Zap; color: string }> = {
-  deposit: { icon: ArrowDownLeft, color: '#22c55e' },
+  deposit: { icon: ArrowDownLeft, color: 'var(--green)' },
   withdrawal: { icon: ArrowUpRight, color: '#f97316' },
-  challenge_entry: { icon: Trophy, color: '#f59e0b' },
+  challenge_entry: { icon: Trophy, color: '#fbbf24' },
   challenge_win: { icon: Trophy, color: '#a855f7' },
   membership: { icon: Crown, color: '#fbbf24' },
-  refund: { icon: ArrowDownLeft, color: '#06b6d4' },
+  refund: { icon: ArrowDownLeft, color: 'var(--cyan)' },
   bonus: { icon: Gift, color: '#ec4899' },
 }
 
@@ -63,11 +66,11 @@ export default function WalletClient({
   const balance = wallet?.balance || 0
 
   const handleDeposit = async (amount: number) => {
-    if (amount < 10) { toast.error('Minimum deposit: ₹10'); return }
+    if (amount < 10) { toast.error('MINIMUM_DEPOSIT: ₹10'); return }
     setDepositing(true)
 
     const loaded = await loadRazorpayScript()
-    if (!loaded) { toast.error('Payment gateway failed to load'); setDepositing(false); return }
+    if (!loaded) { toast.error('PAYMENT_GATEWAY_ERROR'); setDepositing(false); return }
 
     const orderRes = await fetch('/api/payments/create-order', {
       method: 'POST',
@@ -87,7 +90,7 @@ export default function WalletClient({
       currency: 'INR',
       name: 'King of Good Times',
       description: 'Wallet Deposit',
-      theme: { color: '#fbbf24' },
+      theme: { color: '#00fff5' },
       handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
         const verifyRes = await fetch('/api/payments/verify', {
           method: 'POST',
@@ -102,10 +105,10 @@ export default function WalletClient({
         })
         const result = await verifyRes.json()
         if (result.success) {
-          toast.success(`₹${amount} added to your wallet! 🔥`)
+          toast.success(`DEPOSIT_CONFIRMED: ₹${amount}`)
           setTimeout(() => window.location.reload(), 1500)
         } else {
-          toast.error('Payment verification failed. Contact support.')
+          toast.error('VERIFICATION_FAILED. CONTACT_SUPPORT.')
         }
         setDepositing(false)
       },
@@ -117,7 +120,7 @@ export default function WalletClient({
   const handleMembership = async () => {
     setUpgrading(true)
     const loaded = await loadRazorpayScript()
-    if (!loaded) { toast.error('Payment gateway failed'); setUpgrading(false); return }
+    if (!loaded) { toast.error('PAYMENT_GATEWAY_ERROR'); setUpgrading(false); return }
 
     const orderRes = await fetch('/api/payments/create-order', {
       method: 'POST',
@@ -137,7 +140,7 @@ export default function WalletClient({
       currency: 'INR',
       name: 'King of Good Times',
       description: 'Premium Membership',
-      theme: { color: '#fbbf24' },
+      theme: { color: '#00fff5' },
       handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
         const verifyRes = await fetch('/api/payments/verify', {
           method: 'POST',
@@ -146,10 +149,10 @@ export default function WalletClient({
         })
         const result = await verifyRes.json()
         if (result.success) {
-          toast.success('Welcome to Premium, King! 👑')
+          toast.success('PREMIUM_ACTIVATED. WELCOME_KING.')
           setTimeout(() => window.location.reload(), 1500)
         } else {
-          toast.error('Payment failed. Contact support.')
+          toast.error('PAYMENT_FAILED. CONTACT_SUPPORT.')
         }
         setUpgrading(false)
       },
@@ -160,52 +163,66 @@ export default function WalletClient({
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="font-display text-4xl text-gradient-gold" style={{ fontFamily: "'Bebas Neue', cursive" }}>
-          YOUR VAULT
+      <div className="mb-6">
+        <div className="text-[9px] text-[var(--text-dim)] tracking-[0.3em] uppercase mb-1">
+          // SECURE_VAULT
+        </div>
+        <h1 className="text-2xl font-extrabold text-glow-cyan uppercase tracking-wider">
+          YOUR_VAULT
         </h1>
-        <p className="text-zinc-500 font-mono text-xs mt-1">Secure. Swift. Sovereign.</p>
+        <p className="text-[10px] text-[var(--text-dim)] mt-1 tracking-wider">SECURE. SWIFT. SOVEREIGN.</p>
       </div>
 
       {/* Balance card */}
-      <motion.div
-        className="glass-gold rounded-2xl p-8 mb-6 relative overflow-hidden"
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(251,191,36,0.08),transparent_60%)] pointer-events-none" />
-        <div className="relative">
-          <div className="flex items-start justify-between">
+      <div className="terminal mb-6">
+        <div className="terminal-header">
+          <div className="terminal-dots"><span /><span /><span /></div>
+          <div className="terminal-title">
+            <Zap className="w-3 h-3" /> VAULT_STATUS
+          </div>
+        </div>
+        <div className="terminal-body">
+          <motion.div
+            className="flex items-start justify-between"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          >
             <div>
-              <p className="font-tech text-xs text-zinc-500 tracking-widest uppercase mb-2">Available Balance</p>
-              <p className="font-display text-5xl text-gradient-gold" style={{ fontFamily: "'Bebas Neue', cursive" }}>
+              <p className="text-[9px] text-[var(--text-dim)] tracking-[0.2em] uppercase mb-2">AVAILABLE_BALANCE</p>
+              <p className="text-4xl font-extrabold text-glow-cyan">
                 {formatCurrency(balance)}
               </p>
               {wallet?.locked_balance && wallet.locked_balance > 0 && (
-                <p className="font-mono text-xs text-zinc-500 mt-2">
-                  + {formatCurrency(wallet.locked_balance)} locked in challenges
+                <p className="text-[9px] text-[var(--text-dim)] mt-2 tracking-wider">
+                  + {formatCurrency(wallet.locked_balance)} LOCKED_IN_CHALLENGES
                 </p>
               )}
             </div>
-            <div className="text-right space-y-2">
+            <div className="text-right space-y-3">
               <div>
-                <p className="font-tech text-xs text-zinc-600 tracking-wider">TOTAL DEPOSITED</p>
-                <p className="font-tech text-sm text-zinc-400">{formatCurrency(wallet?.total_deposited || 0)}</p>
+                <p className="text-[8px] text-[var(--text-ghost)] tracking-wider">TOTAL_DEPOSITED</p>
+                <p className="text-sm font-bold text-[var(--text-dim)]">{formatCurrency(wallet?.total_deposited || 0)}</p>
               </div>
               <div>
-                <p className="font-tech text-xs text-zinc-600 tracking-wider">TOTAL WON</p>
-                <p className="font-tech text-sm text-purple-400">{formatCurrency(wallet?.total_won || 0)}</p>
+                <p className="text-[8px] text-[var(--text-ghost)] tracking-wider">TOTAL_WON</p>
+                <p className="text-sm font-bold text-[#a855f7]">{formatCurrency(wallet?.total_won || 0)}</p>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </motion.div>
+        <div className="terminal-footer">
+          <Lock className="w-3 h-3" />
+          ENCRYPTION: AES-256 | RAZORPAY_SECURED
+        </div>
+      </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-1 mb-6">
         {(['overview', 'deposit', 'history'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-xl text-xs font-tech tracking-wider uppercase transition-all ${
-              activeTab === tab ? 'bg-yellow-400 text-black font-bold' : 'bg-white/5 text-zinc-400 hover:bg-white/10'
+            className={`px-4 py-2 text-[10px] tracking-[0.15em] border transition-all uppercase ${
+              activeTab === tab
+                ? 'text-[var(--cyan)] border-[var(--cyan)] bg-[var(--cyan-ghost)]'
+                : 'text-[var(--text-dim)] border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)]'
             }`}>
             {tab}
           </button>
@@ -214,79 +231,105 @@ export default function WalletClient({
 
       <AnimatePresence mode="wait">
         {activeTab === 'overview' && (
-          <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
             {/* Premium membership */}
-            <div className={`rounded-2xl p-6 mb-5 border ${membership?.is_active ? 'bg-yellow-400/5 border-yellow-400/20' : 'bg-white/3 border-white/5'}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Crown className={`w-6 h-6 ${membership?.is_active ? 'text-yellow-400 crown-animate' : 'text-zinc-500'}`} />
-                  <div>
-                    <h3 className="font-tech text-sm font-bold text-white">King Membership</h3>
-                    <p className="font-mono text-xs text-zinc-500 mt-0.5">
-                      {membership?.is_active
-                        ? `Active until ${new Date(membership.expires_at).toLocaleDateString('en-IN')}`
-                        : 'Unlock exclusive challenges, badges & early access'}
-                    </p>
-                  </div>
+            <div className="terminal">
+              <div className="terminal-header">
+                <div className="terminal-dots"><span /><span /><span /></div>
+                <div className="terminal-title">
+                  <Crown className="w-3 h-3" /> PREMIUM_MEMBERSHIP
                 </div>
-                {!membership?.is_active && (
-                  <motion.button
-                    onClick={handleMembership}
-                    disabled={upgrading}
-                    className="btn-primary px-5 py-2 rounded-xl text-xs flex items-center gap-2 disabled:opacity-50"
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {upgrading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" />}
-                    ₹{MEMBERSHIP_PRICE}/month
-                  </motion.button>
-                )}
+              </div>
+              <div className="terminal-body">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Crown className={`w-6 h-6 ${membership?.is_active ? 'text-[#fbbf24]' : 'text-[var(--text-dim)]'}`} />
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">KING_MEMBERSHIP</h3>
+                      <p className="text-[9px] text-[var(--text-dim)] mt-0.5 tracking-wider">
+                        {membership?.is_active
+                          ? `ACTIVE_UNTIL: ${new Date(membership.expires_at).toLocaleDateString('en-IN')}`
+                          : 'UNLOCK_EXCLUSIVE_CHALLENGES, BADGES_&_EARLY_ACCESS'}
+                      </p>
+                    </div>
+                  </div>
+                  {!membership?.is_active && (
+                    <motion.button
+                      onClick={handleMembership}
+                      disabled={upgrading}
+                      className="btn-execute px-5 py-2 text-[10px] flex items-center gap-2"
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {upgrading ? <Loader className="w-3 h-3 animate-spin" /> : <Crown className="w-3 h-3" />}
+                      ₹{MEMBERSHIP_PRICE}/MONTH
+                    </motion.button>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Quick deposit */}
-            <div className="glass rounded-2xl p-5">
-              <h3 className="font-tech text-xs text-zinc-400 tracking-widest uppercase mb-4">Quick Deposit</h3>
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {DEPOSIT_AMOUNTS.map(amt => (
-                  <motion.button
-                    key={amt}
-                    onClick={() => handleDeposit(amt)}
-                    disabled={depositing}
-                    className="py-3 rounded-xl bg-white/5 hover:bg-yellow-400/10 hover:border-yellow-400/30 border border-white/5 text-xs font-tech transition-all disabled:opacity-50"
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    ₹{amt}
-                  </motion.button>
-                ))}
+            <div className="terminal">
+              <div className="terminal-header">
+                <div className="terminal-dots"><span /><span /><span /></div>
+                <div className="terminal-title">
+                  <Zap className="w-3 h-3" /> QUICK_DEPOSIT
+                </div>
               </div>
-              <button onClick={() => setActiveTab('deposit')} className="btn-ghost w-full py-2 rounded-xl text-xs font-mono">
-                Custom amount →
-              </button>
+              <div className="terminal-body">
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {DEPOSIT_AMOUNTS.map(amt => (
+                    <motion.button
+                      key={amt}
+                      onClick={() => handleDeposit(amt)}
+                      disabled={depositing}
+                      className="py-3 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] hover:border-[var(--cyan)] hover:bg-[var(--cyan)]/10 text-[10px] font-bold transition-all disabled:opacity-50 text-[var(--cyan)]"
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      ₹{amt}
+                    </motion.button>
+                  ))}
+                </div>
+                <button onClick={() => setActiveTab('deposit')} className="btn-outline w-full py-2 text-[10px]">
+                  CUSTOM_AMOUNT →
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
 
         {activeTab === 'deposit' && (
           <motion.div key="deposit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="glass-gold rounded-2xl p-6">
-              <h3 className="font-tech text-xs text-yellow-400 tracking-widest uppercase mb-4">Deposit Funds</h3>
-              <div className="space-y-4">
+            <div className="terminal">
+              <div className="terminal-header">
+                <div className="terminal-dots"><span /><span /><span /></div>
+                <div className="terminal-title">
+                  <Zap className="w-3 h-3" /> DEPOSIT_FUNDS
+                </div>
+              </div>
+              <div className="terminal-body space-y-4">
                 <div>
-                  <label className="font-tech text-xs text-zinc-400 tracking-wider block mb-2">Amount (₹)</label>
+                  <label className="label-terminal">
+                    <Zap className="w-3 h-3" /> AMOUNT (₹)
+                  </label>
                   <input
                     type="number"
                     value={customAmount}
                     onChange={e => setCustomAmount(e.target.value)}
-                    placeholder="Enter amount (min ₹10)"
+                    placeholder="ENTER_AMOUNT (MIN ₹10)"
                     min={10}
                     max={100000}
-                    className="input-cyber w-full rounded-xl px-4 py-3 text-lg font-tech"
+                    className="input-terminal w-full text-lg"
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {DEPOSIT_AMOUNTS.map(amt => (
                     <button key={amt} onClick={() => setCustomAmount(amt.toString())}
-                      className={`py-2 rounded-lg text-xs font-mono transition-all ${customAmount === amt.toString() ? 'bg-yellow-400 text-black' : 'bg-white/5 text-zinc-400 hover:bg-white/10'}`}>
+                      className={`py-2 text-[10px] border transition-all ${
+                        customAmount === amt.toString()
+                          ? 'text-[var(--cyan)] border-[var(--cyan)] bg-[var(--cyan-ghost)]'
+                          : 'text-[var(--text-dim)] border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)]'
+                      }`}>
                       ₹{amt}
                     </button>
                   ))}
@@ -294,17 +337,19 @@ export default function WalletClient({
                 <motion.button
                   onClick={() => handleDeposit(parseFloat(customAmount) || 0)}
                   disabled={depositing || !customAmount || parseFloat(customAmount) < 10}
-                  className="btn-primary w-full py-4 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="btn-execute w-full"
                   whileTap={{ scale: 0.98 }}
                 >
-                  {depositing ? (
-                    <><Loader className="w-4 h-4 animate-spin" />PROCESSING...</>
-                  ) : (
-                    <><Zap className="w-4 h-4" />DEPOSIT ₹{customAmount || '0'}</>
-                  )}
+                  <span className="relative z-10 flex items-center justify-center gap-3">
+                    {depositing ? (
+                      <><Loader className="w-4 h-4 animate-spin" />PROCESSING...</>
+                    ) : (
+                      <><Zap className="w-4 h-4" />DEPOSIT ₹{customAmount || '0'}</>
+                    )}
+                  </span>
                 </motion.button>
-                <p className="text-center text-zinc-600 font-mono text-xs">
-                  Powered by Razorpay • 256-bit SSL encrypted
+                <p className="text-center text-[8px] text-[var(--text-ghost)] tracking-wider">
+                  POWERED_BY_RAZORPAY · 256-BIT_SSL_ENCRYPTED
                 </p>
               </div>
             </div>
@@ -313,43 +358,60 @@ export default function WalletClient({
 
         {activeTab === 'history' && (
           <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="space-y-3">
-              {transactions.length === 0 && (
-                <div className="text-center py-12 text-zinc-600 font-mono">
-                  <TrendingUp className="w-8 h-8 mx-auto mb-3 opacity-20" />
-                  <p>No transactions yet.</p>
+            <div className="terminal">
+              <div className="terminal-header">
+                <div className="terminal-dots"><span /><span /><span /></div>
+                <div className="terminal-title">
+                  <Activity className="w-3 h-3" /> TRANSACTION_LOG
                 </div>
-              )}
-              {transactions.map((tx, i) => {
-                const txConfig = TX_ICONS[tx.type] || TX_ICONS.deposit
-                const TxIcon = txConfig.icon
-                const isCredit = ['deposit', 'challenge_win', 'refund', 'bonus'].includes(tx.type)
+              </div>
+              <div className="terminal-body">
+                {transactions.length === 0 && (
+                  <div className="text-center py-12">
+                    <TrendingUp className="w-8 h-8 mx-auto mb-3 text-[var(--text-dim)] opacity-30" />
+                    <p className="text-[var(--text-dim)] text-xs tracking-wider">NO_TRANSACTIONS_RECORDED.</p>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {transactions.map((tx, i) => {
+                    const txConfig = TX_ICONS[tx.type] || TX_ICONS.deposit
+                    const TxIcon = txConfig.icon
+                    const isCredit = ['deposit', 'challenge_win', 'refund', 'bonus'].includes(tx.type)
 
-                return (
-                  <motion.div key={tx.id} className="card-dark flex items-center gap-4 p-4"
-                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                      style={{ background: `${txConfig.color}20`, border: `1px solid ${txConfig.color}30` }}>
-                      <TxIcon className="w-4 h-4" style={{ color: txConfig.color }} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-mono text-sm text-white">{tx.description || tx.type.replace('_', ' ')}</p>
-                      <p className="font-mono text-xs text-zinc-500">{formatRelativeTime(tx.created_at)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-tech text-sm font-bold ${isCredit ? 'text-green-400' : 'text-red-400'}`}>
-                        {isCredit ? '+' : '-'}{formatCurrency(Math.abs(tx.amount))}
-                      </p>
-                      <span className={`text-xs font-mono ${
-                        tx.status === 'completed' ? 'text-green-400' :
-                        tx.status === 'pending' ? 'text-yellow-400' : 'text-red-400'
-                      }`}>
-                        {tx.status}
-                      </span>
-                    </div>
-                  </motion.div>
-                )
-              })}
+                    return (
+                      <motion.div
+                        key={tx.id}
+                        className="flex items-center gap-3 p-3 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)]"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                      >
+                        <div className="w-8 h-8 border flex items-center justify-center flex-shrink-0"
+                          style={{ borderColor: txConfig.color, background: `${txConfig.color}10` }}>
+                          <TxIcon className="w-3.5 h-3.5" style={{ color: txConfig.color }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] text-white font-bold uppercase tracking-wider truncate">
+                            {tx.description || tx.type.replace(/_/g, ' ')}
+                          </p>
+                          <p className="text-[8px] text-[var(--text-ghost)] tracking-wider">{formatRelativeTime(tx.created_at)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-xs font-extrabold ${isCredit ? 'text-[var(--green)]' : 'text-[var(--red)]'}`}>
+                            {isCredit ? '+' : '-'}{formatCurrency(Math.abs(tx.amount))}
+                          </p>
+                          <span className={`text-[8px] font-bold tracking-wider uppercase ${
+                            tx.status === 'completed' ? 'text-[var(--green)]' :
+                            tx.status === 'pending' ? 'text-[#fbbf24]' : 'text-[var(--red)]'
+                          }`}>
+                            {tx.status}
+                          </span>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
