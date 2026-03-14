@@ -69,7 +69,8 @@ export default function LandingPage() {
     let i = 0
     const interval = setInterval(() => {
       if (i < lines.length) {
-        setBootLines(prev => [...prev, lines[i]])
+        const line = lines[i]
+        setBootLines(prev => [...prev, line])
         i++
       } else {
         clearInterval(interval)
