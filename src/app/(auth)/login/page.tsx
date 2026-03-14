@@ -7,8 +7,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Turnstile from 'react-turnstile'
-import { Eye, EyeOff, Mail, Lock, Loader, AlertTriangle, CheckCircle, Chrome, Zap } from 'lucide-react'
-import { track, EVENTS } from '@/lib/posthog'
+import {
+  Shield, Lock, Mail, Loader, Zap, Terminal, Eye,
+  XCircle, CheckCircle, ChevronLeft, Chrome
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 
 function LoginContent() {
@@ -24,37 +26,26 @@ function LoginContent() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
-  const [glitchActive, setGlitchActive] = useState(false)
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number }>>([])
+  const [glitchEffect, setGlitchEffect] = useState(false)
 
-  // Generate floating particles
+  // Glitch on errors
   useEffect(() => {
-    const p = Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      delay: Math.random() * 5,
-    }))
-    setParticles(p)
-
-    // Random glitch effect
-    const interval = setInterval(() => {
-      setGlitchActive(true)
-      setTimeout(() => setGlitchActive(false), 200)
-    }, 8000)
-    return () => clearInterval(interval)
-  }, [])
+    if (message?.type === 'error') {
+      setGlitchEffect(true)
+      setTimeout(() => setGlitchEffect(false), 500)
+    }
+  }, [message])
 
   const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!turnstileToken) {
-      setMessage({ type: 'error', text: 'Complete the security check first.' })
+      setMessage({ type: 'error', text: 'SECURITY_BREACH: CAPTCHA_VERIFICATION_FAILED' })
       return
     }
     setLoading(true)
     setMessage(null)
 
-    // Verify turnstile
+    // Verify turnstile server-side
     const verify = await fetch('/api/auth/verify-turnstile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -62,21 +53,29 @@ function LoginContent() {
     })
     const { success } = await verify.json()
     if (!success) {
-      setMessage({ type: 'error', text: 'Security check failed. Refresh and try again.' })
+      setMessage({ type: 'error', text: 'TURNSTILE_ERROR: VERIFICATION_REJECTED' })
       setLoading(false)
       return
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
     if (error) {
-      setMessage({ type: 'error', text: error.message })
+      setMessage({
+        type: 'error',
+        text: error.message.includes('Invalid')
+          ? 'ACCESS_DENIED: INVALID_CREDENTIALS'
+          : `AUTH_ERROR: ${error.message.toUpperCase().replace(/\s+/g, '_')}`
+      })
       setLoading(false)
       return
     }
 
-    toast.success('Welcome back, King.')
-    router.push(redirectTo)
-    router.refresh()
+    setMessage({ type: 'success', text: 'ACCESS_GRANTED: ESTABLISHING_SECURE_CONNECTION...' })
+    toast.success('ACCESS_GRANTED')
+    setTimeout(() => {
+      router.push(redirectTo)
+      router.refresh()
+    }, 800)
   }, [email, password, turnstileToken, supabase, redirectTo, router])
 
   const handleGoogleLogin = useCallback(async () => {
@@ -94,216 +93,263 @@ function LoginContent() {
   }, [supabase, redirectTo])
 
   return (
-    <div className="min-h-screen bg-[#030303] grid-bg relative overflow-hidden flex items-center justify-center">
-      {/* Animated background particles */}
-      {particles.map(p => (
-        <motion.div
-          key={p.id}
-          className="absolute w-1 h-1 rounded-full"
-          style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            background: p.id % 3 === 0 ? '#fbbf24' : p.id % 3 === 1 ? '#06b6d4' : '#a855f7',
-            opacity: 0.4,
-          }}
-          animate={{ y: [-20, 20], opacity: [0.1, 0.6, 0.1] }}
-          transition={{ duration: 3 + p.delay, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      ))}
+    <div className="min-h-screen bg-black text-[var(--cyan)] font-mono flex flex-col items-center justify-center p-4 relative overflow-hidden">
 
-      {/* Scanline */}
+      {/* Grid background */}
+      <div className="fixed inset-0 grid-bg pointer-events-none" style={{ maskImage: 'radial-gradient(ellipse 80% 50% at 50% 50%, black, transparent)' }} />
+
+      {/* Scanning line */}
       <motion.div
-        className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-yellow-400/20 to-transparent pointer-events-none"
-        animate={{ y: ['-100vh', '100vh'] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+        className="fixed left-0 w-full h-[2px] pointer-events-none z-10"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.6), transparent)', boxShadow: '0 0 20px rgba(0,255,245,0.5)' }}
+        animate={{ top: ['-5%', '105%'] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
       />
 
-      {/* Radial gradient glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.04)_0%,transparent_70%)] pointer-events-none" />
+      {/* Corner brackets */}
+      <div className="fixed top-8 left-8 w-16 h-16 border-l-2 border-t-2 border-[var(--cyan-border)] pointer-events-none" />
+      <div className="fixed top-8 right-8 w-16 h-16 border-r-2 border-t-2 border-[var(--cyan-border)] pointer-events-none" />
+      <div className="fixed bottom-8 left-8 w-16 h-16 border-l-2 border-b-2 border-[var(--cyan-border)] pointer-events-none" />
+      <div className="fixed bottom-8 right-8 w-16 h-16 border-r-2 border-b-2 border-[var(--cyan-border)] pointer-events-none" />
 
-      <div className="w-full max-w-md px-6 z-10">
-        {/* Logo + Brand */}
-        <motion.div
-          className="text-center mb-10"
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="flex justify-center mb-4">
-            <motion.div
-              className="relative w-16 h-16"
-              animate={{ rotate: glitchActive ? [0, -2, 3, -1, 0] : 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <Image src="/logo.png" alt="King of Good Times" fill className="object-contain crown-animate" />
-            </motion.div>
-          </div>
-          <motion.h1
-            className="font-display text-5xl tracking-wider"
-            style={{ fontFamily: "'Bebas Neue', cursive" }}
-            animate={{ filter: glitchActive ? 'hue-rotate(90deg)' : 'hue-rotate(0deg)' }}
+      {/* Glitch overlay */}
+      <AnimatePresence>
+        {glitchEffect && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.4, 0, 0.2, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="fixed inset-0 bg-red-500 mix-blend-screen pointer-events-none z-20"
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="relative z-10 w-full max-w-md">
+
+        {/* Back to home */}
+        <Link href="/">
+          <motion.button
+            whileHover={{ x: -4 }}
+            className="flex items-center gap-2 text-[10px] text-[var(--text-dim)] hover:text-[var(--cyan)] mb-8 transition-colors uppercase tracking-[0.2em] group"
           >
-            <span className="text-gradient-gold">KING OF</span>
-            <br />
-            <span className="text-white">GOOD TIMES</span>
-          </motion.h1>
-          <p className="font-mono text-xs text-zinc-500 mt-2 tracking-[0.3em] uppercase">
-            sandnco.lol
-          </p>
-        </motion.div>
+            <ChevronLeft className="w-3.5 h-3.5 group-hover:animate-pulse" />
+            <span className="border-b border-[var(--cyan-border)] group-hover:border-[var(--cyan)]">ABORT_MISSION</span>
+          </motion.button>
+        </Link>
 
-        {/* Auth Card */}
+        {/* Terminal window */}
         <motion.div
-          className="glass-gold rounded-2xl p-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.5 }}
+          className={`terminal transition-all duration-200 ${glitchEffect ? 'border-[var(--red)]' : ''}`}
         >
-          <div className="mb-6">
-            <h2 className="font-tech text-sm font-bold text-yellow-400 tracking-widest uppercase mb-1">
-              Access Terminal
-            </h2>
-            <p className="text-zinc-500 font-mono text-xs">
-              Enter your credentials to re-enter the city.
-            </p>
+          {/* Header bar */}
+          <div className="terminal-header">
+            <div className="terminal-dots">
+              <span /><span /><span />
+            </div>
+            <div className="terminal-title">
+              <Terminal className="w-3 h-3" />
+              SECURE_TERMINAL_v4.2
+            </div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            {/* Email */}
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="email@domain.com"
-                required
-                className="input-cyber w-full rounded-lg pl-10 pr-4 py-3 text-sm"
-              />
-            </div>
+          <div className="terminal-body">
 
-            {/* Password */}
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                required
-                className="input-cyber w-full rounded-lg pl-10 pr-10 py-3 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-yellow-400 transition-colors"
+            {/* Logo + Title */}
+            <div className="text-center mb-8">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                className="inline-block p-4 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] mb-4 relative"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+                <Shield className="w-10 h-10 text-[var(--cyan)]" />
+                <motion.div
+                  className="absolute inset-0 border-2 border-[var(--cyan)]"
+                  animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              </motion.div>
+
+              <h1 className="text-2xl font-extrabold uppercase tracking-wider text-glow-cyan mb-2">
+                AUTHENTICATION
+              </h1>
+              <p className="text-[10px] text-[var(--text-dim)] uppercase tracking-[0.3em]">
+                SECURE ACCESS PORTAL
+              </p>
             </div>
 
-            <div className="flex justify-end">
-              <Link href="/forgot-password" className="text-xs text-zinc-500 hover:text-yellow-400 transition-colors font-mono">
-                Forgot access code?
-              </Link>
-            </div>
-
-            {/* Turnstile */}
-            <div className="flex justify-center">
-              <Turnstile
-                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
-                onVerify={(token) => setTurnstileToken(token)}
-                onExpire={() => setTurnstileToken(null)}
-                theme="dark"
-              />
-            </div>
-
-            {/* Message */}
-            <AnimatePresence>
+            {/* Status message */}
+            <AnimatePresence mode="wait">
               {message && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono ${
-                    message.type === 'error'
-                      ? 'bg-red-500/10 border border-red-500/20 text-red-400'
-                      : 'bg-green-500/10 border border-green-500/20 text-green-400'
-                  }`}
+                  key={message.text}
+                  initial={{ opacity: 0, x: -20, height: 0 }}
+                  animate={{ opacity: 1, x: 0, height: 'auto' }}
+                  exit={{ opacity: 0, x: 20, height: 0 }}
+                  className={`mb-6 ${message.type === 'error' ? 'msg-error' : 'msg-success'}`}
                 >
-                  {message.type === 'error' ? (
-                    <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-                  ) : (
-                    <CheckCircle className="w-3 h-3 flex-shrink-0" />
-                  )}
-                  {message.text}
+                  {message.type === 'error'
+                    ? <XCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    : <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />}
+                  <div className="flex-1 font-bold leading-relaxed break-words">
+                    {message.text}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Submit */}
+            {/* Form */}
+            <form onSubmit={handleLogin} className="space-y-5">
+              {/* Email */}
+              <div>
+                <label className="label-terminal">
+                  <Mail className="w-3 h-3" /> EMAIL_ADDRESS
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-dim)]" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="agent@sandnco.lol"
+                    required
+                    className="input-terminal input-terminal-icon"
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="label-terminal">
+                  <Lock className="w-3 h-3" /> CIPHER_KEY
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-dim)]" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    required
+                    className="input-terminal input-terminal-icon pr-10"
+                    style={{ letterSpacing: showPassword ? 'normal' : '0.2em' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)] hover:text-[var(--cyan)] transition-colors"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Forgot password */}
+              <div className="flex justify-end">
+                <Link href="/forgot-password">
+                  <span className="text-[9px] text-[var(--red-dim)] hover:text-[var(--red)] transition-colors uppercase tracking-wider">
+                    LOST_CREDENTIALS?
+                  </span>
+                </Link>
+              </div>
+
+              {/* Turnstile */}
+              <div className="flex justify-center py-2">
+                <Turnstile
+                  sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                  onVerify={token => setTurnstileToken(token)}
+                  onExpire={() => setTurnstileToken(null)}
+                  theme="dark"
+                />
+              </div>
+
+              {/* Execute button */}
+              <motion.button
+                type="submit"
+                disabled={loading || !turnstileToken}
+                className="btn-execute"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="relative z-10 flex items-center justify-center gap-3">
+                  {loading ? (
+                    <><Loader className="w-4 h-4 animate-spin" /> PROCESSING</>
+                  ) : (
+                    <><Zap className="w-4 h-4" /> EXECUTE</>
+                  )}
+                </span>
+              </motion.button>
+            </form>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4 my-6">
+              <div className="flex-1 h-px bg-[var(--cyan-border)]" />
+              <span className="text-[9px] text-[var(--text-dim)] tracking-[0.2em]">ALTERNATE_PROTOCOL</span>
+              <div className="flex-1 h-px bg-[var(--cyan-border)]" />
+            </div>
+
+            {/* Google OAuth */}
             <motion.button
-              type="submit"
-              disabled={loading || !turnstileToken}
-              className="btn-primary w-full py-3 rounded-lg text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              className="btn-outline w-full flex items-center justify-center gap-3"
               whileTap={{ scale: 0.98 }}
             >
-              {loading ? (
-                <>
-                  <Loader className="w-4 h-4 animate-spin" />
-                  AUTHENTICATING...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4" />
-                  ENTER THE CITY
-                </>
-              )}
+              {googleLoading
+                ? <Loader className="w-4 h-4 animate-spin" />
+                : <Chrome className="w-4 h-4" />}
+              GOOGLE_AUTH
             </motion.button>
-          </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-4 my-5">
-            <div className="flex-1 h-px bg-white/5" />
-            <span className="text-zinc-600 font-mono text-xs">OR</span>
-            <div className="flex-1 h-px bg-white/5" />
+            {/* Links */}
+            <div className="mt-6 flex flex-col gap-3 text-center">
+              <button
+                onClick={() => router.push('/signup')}
+                className="btn-link"
+              >
+                <span>NO_ACCESS? REGISTER_NEW_AGENT</span>
+              </button>
+            </div>
           </div>
 
-          {/* Google OAuth */}
-          <motion.button
-            onClick={handleGoogleLogin}
-            disabled={googleLoading}
-            className="btn-ghost w-full py-3 rounded-lg text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-            whileTap={{ scale: 0.98 }}
-          >
-            {googleLoading ? (
-              <Loader className="w-4 h-4 animate-spin" />
-            ) : (
-              <Chrome className="w-4 h-4" />
-            )}
-            Continue with Google
-          </motion.button>
-
-          <p className="text-center text-zinc-600 font-mono text-xs mt-6">
-            No account?{' '}
-            <Link href="/signup" className="text-yellow-400 hover:text-yellow-300 transition-colors">
-              Join the city →
-            </Link>
-          </p>
+          {/* Footer bar */}
+          <div className="terminal-footer">
+            <Lock className="w-3 h-3" />
+            ENCRYPTION: AES-256 | KING_OF_GOOD_TIMES_V2
+          </div>
         </motion.div>
 
         {/* Legal */}
-        <p className="text-center text-zinc-700 font-mono text-xs mt-6">
-          By signing in you agree to our{' '}
-          <Link href="/legal/tos" className="text-zinc-500 hover:text-yellow-400 transition-colors">
-            Terms
+        <div className="mt-6 text-center text-[9px] text-[var(--text-ghost)] uppercase tracking-[0.15em]">
+          By authenticating you accept our{' '}
+          <Link href="/legal/tos" className="text-[var(--text-dim)] hover:text-[var(--cyan)] transition-colors border-b border-[var(--text-ghost)]">
+            TERMS
           </Link>{' '}
           &{' '}
-          <Link href="/legal/privacy" className="text-zinc-500 hover:text-yellow-400 transition-colors">
-            Privacy Policy
+          <Link href="/legal/privacy" className="text-[var(--text-dim)] hover:text-[var(--cyan)] transition-colors border-b border-[var(--text-ghost)]">
+            PRIVACY_POLICY
           </Link>
-        </p>
+        </div>
       </div>
+
+      {/* Panic button (Easter egg from old UI) */}
+      <motion.div
+        className="fixed bottom-4 left-4 z-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2 }}
+      >
+        <div className="flex items-center gap-2">
+          <div className="relative w-6 h-6">
+            <Image src="/logo.png" alt="" fill className="object-contain opacity-30 hover:opacity-80 transition-opacity" />
+          </div>
+          <span className="text-[8px] text-[var(--text-ghost)] tracking-[0.3em] uppercase">sandnco.lol</span>
+        </div>
+      </motion.div>
     </div>
   )
 }
@@ -311,10 +357,10 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#030303] flex items-center justify-center">
-        <div className="text-yellow-400 font-mono text-sm animate-pulse flex items-center gap-3">
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-[var(--cyan)] font-mono text-sm animate-pulse flex items-center gap-3">
           <Loader className="w-5 h-5 animate-spin" />
-          INITIALIZING...
+          INITIALIZING_SECURE_PROTOCOL...
         </div>
       </div>
     }>
