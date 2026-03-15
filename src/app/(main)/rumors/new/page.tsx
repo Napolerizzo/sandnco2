@@ -67,50 +67,59 @@ export default function NewRumorPage() {
     }
 
     setLoading(true)
-    setAiChecking(true)
     setMessage(null)
 
-    const modRes = await fetch('/api/ai/moderate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: `${title}\n${content}` }),
-    })
-    const { safe, reason } = await modRes.json()
-    setAiChecking(false)
+    try {
+      // AI moderation check
+      setAiChecking(true)
+      const modRes = await fetch('/api/ai/moderate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: `${title}\n${content}` }),
+      })
+      const modData = await modRes.json()
+      setAiChecking(false)
 
-    if (!safe) {
-      setMessage({ type: 'error', text: `Content flagged: ${reason || 'Violates community guidelines.'}` })
+      if (!modData.safe) {
+        setMessage({ type: 'error', text: `Content flagged: ${modData.reason || 'Violates community guidelines.'}` })
+        setLoading(false)
+        return
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
+
+      const alias = isAnonymous ? generateAnonymousAlias() : undefined
+
+      // Insert without .select().single() — the SELECT RLS policy only allows
+      // reading active/resolved rumors, but new rumors start as 'pending'.
+      const { error } = await supabase.from('rumors').insert({
+        author_id: user.id,
+        anonymous_alias: alias || generateAnonymousAlias(),
+        title,
+        content,
+        category,
+        tags,
+        is_anonymous: isAnonymous,
+        city: city || null,
+        status: 'pending',
+      })
+
+      if (error) {
+        setMessage({ type: 'error', text: `Something went wrong: ${error.message}` })
+        setLoading(false)
+        return
+      }
+
+      await supabase.rpc('increment_xp', { user_id: user.id, amount: 50 }).catch(() => {})
+      track(EVENTS.RUMOR_POSTED, { category, is_anonymous: isAnonymous, has_city: !!city })
+      toast.success('Rumor posted! +50 XP')
+      router.push('/rumors')
+    } catch {
+      setMessage({ type: 'error', text: 'Something went wrong. Please try again.' })
+      setAiChecking(false)
       setLoading(false)
-      return
     }
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
-
-    const alias = isAnonymous ? generateAnonymousAlias() : undefined
-
-    const { data, error } = await supabase.from('rumors').insert({
-      author_id: user.id,
-      anonymous_alias: alias || generateAnonymousAlias(),
-      title,
-      content,
-      category,
-      tags,
-      is_anonymous: isAnonymous,
-      city: city || null,
-      status: 'pending',
-    }).select('id').single()
-
-    if (error) {
-      setMessage({ type: 'error', text: `Something went wrong: ${error.message}` })
-      setLoading(false)
-      return
-    }
-
-    await supabase.rpc('increment_xp', { user_id: user.id, amount: 50 }).catch(() => {})
-    track(EVENTS.RUMOR_POSTED, { category, is_anonymous: isAnonymous, has_city: !!city })
-    toast.success('Rumor posted! +50 XP')
-    router.push(`/rumors/${data.id}`)
   }, [title, content, category, tags, isAnonymous, city, rulesAccepted, supabase, router])
 
   return (

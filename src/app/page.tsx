@@ -1,14 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import LandingPage from '@/components/LandingPage'
 
 export const dynamic = 'force-dynamic'
 
 export default async function RootPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (user) redirect('/feed')
 
   // Fetch preview data — real numbers only, no fake metrics
   const [{ data: previewRumors }, { count: userCount }, { count: rumorCount }] = await Promise.all([

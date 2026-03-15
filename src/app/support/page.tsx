@@ -1,12 +1,16 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   MessageCircle, Send, Loader, Bot, User as UserIcon, Ticket,
-  HelpCircle, Zap, CreditCard, Bug, Scale, CheckCircle, XCircle
+  HelpCircle, Zap, CreditCard, Bug, Scale, CheckCircle, XCircle,
+  ArrowLeft, LogIn, ShieldCheck
 } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
+import { useSupabase } from '@/components/providers/SupabaseProvider'
+import Link from 'next/link'
+import Image from 'next/image'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -23,12 +27,13 @@ const TICKET_CATEGORIES = [
   { id: 'general', icon: HelpCircle, label: 'General Help', description: 'Anything else' },
 ]
 
+// Detect payment IDs in user messages
+const PAYMENT_ID_REGEX = /pay_[a-zA-Z0-9]{10,}/
+
 export default function SupportPage() {
-  const [messages, setMessages] = useState<Message[]>([{
-    role: 'assistant',
-    content: "Hey! I'm Suno, your SANDNCO assistant. I can help with account questions, wallet issues, challenges, and anything else platform-related. If I can't sort it, I'll connect you with a real person.",
-    timestamp: new Date(),
-  }])
+  const { user, loading: authLoading } = useSupabase()
+
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<'chat' | 'ticket'>('chat')
@@ -38,12 +43,33 @@ export default function SupportPage() {
   const [ticketSubmitted, setTicketSubmitted] = useState(false)
   const [submittingTicket, setSubmittingTicket] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [initialized, setInitialized] = useState(false)
+
+  // Set initial greeting based on auth state
+  useEffect(() => {
+    if (authLoading || initialized) return
+    setInitialized(true)
+
+    if (user) {
+      setMessages([{
+        role: 'assistant',
+        content: "Hey! I'm Suno, your SANDNCO assistant. I can help with account questions, wallet issues, payment verification, challenges, and more. If you have a payment issue, just share your Razorpay payment ID (starts with pay_) and I'll verify it for you!",
+        timestamp: new Date(),
+      }])
+    } else {
+      setMessages([{
+        role: 'assistant',
+        content: "Hey! I'm Suno, your SANDNCO assistant. I can answer general questions about the platform. For account-specific help (wallet, payments, membership), you'll need to log in first. What can I help you with?",
+        timestamp: new Date(),
+      }])
+    }
+  }, [authLoading, user, initialized])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!input.trim() || loading) return
     const userMessage: Message = { role: 'user', content: input, timestamp: new Date() }
     const newMessages = [...messages, userMessage]
@@ -52,10 +78,20 @@ export default function SupportPage() {
     setLoading(true)
 
     try {
+      // Check if user is sharing a payment ID for verification
+      const paymentMatch = input.match(PAYMENT_ID_REGEX)
+      const body: Record<string, unknown> = {
+        messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+      }
+
+      if (paymentMatch && user) {
+        body.checkPaymentId = paymentMatch[0]
+      }
+
       const res = await fetch('/api/ai/support', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       const content = data.content || "I'm not able to respond right now. Please try again or email sandncolol@gmail.com."
@@ -69,24 +105,49 @@ export default function SupportPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [input, loading, messages, user])
 
-  const submitTicket = async () => {
+  const submitTicket = useCallback(async () => {
     if (!ticketCategory || !ticketSubject || !ticketDesc) return
     setSubmittingTicket(true)
-    const res = await fetch('/api/support/tickets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category: ticketCategory, subject: ticketSubject, description: ticketDesc }),
-    })
-    const { success } = await res.json()
-    if (success) setTicketSubmitted(true)
+    try {
+      const res = await fetch('/api/support/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: ticketCategory, subject: ticketSubject, description: ticketDesc }),
+      })
+      const { success } = await res.json()
+      if (success) setTicketSubmitted(true)
+    } catch {
+      // silent
+    }
     setSubmittingTicket(false)
-  }
+  }, [ticketCategory, ticketSubject, ticketDesc])
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font)' }}>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px' }}>
+
+        {/* Top bar — logo + back */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--text)' }}>
+            <Image src="/logo.png" alt="SANDNCO" width={32} height={32} style={{ borderRadius: 8 }} />
+            <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>SANDNCO</span>
+          </Link>
+          <Link
+            href={user ? '/feed' : '/'}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', fontSize: 12, fontWeight: 500,
+              borderRadius: 7, textDecoration: 'none',
+              background: 'var(--bg-elevated)', color: 'var(--muted)',
+              border: '1px solid var(--border)', transition: 'all 0.15s',
+            }}
+          >
+            <ArrowLeft size={13} />
+            {user ? 'Back to Feed' : 'Back to Home'}
+          </Link>
+        </div>
 
         {/* Header */}
         <motion.div
@@ -141,24 +202,36 @@ export default function SupportPage() {
               }}>
                 {/* Chat header */}
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '14px 16px', borderBottom: '1px solid var(--border)',
                   background: 'var(--bg-elevated)',
                 }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: '50%',
-                    background: 'var(--primary-dim)', border: '1px solid rgba(99,102,241,0.25)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Bot style={{ width: 16, height: 16, color: 'var(--primary)' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      background: 'var(--primary-dim)', border: '1px solid rgba(99,102,241,0.25)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Bot style={{ width: 16, height: 16, color: 'var(--primary)' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>Suno</p>
+                      <p style={{ fontSize: 11, color: 'var(--success)', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />
+                        Online
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>Suno</p>
-                    <p style={{ fontSize: 11, color: 'var(--success)', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />
-                      Online
-                    </p>
-                  </div>
+                  {user && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '4px 10px', borderRadius: 6,
+                      background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)',
+                    }}>
+                      <ShieldCheck size={12} style={{ color: 'var(--success)' }} />
+                      <span style={{ fontSize: 11, color: 'var(--success)', fontWeight: 500 }}>Verified</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Messages */}
@@ -271,7 +344,52 @@ export default function SupportPage() {
           {/* ── TICKET MODE ── */}
           {mode === 'ticket' && (
             <motion.div key="ticket" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {ticketSubmitted ? (
+              {/* Login gate for tickets */}
+              {!user ? (
+                <div style={{
+                  textAlign: 'center', padding: '60px 24px',
+                  background: 'var(--bg-card)', border: '1px solid var(--border)',
+                  borderRadius: 12,
+                }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: '50%', margin: '0 auto 16px',
+                    background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <LogIn style={{ width: 24, height: 24, color: 'var(--primary)' }} />
+                  </div>
+                  <h3 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 8 }}>
+                    Log in to open a ticket
+                  </h3>
+                  <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.6, maxWidth: 360, margin: '0 auto 24px' }}>
+                    We need your account info to track and respond to your ticket. You can still chat with Suno without logging in.
+                  </p>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    <Link
+                      href="/login?next=/support"
+                      style={{
+                        padding: '10px 24px', fontSize: 14, fontWeight: 600,
+                        background: 'var(--primary)', color: '#fff',
+                        border: 'none', borderRadius: 8, textDecoration: 'none',
+                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                      }}
+                    >
+                      <LogIn size={15} /> Log In
+                    </Link>
+                    <button
+                      onClick={() => setMode('chat')}
+                      style={{
+                        padding: '10px 20px', fontSize: 14, fontWeight: 500,
+                        background: 'var(--bg-elevated)', color: 'var(--muted)',
+                        border: '1px solid var(--border)', borderRadius: 8,
+                        cursor: 'pointer', fontFamily: 'var(--font)',
+                      }}
+                    >
+                      Chat with Suno
+                    </button>
+                  </div>
+                </div>
+              ) : ticketSubmitted ? (
                 <div style={{
                   textAlign: 'center', padding: '60px 24px',
                   background: 'var(--bg-card)', border: '1px solid var(--border)',

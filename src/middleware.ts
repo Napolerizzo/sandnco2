@@ -55,7 +55,8 @@ export async function middleware(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    if (!adminRole) {
+    // Allow hardcoded super admin through — layout will auto-provision the role
+    if (!adminRole && user.email !== 'admin@sameerjhamb.com') {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }
