@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   Trophy, Plus, Clock, Users, Zap, Crown, Lock, TrendingUp,
-  Flame, Terminal, Activity
+  Flame, Activity
 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 
@@ -31,11 +31,11 @@ interface Profile {
 }
 
 const STATUS_CONFIG = {
-  created: { label: 'OPEN', color: 'var(--green)' },
-  waiting_for_players: { label: 'FILLING', color: '#fbbf24' },
-  active: { label: 'LIVE', color: 'var(--red)' },
-  judging: { label: 'JUDGING', color: '#a855f7' },
-  completed: { label: 'DONE', color: 'var(--text-dim)' },
+  created: { label: 'Open', color: '#22C55E' },
+  waiting_for_players: { label: 'Filling up', color: '#F59E0B' },
+  active: { label: 'Live', color: '#EF4444' },
+  judging: { label: 'Judging', color: '#A855F7' },
+  completed: { label: 'Ended', color: '#6B7280' },
 }
 
 export default function ChallengesClient({
@@ -64,80 +64,88 @@ export default function ChallengesClient({
     })
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 16px 80px' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
-          <div className="text-[9px] text-[var(--text-dim)] tracking-[0.3em] uppercase mb-1">
-            // COMPETITION_ENGINE
-          </div>
-          <h1 className="text-2xl font-extrabold text-glow-cyan uppercase tracking-wider">
-            CHALLENGES
+          <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text)', marginBottom: 4 }}>
+            Challenges
           </h1>
-          <p className="text-[10px] text-[var(--text-dim)] mt-1 tracking-wider">ENTER. COMPETE. COLLECT.</p>
+          <p style={{ fontSize: 13, color: 'var(--muted)' }}>Enter. Compete. Collect.</p>
         </div>
-        <Link href="/challenges/new">
-          <motion.button className="btn-execute px-4 py-2 text-[10px] flex items-center gap-2" whileTap={{ scale: 0.95 }}>
-            <Plus className="w-3.5 h-3.5" />CREATE_CHALLENGE
+        <Link href="/challenges/new" style={{ textDecoration: 'none' }}>
+          <motion.button
+            className="btn btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', fontSize: 13, fontWeight: 600 }}
+            whileTap={{ scale: 0.96 }}
+          >
+            <Plus size={15} />
+            Create Challenge
           </motion.button>
         </Link>
       </div>
 
       {/* Stats bar */}
       {profile && (
-        <div className="terminal mb-6">
-          <div className="terminal-header">
-            <div className="terminal-dots"><span /><span /><span /></div>
-            <div className="terminal-title">
-              <Activity className="w-3 h-3" /> CHALLENGE_METRICS
-            </div>
-          </div>
-          <div className="terminal-body">
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { label: 'WALLET', value: formatCurrency(profile.wallet_balance), icon: Zap, color: 'var(--cyan)' },
-                { label: 'ACTIVE', value: challenges.filter(c => c.status === 'active').length, icon: Flame, color: 'var(--red)' },
-                { label: 'TOTAL_PRIZES', value: formatCurrency(challenges.reduce((s, c) => s + c.prize_pool, 0)), icon: Trophy, color: '#a855f7' },
-              ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label} className="border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon className="w-3 h-3" style={{ color }} />
-                    <span className="text-[9px] text-[var(--text-dim)] tracking-[0.15em]">{label}</span>
-                  </div>
-                  <p className="text-lg font-extrabold" style={{ color }}>{value}</p>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}
+        >
+          {[
+            { label: 'Wallet balance', value: formatCurrency(profile.wallet_balance), icon: Zap, color: '#6366F1' },
+            { label: 'Live challenges', value: challenges.filter(c => c.status === 'active').length, icon: Flame, color: '#EF4444' },
+            { label: 'Total prize pool', value: formatCurrency(challenges.reduce((s, c) => s + c.prize_pool, 0)), icon: Trophy, color: '#A855F7' },
+          ].map(({ label, value, icon: Icon, color }) => (
+            <div key={label} className="card" style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: `${color}15`, border: `1px solid ${color}30`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon size={13} style={{ color }} />
                 </div>
-              ))}
+                <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 500 }}>{label}</span>
+              </div>
+              <p style={{ fontSize: 20, fontWeight: 700, color, letterSpacing: '-0.02em' }}>{value}</p>
             </div>
-          </div>
-        </div>
+          ))}
+        </motion.div>
       )}
 
       {/* Filters */}
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <div className="flex items-center gap-1">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: 3 }}>
           {(['all', 'free', 'premium'] as const).map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 text-[10px] tracking-[0.1em] border transition-all uppercase ${
-                filter === f
-                  ? 'text-[var(--cyan)] border-[var(--cyan)] bg-[var(--cyan-ghost)]'
-                  : 'text-[var(--text-dim)] border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)]'
-              }`}>{f}</button>
+            <button key={f} onClick={() => setFilter(f)} style={{
+              padding: '5px 14px', fontSize: 12, fontWeight: 500,
+              borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
+              transition: 'all 0.15s', textTransform: 'capitalize',
+              background: filter === f ? 'var(--bg-card)' : 'transparent',
+              color: filter === f ? 'var(--text)' : 'var(--muted)',
+              boxShadow: filter === f ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+            }}>
+              {f === 'all' ? 'All' : f === 'free' ? 'Free entry' : 'Premium'}
+            </button>
           ))}
         </div>
 
         <select
           value={sort}
           onChange={e => setSort(e.target.value as typeof sort)}
-          className="input-terminal px-3 py-1.5 text-[10px] cursor-pointer"
+          className="input"
+          style={{ padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
         >
-          <option value="prize">HIGHEST_PRIZE</option>
-          <option value="new">NEWEST</option>
-          <option value="ending">ENDING_SOON</option>
+          <option value="prize">Highest prize</option>
+          <option value="new">Newest</option>
+          <option value="ending">Ending soon</option>
         </select>
       </div>
 
       {/* Challenges grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
         {filtered.map((challenge, i) => {
           const status = STATUS_CONFIG[challenge.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.created
           const canAfford = !profile || profile.wallet_balance >= challenge.entry_fee
@@ -146,58 +154,85 @@ export default function ChallengesClient({
           return (
             <motion.div
               key={challenge.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30, delay: i * 0.04 }}
             >
-              <Link href={`/challenges/${challenge.id}`}>
-                <div className={`terminal cursor-pointer group h-full ${isPremiumLocked ? 'opacity-60' : ''} hover:border-[var(--cyan)] transition-colors`}>
-                  {/* Status bar */}
-                  <div className="h-[2px]" style={{ background: `linear-gradient(90deg, ${status.color}, transparent)` }} />
+              <Link href={`/challenges/${challenge.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+                <div className="card card-interactive" style={{
+                  height: '100%', opacity: isPremiumLocked ? 0.65 : 1, overflow: 'hidden',
+                }}>
+                  {/* Status stripe */}
+                  <div style={{ height: 3, background: `linear-gradient(90deg, ${status.color}, transparent)` }} />
 
-                  <div className="terminal-body">
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-[9px] font-bold tracking-wider px-2 py-0.5 border uppercase"
-                        style={{ color: status.color, borderColor: status.color }}>
+                  <div style={{ padding: '16px 18px' }}>
+                    {/* Status + badges */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, padding: '3px 8px',
+                        borderRadius: 'var(--r-sm)', background: `${status.color}15`,
+                        color: status.color,
+                      }}>
                         {status.label}
                       </span>
-                      <div className="flex items-center gap-1">
-                        {isPremiumLocked && <Lock className="w-3 h-3 text-[var(--text-dim)]" />}
-                        {challenge.is_premium_only && <Crown className="w-3 h-3 text-[#fbbf24]" />}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {isPremiumLocked && <Lock size={13} style={{ color: 'var(--subtle)' }} />}
+                        {challenge.is_premium_only && <Crown size={13} style={{ color: '#F59E0B' }} />}
                       </div>
                     </div>
 
-                    <h3 className="font-bold text-white text-xs mb-2 group-hover:text-[var(--cyan)] transition-colors line-clamp-2 uppercase tracking-wider">
+                    {/* Title */}
+                    <h3 style={{
+                      fontSize: 14, fontWeight: 600, color: 'var(--text)',
+                      marginBottom: 8, lineHeight: 1.4,
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}>
                       {challenge.title}
                     </h3>
 
-                    <p className="text-[var(--text-dim)] text-[10px] line-clamp-2 mb-4">
+                    {/* Description */}
+                    <p style={{
+                      fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 14,
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}>
                       {challenge.description}
                     </p>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] p-2">
-                        <p className="text-[8px] text-[var(--text-dim)] tracking-wider">PRIZE_POOL</p>
-                        <p className="text-sm font-extrabold text-[var(--cyan)]">
+                    {/* Prize / Entry */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+                      <div style={{
+                        background: 'var(--bg-elevated)', borderRadius: 'var(--r)', padding: '8px 10px',
+                      }}>
+                        <p style={{ fontSize: 10, color: 'var(--subtle)', marginBottom: 3 }}>Prize pool</p>
+                        <p style={{ fontSize: 15, fontWeight: 700, color: '#A855F7' }}>
                           {formatCurrency(challenge.prize_pool)}
                         </p>
                       </div>
-                      <div className="border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] p-2">
-                        <p className="text-[8px] text-[var(--text-dim)] tracking-wider">ENTRY_FEE</p>
-                        <p className={`text-sm font-extrabold ${challenge.entry_fee === 0 ? 'text-[var(--green)]' : canAfford ? 'text-white' : 'text-[var(--red)]'}`}>
-                          {challenge.entry_fee === 0 ? 'FREE' : formatCurrency(challenge.entry_fee)}
+                      <div style={{
+                        background: 'var(--bg-elevated)', borderRadius: 'var(--r)', padding: '8px 10px',
+                      }}>
+                        <p style={{ fontSize: 10, color: 'var(--subtle)', marginBottom: 3 }}>Entry fee</p>
+                        <p style={{
+                          fontSize: 15, fontWeight: 700,
+                          color: challenge.entry_fee === 0 ? '#22C55E' : canAfford ? 'var(--text)' : '#EF4444',
+                        }}>
+                          {challenge.entry_fee === 0 ? 'Free' : formatCurrency(challenge.entry_fee)}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[9px] text-[var(--text-dim)] pt-2 border-t border-[var(--cyan-border)]">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />{challenge.participant_count} AGENTS
+                    {/* Footer */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      paddingTop: 10, borderTop: '1px solid var(--border)',
+                      fontSize: 11, color: 'var(--subtle)',
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Users size={11} />{challenge.participant_count} players
                       </span>
                       {challenge.ends_at && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={11} />
                           {formatRelativeTime(challenge.ends_at)}
                         </span>
                       )}
@@ -210,20 +245,20 @@ export default function ChallengesClient({
         })}
 
         {filtered.length === 0 && (
-          <div className="col-span-3 terminal">
-            <div className="terminal-header">
-              <div className="terminal-dots"><span /><span /><span /></div>
-              <div className="terminal-title">
-                <Terminal className="w-3 h-3" /> NO_DATA
-              </div>
-            </div>
-            <div className="terminal-body text-center py-12">
-              <Trophy className="w-8 h-8 mx-auto mb-3 text-[var(--text-dim)] opacity-30" />
-              <p className="text-[var(--text-dim)] text-xs tracking-wider">NO_CHALLENGES_AVAILABLE.</p>
-              <Link href="/challenges/new">
-                <button className="btn-execute px-6 py-2 text-[10px] mt-4">CREATE_ONE</button>
-              </Link>
-            </div>
+          <div style={{
+            gridColumn: '1 / -1', textAlign: 'center', padding: '60px 0',
+            color: 'var(--muted)',
+          }}>
+            <Trophy size={36} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+            <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>No challenges available</p>
+            <p style={{ fontSize: 12, color: 'var(--subtle)', marginBottom: 20 }}>
+              {filter !== 'all' ? 'Try a different filter' : 'Be the first to create one'}
+            </p>
+            <Link href="/challenges/new" style={{ textDecoration: 'none' }}>
+              <button className="btn btn-primary" style={{ padding: '9px 20px', fontSize: 13 }}>
+                Create a challenge
+              </button>
+            </Link>
           </div>
         )}
       </div>

@@ -1,12 +1,9 @@
 'use client'
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
-  Crown, Flame, Trophy, Shield, Edit3, MapPin, Calendar,
-  Terminal, Activity, Zap, Lock
+  Crown, Flame, Trophy, Shield, Edit3, MapPin, Calendar, Settings, Zap
 } from 'lucide-react'
 import { RANKS, PFP_STYLES, getXPProgress, type RankTier, type PfpStyle } from '@/lib/ranks'
 import { formatRelativeTime } from '@/lib/utils'
@@ -41,162 +38,199 @@ export default function ProfileClient({
   const pfp = PFP_STYLES[profile.pfp_style] || PFP_STYLES.neon_orb
   const xpProgress = getXPProgress(profile.xp)
 
-  const stats = [
-    { label: 'RUMORS_DEPLOYED', value: profile.rumors_posted, icon: Flame, color: 'var(--red)' },
-    { label: 'CHALLENGES_WON', value: profile.challenges_won, icon: Trophy, color: '#a855f7' },
-    { label: 'MYTHS_BUSTED', value: profile.myths_busted, icon: Shield, color: 'var(--cyan)' },
-  ]
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
+    <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 16px 80px' }}>
       {/* Profile card */}
-      <motion.div className="terminal mb-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="terminal-header">
-          <div className="terminal-dots"><span /><span /><span /></div>
-          <div className="terminal-title">
-            <Terminal className="w-3 h-3" /> AGENT_DOSSIER
-          </div>
-        </div>
-
-        {/* Cover gradient */}
-        <div className="h-24 relative overflow-hidden"
-          style={{ background: `linear-gradient(135deg, ${rank.color}15, ${pfp.gradient[0]}25, ${pfp.gradient[1]}15)` }}>
-          <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 30% 50%, ${rank.color}20, transparent 60%)` }} />
-          {/* Scanlines on cover */}
-          <div className="absolute inset-0 opacity-20" style={{
-            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,245,0.03) 2px, rgba(0,255,245,0.03) 4px)',
+      <motion.div
+        className="card"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        style={{ marginBottom: 16, overflow: 'hidden' }}
+      >
+        {/* Cover */}
+        <div style={{
+          height: 100, position: 'relative', overflow: 'hidden',
+          background: `linear-gradient(135deg, ${rank.color}20, ${pfp.gradient[0]}30, ${pfp.gradient[1]}20)`,
+        }}>
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: `radial-gradient(ellipse at 30% 50%, ${rank.color}25, transparent 65%)`,
           }} />
         </div>
 
-        <div className="terminal-body -mt-2">
-          {/* Avatar + edit */}
-          <div className="flex items-end justify-between -mt-10 mb-4">
-            <div className="relative">
-              <div className="w-20 h-20 overflow-hidden border-2"
-                style={{
-                  borderColor: rank.color,
-                  background: `linear-gradient(135deg, ${pfp.gradient[0]}, ${pfp.gradient[1]})`,
-                  boxShadow: `0 0 25px ${rank.color}30`,
-                }}>
+        <div style={{ padding: '0 20px 20px' }}>
+          {/* Avatar row */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: -30, marginBottom: 14 }}>
+            <div style={{ position: 'relative' }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: '50%', overflow: 'hidden',
+                border: `2.5px solid ${rank.color}`,
+                background: `linear-gradient(135deg, ${pfp.gradient[0]}, ${pfp.gradient[1]})`,
+                boxShadow: `0 0 24px ${rank.color}30`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
                 {profile.profile_picture_url ? (
-                  <img src={profile.profile_picture_url} alt={profile.display_name} className="w-full h-full object-cover" />
+                  <img src={profile.profile_picture_url} alt={profile.display_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">
-                      {profile.display_name?.[0]?.toUpperCase() || profile.username?.[0]?.toUpperCase()}
-                    </span>
-                  </div>
+                  <span style={{ fontSize: 26, fontWeight: 700, color: '#fff' }}>
+                    {profile.display_name?.[0]?.toUpperCase() || profile.username?.[0]?.toUpperCase()}
+                  </span>
                 )}
               </div>
-              <span className="absolute -bottom-1 -right-1 text-xl">{rank.emoji}</span>
+              <span style={{ position: 'absolute', bottom: -4, right: -4, fontSize: 20 }}>{rank.emoji}</span>
             </div>
             {isOwnProfile && (
-              <Link href="/settings">
-                <button className="btn-outline px-4 py-2 text-[10px] flex items-center gap-2">
-                  <Edit3 className="w-3 h-3" />EDIT_PROFILE
+              <Link href="/settings" style={{ textDecoration: 'none' }}>
+                <button className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', fontSize: 12 }}>
+                  <Settings size={13} />Edit Profile
                 </button>
               </Link>
             )}
           </div>
 
           {/* Name + rank */}
-          <div className="mb-4">
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="font-extrabold text-xl text-white uppercase tracking-wider">{profile.display_name || profile.username}</h1>
-              {profile.is_premium && <Crown className="w-4 h-4 text-[#fbbf24]" />}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+                {profile.display_name || profile.username}
+              </h1>
+              {profile.is_premium && <Crown size={16} style={{ color: '#F59E0B' }} />}
             </div>
-            <p className="text-[10px] text-[var(--text-dim)] mb-2 tracking-wider">@{profile.username}</p>
-            <span
-              className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-2 py-1 border"
-              style={{ color: rank.color, borderColor: `${rank.color}40`, background: `${rank.color}10` }}
-            >
-              {rank.emoji} {rank.label.toUpperCase().replace(/\s+/g, '_')}
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>@{profile.username}</p>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r-md)',
+              background: `${rank.color}15`, color: rank.color,
+              border: `1px solid ${rank.color}30`,
+            }}>
+              {rank.emoji} {rank.label}
             </span>
           </div>
 
           {/* XP bar */}
-          <div className="mb-4">
-            <div className="flex justify-between text-[9px] text-[var(--text-dim)] mb-1 tracking-wider">
-              <span>{profile.xp.toLocaleString()} XP</span>
-              <span>NEXT_RANK: {xpProgress.next.toLocaleString()} XP</span>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, color: rank.color }}>
+                <Zap size={11} />{profile.xp.toLocaleString()} XP
+              </span>
+              <span>Next rank: {xpProgress.next.toLocaleString()} XP</span>
             </div>
-            <div className="h-1.5 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] overflow-hidden">
+            <div style={{ height: 5, background: 'var(--bg-elevated)', borderRadius: 3, overflow: 'hidden' }}>
               <motion.div
-                className="h-full"
-                style={{ background: `linear-gradient(90deg, ${rank.color}, ${rank.color}80)` }}
+                style={{ height: '100%', borderRadius: 3, background: `linear-gradient(90deg, ${rank.color}, ${rank.color}80)` }}
                 initial={{ width: 0 }}
                 animate={{ width: `${xpProgress.percent}%` }}
-                transition={{ duration: 1 }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
               />
             </div>
           </div>
 
-          {/* Bio + meta */}
+          {/* Bio */}
           {profile.bio && (
-            <p className="text-[var(--text-dim)] text-[11px] mb-4 leading-relaxed border-l-2 border-[var(--cyan-border)] pl-3">
+            <p style={{
+              fontSize: 13, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 12,
+              borderLeft: `2px solid var(--primary)`, paddingLeft: 12,
+            }}>
               {profile.bio}
             </p>
           )}
-          <div className="flex items-center gap-4 text-[9px] text-[var(--text-dim)] tracking-wider">
-            {profile.city && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{profile.city}</span>}
-            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />JOINED {formatRelativeTime(profile.created_at).toUpperCase()}</span>
+
+          {/* Meta */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            {profile.city && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--subtle)' }}>
+                <MapPin size={12} />{profile.city}
+              </span>
+            )}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--subtle)' }}>
+              <Calendar size={12} />Joined {formatRelativeTime(profile.created_at)}
+            </span>
           </div>
         </div>
       </motion.div>
 
       {/* Stats */}
-      <div className="terminal mb-6">
-        <div className="terminal-header">
-          <div className="terminal-dots"><span /><span /><span /></div>
-          <div className="terminal-title">
-            <Activity className="w-3 h-3" /> AGENT_METRICS
-          </div>
-        </div>
-        <div className="terminal-body">
-          <div className="grid grid-cols-3 gap-3">
-            {stats.map(({ label, value, icon: Icon, color }, i) => (
-              <motion.div key={label} className="border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] p-4 text-center"
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                <Icon className="w-4 h-4 mx-auto mb-2" style={{ color }} />
-                <p className="text-2xl font-extrabold" style={{ color }}>{value}</p>
-                <p className="text-[8px] text-[var(--text-dim)] mt-1 tracking-[0.15em]">{label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30, delay: 0.08 }}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}
+      >
+        {[
+          { label: 'Rumors posted', value: profile.rumors_posted, icon: Flame, color: '#EF4444' },
+          { label: 'Challenges won', value: profile.challenges_won, icon: Trophy, color: '#A855F7' },
+          { label: 'Myths busted', value: profile.myths_busted, icon: Shield, color: '#6366F1' },
+        ].map(({ label, value, icon: Icon, color }, i) => (
+          <motion.div
+            key={label}
+            className="card"
+            style={{ padding: '16px', textAlign: 'center' }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30, delay: 0.08 + i * 0.06 }}
+          >
+            <div style={{
+              width: 36, height: 36, borderRadius: 10, margin: '0 auto 10px',
+              background: `${color}15`, border: `1px solid ${color}30`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon size={16} style={{ color }} />
+            </div>
+            <p style={{ fontSize: 24, fontWeight: 700, color, letterSpacing: '-0.02em', marginBottom: 3 }}>{value}</p>
+            <p style={{ fontSize: 11, color: 'var(--muted)' }}>{label}</p>
+          </motion.div>
+        ))}
+      </motion.div>
 
       {/* Public rumors */}
       {rumors.length > 0 && (
-        <div className="terminal">
-          <div className="terminal-header">
-            <div className="terminal-dots"><span /><span /><span /></div>
-            <div className="terminal-title">
-              <Flame className="w-3 h-3" /> PUBLIC_INTEL
-            </div>
+        <motion.div
+          className="card"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30, delay: 0.15 }}
+        >
+          <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid var(--border)' }}>
+            <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Flame size={14} style={{ color: '#EF4444' }} />
+              Public Intel
+            </h2>
           </div>
-          <div className="terminal-body space-y-1">
+          <div style={{ padding: '8px 0' }}>
             {rumors.map((rumor, i) => (
-              <motion.div key={rumor.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}>
-                <Link href={`/rumors/${rumor.id}`}>
-                  <div className="flex items-center justify-between p-3 border border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)] cursor-pointer group transition-all">
+              <motion.div
+                key={rumor.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 + i * 0.04 }}
+              >
+                <Link href={`/rumors/${rumor.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 18px', transition: 'background 0.15s',
+                    borderBottom: i < rumors.length - 1 ? '1px solid var(--border)' : 'none',
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
                     <div>
-                      <h3 className="text-[10px] text-white group-hover:text-[var(--cyan)] transition-colors font-bold uppercase tracking-wider">
+                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 3, lineHeight: 1.4 }}>
                         {rumor.title}
-                      </h3>
-                      <p className="text-[8px] text-[var(--text-ghost)] mt-1 tracking-wider">
-                        {rumor.category.toUpperCase()} · {formatRelativeTime(rumor.created_at).toUpperCase()}
+                      </p>
+                      <p style={{ fontSize: 11, color: 'var(--subtle)', textTransform: 'capitalize' }}>
+                        {rumor.category} · {formatRelativeTime(rumor.created_at)}
                       </p>
                     </div>
-                    <span className="text-[9px] text-[var(--red)] font-bold">
-                      <Flame className="w-3 h-3 inline mr-1" />{Math.floor(rumor.heat_score)}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#EF4444', fontWeight: 600, flexShrink: 0 }}>
+                      <Flame size={12} />{Math.floor(rumor.heat_score)}
                     </span>
                   </div>
                 </Link>
               </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   )
