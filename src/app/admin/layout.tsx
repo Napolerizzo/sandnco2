@@ -4,7 +4,6 @@ import AdminSidebar from '@/components/admin/AdminSidebar'
 
 export const metadata = { title: 'Admin Panel — SANDNCO' }
 
-// Hardcoded super admins — auto-provisioned on first visit
 const SUPER_ADMIN_EMAILS = ['admin@sameerjhamb.com', 'sameer.jhamb1719@gmail.com']
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -19,7 +18,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq('user_id', user.id)
     .single()
 
-  // Auto-provision super_admin for the hardcoded admin emails
   if (!adminRole && SUPER_ADMIN_EMAILS.includes(user.email || '')) {
     const adminClient = await createAdminClient()
     await adminClient.from('admin_roles').upsert({
@@ -35,10 +33,25 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!adminRole) redirect('/')
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font)', display: 'flex' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0a0f1e 0%, #0F172A 40%, #111827 100%)',
+      color: 'var(--text)', fontFamily: 'var(--font)', display: 'flex',
+    }}>
       <AdminSidebar role={adminRole.role} permissions={adminRole.permissions} />
-      <main style={{ flex: 1, marginLeft: 240, padding: 32, minHeight: '100vh' }}>
-        {children}
+      <main style={{
+        flex: 1, marginLeft: 260, padding: '28px 36px', minHeight: '100vh',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Subtle background aurora for admin */}
+        <div style={{
+          position: 'fixed', top: 0, right: 0, width: '60%', height: '50%',
+          background: 'radial-gradient(ellipse at 80% 20%, rgba(99,102,241,0.06) 0%, transparent 60%)',
+          pointerEvents: 'none', zIndex: 0,
+        }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {children}
+        </div>
       </main>
     </div>
   )
