@@ -3,9 +3,12 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import {
   Flame, Plus, TrendingUp, Clock, MessageCircle,
-  Zap, Crown, ChevronRight,
+  Zap, Crown, ChevronRight, Settings, LogOut, User,
+  Trophy, LayoutDashboard, Wallet, ChevronDown,
 } from 'lucide-react'
 import { formatRelativeTime, formatNumber } from '@/lib/utils'
 import { RANKS, type RankTier } from '@/lib/ranks'
@@ -47,12 +50,20 @@ export default function FeedClient({
 }) {
   const [filter, setFilter] = useState<'hot' | 'new' | 'trending'>('hot')
   const [rumors] = useState(initialRumors)
+  const [menuOpen, setMenuOpen] = useState(false)
   const rank = profile ? RANKS[profile.rank] : null
+  const router = useRouter()
+  const supabase = createClient()
 
   const sorted = [...rumors].sort((a, b) => {
     if (filter === 'new') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     return b.heat_score - a.heat_score
   })
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px', fontFamily: 'var(--font)' }}>
@@ -62,14 +73,94 @@ export default function FeedClient({
         <div>
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
-            <div>
-              <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.025em', margin: '0 0 4px', color: 'var(--text)' }}>
-                City Feed
-              </h1>
-              <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>
-                What's happening in Faridabad right now
-              </p>
+            {/* Left: user avatar + greeting */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {profile && rank ? (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setMenuOpen(o => !o)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      background: 'var(--bg-card)', border: '1px solid var(--border)',
+                      borderRadius: 'var(--r-lg)', padding: '7px 12px 7px 7px',
+                      cursor: 'pointer', transition: 'border-color 0.15s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                  >
+                    {/* Avatar circle */}
+                    <div style={{
+                      width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                      background: `${rank.color}20`, border: `2px solid ${rank.color}50`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 14, fontWeight: 700, color: rank.color,
+                    }}>
+                      {(profile.display_name?.[0] || profile.username?.[0] || '?').toUpperCase()}
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>
+                        {profile.display_name || profile.username}
+                      </p>
+                      <p style={{ fontSize: 11, color: rank.color, lineHeight: 1.2 }}>
+                        {rank.emoji} {rank.label}
+                      </p>
+                    </div>
+                    <ChevronDown size={13} style={{ color: 'var(--subtle)', marginLeft: 2, transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                  </button>
+
+                  {/* Dropdown */}
+                  <AnimatePresence>
+                    {menuOpen && (
+                      <>
+                        <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setMenuOpen(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                          style={{
+                            position: 'absolute', top: 'calc(100% + 8px)', left: 0,
+                            width: 210, background: 'var(--bg-card)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--r-lg)', zIndex: 20, overflow: 'hidden',
+                            boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
+                          }}
+                        >
+                          <div style={{ padding: 6 }}>
+                            {[
+                              { icon: LayoutDashboard, label: 'My Profile', href: `/profile/${profile.username}` },
+                              { icon: Settings, label: 'Settings', href: '/settings' },
+                              { icon: Wallet, label: 'Wallet', href: '/wallet' },
+                            ].map(({ icon: Icon, label, href }) => (
+                              <button key={href} onClick={() => { router.push(href); setMenuOpen(false) }}
+                                className="dropdown-item" style={{ width: '100%' }}>
+                                <Icon size={14} style={{ flexShrink: 0, opacity: 0.7 }} />
+                                {label}
+                              </button>
+                            ))}
+                            <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+                            <button onClick={handleSignOut} className="dropdown-item danger" style={{ width: '100%' }}>
+                              <LogOut size={14} style={{ flexShrink: 0 }} />
+                              Sign Out
+                            </button>
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div>
+                  <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.025em', margin: '0 0 4px', color: 'var(--text)' }}>
+                    City Feed
+                  </h1>
+                  <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>
+                    What's happening in Faridabad right now
+                  </p>
+                </div>
+              )}
             </div>
+
             <Link href="/rumors/new" style={{ textDecoration: 'none' }}>
               <motion.button
                 className="btn btn-primary btn-sm"
@@ -185,13 +276,15 @@ export default function FeedClient({
           {/* Quick links */}
           <div className="card">
             <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtle)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
-              Quick Access
+              Navigate
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {[
-                { href: '/rumors/new', icon: Flame, label: 'Drop a Rumor', color: 'var(--danger)' },
-                { href: '/challenges', icon: Crown, label: 'Challenges', color: 'var(--warning)' },
+                { href: '/rumors', icon: Flame, label: 'Rumors', color: 'var(--danger)' },
+                { href: '/challenges', icon: Trophy, label: 'Challenges', color: 'var(--warning)' },
                 { href: '/leaderboard', icon: TrendingUp, label: 'Leaderboard', color: 'var(--primary)' },
+                { href: '/wallet', icon: Wallet, label: 'Wallet', color: '#22C55E' },
+                { href: '/settings', icon: Settings, label: 'Settings', color: 'var(--muted)' },
               ].map(({ href, icon: Icon, label, color }) => (
                 <Link key={href} href={href} style={{ textDecoration: 'none' }}>
                   <div className="dropdown-item" style={{ borderRadius: 'var(--r)' }}>
