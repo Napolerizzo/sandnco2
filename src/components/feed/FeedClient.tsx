@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
   Flame, Plus, TrendingUp, Clock, MessageCircle,
-  Zap, Crown, Activity, ChevronRight
+  Zap, Crown, ChevronRight,
 } from 'lucide-react'
 import { formatRelativeTime, formatNumber } from '@/lib/utils'
 import { RANKS, type RankTier } from '@/lib/ranks'
@@ -31,10 +31,15 @@ interface Profile {
   wallet_balance: number
 }
 
+const FILTERS = [
+  { id: 'hot', icon: Flame, label: 'Hot' },
+  { id: 'new', icon: Clock, label: 'New' },
+  { id: 'trending', icon: TrendingUp, label: 'Trending' },
+] as const
+
 export default function FeedClient({
   initialRumors,
   profile,
-  userId,
 }: {
   initialRumors: Rumor[]
   profile: Profile | null
@@ -50,53 +55,57 @@ export default function FeedClient({
   })
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8">
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px', fontFamily: 'var(--font)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 32, alignItems: 'start' }}>
 
         {/* ── MAIN FEED ── */}
         <div>
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
             <div>
-              <p className="text-xs text-cyan-400/50 tracking-[0.35em] uppercase font-mono mb-1">// Live Feed</p>
-              <h1 className="text-3xl font-black uppercase tracking-tight text-white">City Feed</h1>
-              <p className="text-gray-500 text-sm mt-1">What&apos;s burning in the streets</p>
+              <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.025em', margin: '0 0 4px', color: 'var(--text)' }}>
+                City Feed
+              </h1>
+              <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>
+                What's happening in Faridabad right now
+              </p>
             </div>
-            <Link href="/rumors/new">
+            <Link href="/rumors/new" style={{ textDecoration: 'none' }}>
               <motion.button
-                className="flex items-center gap-2 px-5 py-3 bg-cyan-400 text-black text-sm font-bold hover:bg-cyan-300 transition-all tracking-wide"
+                className="btn btn-primary btn-sm"
                 whileTap={{ scale: 0.97 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                <Plus className="w-4 h-4" />
+                <Plus style={{ width: 14, height: 14 }} />
                 Drop Rumor
               </motion.button>
             </Link>
           </div>
 
           {/* Filters */}
-          <div className="flex gap-2 mb-6">
-            {[
-              { id: 'hot', icon: Flame, label: 'Hot' },
-              { id: 'new', icon: Clock, label: 'New' },
-              { id: 'trending', icon: TrendingUp, label: 'Trending' },
-            ].map(({ id, icon: Icon, label }) => (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            {FILTERS.map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
-                onClick={() => setFilter(id as typeof filter)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm transition-all border font-mono tracking-wide ${
-                  filter === id
-                    ? 'text-cyan-400 border-cyan-400/40 bg-cyan-400/8'
-                    : 'text-gray-500 border-white/8 hover:border-white/15 hover:text-gray-300'
-                }`}
+                onClick={() => setFilter(id)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '7px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                  borderRadius: 'var(--r)', fontFamily: 'var(--font)',
+                  border: filter === id ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--border)',
+                  background: filter === id ? 'var(--primary-dim)' : 'transparent',
+                  color: filter === id ? '#a5b4fc' : 'var(--subtle)',
+                  transition: 'all 0.15s',
+                }}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon style={{ width: 13, height: 13 }} />
                 {label}
               </button>
             ))}
           </div>
 
           {/* Cards */}
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <AnimatePresence>
               {sorted.map((rumor, i) => (
                 <RumorCard key={rumor.id} rumor={rumor} index={i} />
@@ -104,14 +113,16 @@ export default function FeedClient({
             </AnimatePresence>
 
             {sorted.length === 0 && (
-              <div className="py-24 text-center border border-white/[0.06] bg-[#050a0e]">
-                <Flame className="w-10 h-10 mx-auto mb-4 text-gray-700" />
-                <p className="text-gray-500 text-base mb-2">The city is quiet... for now.</p>
-                <p className="text-gray-700 text-sm mb-6">Be the first to drop a rumor.</p>
-                <Link href="/rumors/new">
-                  <button className="px-6 py-3 bg-cyan-400 text-black text-sm font-bold hover:bg-cyan-300 transition-all">
-                    Drop the First Rumor
-                  </button>
+              <div style={{
+                padding: '64px 24px', textAlign: 'center',
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                borderRadius: 'var(--r-lg)',
+              }}>
+                <Flame style={{ width: 36, height: 36, margin: '0 auto 16px', color: 'var(--subtle)' }} />
+                <p style={{ fontSize: 15, color: 'var(--muted)', marginBottom: 6 }}>The city is quiet... for now.</p>
+                <p style={{ fontSize: 13, color: 'var(--subtle)', marginBottom: 20 }}>Be the first to drop a rumor.</p>
+                <Link href="/rumors/new" style={{ textDecoration: 'none' }}>
+                  <button className="btn btn-primary">Drop the First Rumor</button>
                 </Link>
               </div>
             )}
@@ -119,46 +130,52 @@ export default function FeedClient({
         </div>
 
         {/* ── SIDEBAR ── */}
-        <div className="space-y-5">
-          {/* Agent status */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 80 }}>
+
+          {/* Profile card */}
           {profile && rank && (
             <motion.div
-              className="bg-[#050a0e] border border-white/[0.08] p-5"
-              initial={{ opacity: 0, x: 20 }}
+              className="card"
+              initial={{ opacity: 0, x: 16 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
+              transition={{ delay: 0.1 }}
             >
-              <p className="text-xs text-gray-600 tracking-[0.3em] uppercase font-mono mb-4">Agent Status</p>
+              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtle)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>
+                Your Status
+              </p>
 
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">{rank.emoji}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <span style={{ fontSize: 28 }}>{rank.emoji}</span>
                 <div>
                   <span
-                    className="inline-block text-xs font-bold uppercase tracking-wider px-2 py-1 border font-mono"
-                    style={{ color: rank.color, borderColor: `${rank.color}35`, background: `${rank.color}10` }}
+                    className="badge"
+                    style={{ color: rank.color, borderColor: `${rank.color}35`, background: `${rank.color}12`, display: 'inline-flex' }}
                   >
                     {rank.label}
                   </span>
-                  <p className="text-gray-500 text-xs mt-1 font-mono">{profile.xp.toLocaleString()} XP</p>
+                  <p style={{ fontSize: 12, color: 'var(--subtle)', margin: '4px 0 0', fontFamily: 'var(--font-mono)' }}>
+                    {profile.xp.toLocaleString()} XP
+                  </p>
                 </div>
               </div>
 
               {/* XP bar */}
-              <div className="mb-4">
-                <div className="h-1.5 bg-white/[0.06] overflow-hidden">
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
                   <motion.div
-                    className="h-full"
-                    style={{ background: rank.color }}
+                    style={{ height: '100%', background: rank.color, borderRadius: 2 }}
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, (profile.xp / 500) * 100)}%` }}
-                    transition={{ duration: 1, delay: 0.5 }}
+                    transition={{ duration: 1, delay: 0.4, ease: 'easeOut' }}
                   />
                 </div>
-                <p className="text-xs text-gray-700 mt-1 font-mono text-right">Next rank</p>
+                <p style={{ fontSize: 11, color: 'var(--subtle)', marginTop: 5, textAlign: 'right' }}>
+                  Next rank
+                </p>
               </div>
 
-              <Link href={`/profile/${profile.username}`}>
-                <button className="w-full py-2.5 text-sm text-gray-400 border border-white/10 hover:border-cyan-400/40 hover:text-cyan-400 transition-all tracking-wide">
+              <Link href={`/profile/${profile.username}`} style={{ textDecoration: 'none' }}>
+                <button className="btn btn-secondary" style={{ width: '100%', fontSize: 13 }}>
                   View Profile
                 </button>
               </Link>
@@ -166,27 +183,47 @@ export default function FeedClient({
           )}
 
           {/* Quick links */}
-          <div className="bg-[#050a0e] border border-white/[0.08] p-5">
-            <p className="text-xs text-gray-600 tracking-[0.3em] uppercase font-mono mb-4">Quick Access</p>
-            <div className="space-y-1">
+          <div className="card">
+            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtle)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+              Quick Access
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {[
-                { href: '/rumors/new', icon: Flame, label: 'Drop a Rumor', color: '#ff3366' },
-                { href: '/challenges', icon: Crown, label: 'Enter a Challenge', color: '#fbbf24' },
-                { href: '/leaderboard', icon: TrendingUp, label: 'Leaderboard', color: '#00fff5' },
+                { href: '/rumors/new', icon: Flame, label: 'Drop a Rumor', color: 'var(--danger)' },
+                { href: '/challenges', icon: Crown, label: 'Challenges', color: 'var(--warning)' },
+                { href: '/leaderboard', icon: TrendingUp, label: 'Leaderboard', color: 'var(--primary)' },
               ].map(({ href, icon: Icon, label, color }) => (
-                <Link key={href} href={href}>
-                  <div
-                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.04] transition-all text-sm text-gray-500 hover:text-gray-200 group"
-                    style={{}}
-                  >
-                    <Icon className="w-4 h-4" style={{ color }} />
+                <Link key={href} href={href} style={{ textDecoration: 'none' }}>
+                  <div className="dropdown-item" style={{ borderRadius: 'var(--r)' }}>
+                    <Icon style={{ width: 14, height: 14, color }} />
                     <span>{label}</span>
-                    <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-60 transition-opacity" />
+                    <ChevronRight style={{ width: 13, height: 13, marginLeft: 'auto', opacity: 0.4 }} />
                   </div>
                 </Link>
               ))}
             </div>
           </div>
+
+          {/* Premium upsell if not premium */}
+          {profile && !profile.is_premium && (
+            <div style={{
+              padding: 16, borderRadius: 'var(--r-lg)',
+              background: 'var(--primary-dim)',
+              border: '1px solid rgba(99,102,241,0.25)',
+            }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: '#a5b4fc', marginBottom: 4 }}>
+                Go Premium
+              </p>
+              <p style={{ fontSize: 12, color: 'rgba(165,180,252,0.7)', lineHeight: 1.5, marginBottom: 12 }}>
+                ₹80/month — Premium badge, create challenges, and more.
+              </p>
+              <Link href="/membership" style={{ textDecoration: 'none' }}>
+                <button className="btn btn-primary btn-sm" style={{ width: '100%', fontSize: 12 }}>
+                  Upgrade
+                </button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -200,70 +237,79 @@ function RumorCard({ rumor, index }: { rumor: Rumor; index: number }) {
   const commentCount = rumor.rumor_comments?.length ?? 0
 
   const heatLevel = rumor.heat_score > 50 ? 'hot' : rumor.heat_score > 20 ? 'warm' : 'cold'
-  const heatColor = heatLevel === 'hot' ? '#ff3366' : heatLevel === 'warm' ? '#fbbf24' : '#374151'
+  const heatColor = heatLevel === 'hot' ? 'var(--danger)' : heatLevel === 'warm' ? 'var(--warning)' : 'var(--subtle)'
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04 }}
+      transition={{ delay: index * 0.04, duration: 0.3 }}
     >
-      <Link href={`/rumors/${rumor.id}`}>
-        <div className="relative bg-[#050a0e] border border-white/[0.08] p-5 hover:border-cyan-400/25 transition-all group cursor-pointer">
-          {/* Heat bar */}
-          <div
-            className="absolute top-0 left-0 h-0.5 transition-all"
-            style={{
-              background: `linear-gradient(90deg, ${heatColor}, transparent)`,
-              width: `${Math.min(100, rumor.heat_score)}%`,
-            }}
-          />
+      <Link href={`/rumors/${rumor.id}`} className="feed-card" style={{ display: 'block', textDecoration: 'none' }}>
+        {/* Heat bar */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, height: 2,
+          background: `linear-gradient(90deg, ${heatColor}, transparent)`,
+          width: `${Math.min(100, rumor.heat_score)}%`,
+          borderRadius: '12px 0 0 0',
+          opacity: heatLevel !== 'cold' ? 0.8 : 0,
+        }} />
 
-          {/* Meta row */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="text-gray-400 font-mono">{rumor.anonymous_alias}</span>
-              <span className="text-gray-700">·</span>
-              <span>{formatRelativeTime(rumor.created_at)}</span>
-              {rumor.category && (
-                <span className="text-xs bg-cyan-400/5 border border-cyan-400/15 px-2 py-0.5 text-cyan-400/60 font-mono uppercase tracking-wider">
-                  {rumor.category}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 text-sm font-mono font-bold" style={{ color: heatColor }}>
-              {heatLevel === 'hot' && <Flame className="w-3.5 h-3.5" />}
+        {/* Meta row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--subtle)' }}>
+            <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+              {rumor.anonymous_alias}
+            </span>
+            <span style={{ color: 'var(--border-strong)' }}>·</span>
+            <span>{formatRelativeTime(rumor.created_at)}</span>
+            {rumor.category && (
+              <span className="badge badge-primary" style={{ fontSize: 10 }}>
+                {rumor.category}
+              </span>
+            )}
+          </div>
+          {rumor.heat_score > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-mono)', color: heatColor }}>
+              {heatLevel === 'hot' && <Flame style={{ width: 12, height: 12 }} />}
               {formatNumber(rumor.heat_score)}
             </div>
+          )}
+        </div>
+
+        {/* Title */}
+        <h3 style={{
+          fontSize: 16, fontWeight: 600, color: 'var(--text)',
+          margin: '0 0 8px', lineHeight: 1.4,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>
+          {rumor.title}
+        </h3>
+
+        {/* Content */}
+        <p style={{
+          fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 14px',
+          display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>
+          {rumor.content}
+        </p>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 13, color: 'var(--subtle)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <MessageCircle style={{ width: 13, height: 13 }} />
+              {commentCount}
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Zap style={{ width: 13, height: 13 }} />
+              {totalVotes}
+            </span>
           </div>
-
-          {/* Title */}
-          <h3 className="text-lg font-bold text-white mb-2.5 group-hover:text-cyan-400 transition-colors line-clamp-2 leading-snug">
-            {rumor.title}
-          </h3>
-
-          {/* Content */}
-          <p className="text-gray-400 text-sm leading-relaxed line-clamp-3 mb-4">
-            {rumor.content}
-          </p>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5">
-                <MessageCircle className="w-3.5 h-3.5" />
-                {commentCount}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5" />
-                {totalVotes}
-              </span>
-            </div>
-            <div className="flex items-center gap-3 text-xs font-mono">
-              <span className="text-green-400">{believeVotes} believe</span>
-              <span className="text-gray-700">·</span>
-              <span className="text-red-400">{doubtVotes} doubt</span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: 'var(--font-mono)' }}>
+            <span style={{ color: 'var(--success)' }}>{believeVotes} believe</span>
+            <span style={{ color: 'var(--border-strong)' }}>·</span>
+            <span style={{ color: 'var(--danger)' }}>{doubtVotes} doubt</span>
           </div>
         </div>
       </Link>
