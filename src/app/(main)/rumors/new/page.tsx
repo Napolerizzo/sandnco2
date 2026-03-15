@@ -102,7 +102,7 @@ export default function NewRumorPage() {
         tags,
         is_anonymous: isAnonymous,
         city: city || null,
-        status: 'pending',
+        status: 'active',
       })
 
       if (error) {

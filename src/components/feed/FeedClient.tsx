@@ -66,8 +66,8 @@ export default function FeedClient({
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px', fontFamily: 'var(--font)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 32, alignItems: 'start' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 16px', fontFamily: 'var(--font)' }}>
+      <div className="feed-layout" style={{ display: 'grid', gap: 32, alignItems: 'start' }}>
 
         {/* ── MAIN FEED ── */}
         <div>
@@ -221,7 +221,7 @@ export default function FeedClient({
         </div>
 
         {/* ── SIDEBAR ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 80 }}>
+        <div className="hide-mobile" style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 80 }}>
 
           {/* Profile card */}
           {profile && rank && (
@@ -310,7 +310,7 @@ export default function FeedClient({
               <p style={{ fontSize: 12, color: 'rgba(165,180,252,0.7)', lineHeight: 1.5, marginBottom: 12 }}>
                 ₹80/month — Premium badge, create challenges, and more.
               </p>
-              <Link href="/membership" style={{ textDecoration: 'none' }}>
+              <Link href="/wallet" style={{ textDecoration: 'none' }}>
                 <button className="btn btn-primary btn-sm" style={{ width: '100%', fontSize: 12 }}>
                   Upgrade
                 </button>
@@ -323,14 +323,22 @@ export default function FeedClient({
   )
 }
 
+const CATEGORY_COLORS: Record<string, string> = {
+  drama: '#EF4444', politics: '#F59E0B', music: '#A855F7',
+  sports: '#22C55E', tech: '#3B82F6', romance: '#EC4899',
+  crime: '#F97316', lifestyle: '#6366F1', general: '#6B7280',
+}
+
 function RumorCard({ rumor, index }: { rumor: Rumor; index: number }) {
   const believeVotes = rumor.rumor_votes?.filter(v => v.vote_type === 'believe').length ?? 0
   const doubtVotes = rumor.rumor_votes?.filter(v => v.vote_type === 'doubt').length ?? 0
   const totalVotes = rumor.rumor_votes?.length ?? 0
   const commentCount = rumor.rumor_comments?.length ?? 0
+  const believePercent = totalVotes > 0 ? Math.round((believeVotes / totalVotes) * 100) : 0
 
   const heatLevel = rumor.heat_score > 50 ? 'hot' : rumor.heat_score > 20 ? 'warm' : 'cold'
-  const heatColor = heatLevel === 'hot' ? 'var(--danger)' : heatLevel === 'warm' ? 'var(--warning)' : 'var(--subtle)'
+  const heatColor = heatLevel === 'hot' ? '#EF4444' : heatLevel === 'warm' ? '#F59E0B' : 'var(--subtle)'
+  const catColor = CATEGORY_COLORS[rumor.category] || '#6B7280'
 
   return (
     <motion.div
@@ -339,31 +347,45 @@ function RumorCard({ rumor, index }: { rumor: Rumor; index: number }) {
       transition={{ delay: index * 0.04, duration: 0.3 }}
     >
       <Link href={`/rumors/${rumor.id}`} className="feed-card" style={{ display: 'block', textDecoration: 'none' }}>
-        {/* Heat bar */}
+        {/* Heat gradient bar */}
         <div style={{
-          position: 'absolute', top: 0, left: 0, height: 2,
-          background: `linear-gradient(90deg, ${heatColor}, transparent)`,
-          width: `${Math.min(100, rumor.heat_score)}%`,
+          position: 'absolute', top: 0, left: 0, height: 3,
+          background: heatLevel !== 'cold'
+            ? `linear-gradient(90deg, ${heatColor}, ${heatColor}40, transparent)`
+            : `linear-gradient(90deg, ${catColor}60, transparent)`,
+          width: `${Math.min(100, Math.max(20, rumor.heat_score))}%`,
           borderRadius: '12px 0 0 0',
-          opacity: heatLevel !== 'cold' ? 0.8 : 0,
         }} />
 
         {/* Meta row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--subtle)' }}>
-            <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--subtle)', flexWrap: 'wrap' }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '2px 8px', borderRadius: 100,
+              background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11,
+            }}>
               {rumor.anonymous_alias}
             </span>
-            <span style={{ color: 'var(--border-strong)' }}>·</span>
-            <span>{formatRelativeTime(rumor.created_at)}</span>
+            <span style={{ color: 'var(--subtle)', fontSize: 11 }}>{formatRelativeTime(rumor.created_at)}</span>
             {rumor.category && (
-              <span className="badge badge-primary" style={{ fontSize: 10 }}>
+              <span style={{
+                fontSize: 10, fontWeight: 600, padding: '2px 8px',
+                borderRadius: 100, background: `${catColor}12`,
+                border: `1px solid ${catColor}25`, color: catColor, textTransform: 'capitalize',
+              }}>
                 {rumor.category}
               </span>
             )}
           </div>
           {rumor.heat_score > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-mono)', color: heatColor }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+              fontWeight: 700, fontFamily: 'var(--font-mono)', color: heatColor,
+              padding: '2px 8px', borderRadius: 100,
+              background: heatLevel === 'hot' ? 'rgba(239,68,68,0.1)' : heatLevel === 'warm' ? 'rgba(245,158,11,0.1)' : 'transparent',
+            }}>
               {heatLevel === 'hot' && <Flame style={{ width: 12, height: 12 }} />}
               {formatNumber(rumor.heat_score)}
             </div>
@@ -381,25 +403,35 @@ function RumorCard({ rumor, index }: { rumor: Rumor; index: number }) {
 
         {/* Content */}
         <p style={{
-          fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 14px',
+          fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 16px',
           display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>
           {rumor.content}
         </p>
 
+        {/* Believe/Doubt bar */}
+        {totalVotes > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', background: 'var(--bg-elevated)' }}>
+              <div style={{ width: `${believePercent}%`, background: 'var(--success)', transition: 'width 0.4s' }} />
+              <div style={{ width: `${100 - believePercent}%`, background: 'var(--danger)', transition: 'width 0.4s' }} />
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 13, color: 'var(--subtle)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <MessageCircle style={{ width: 13, height: 13 }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 12, color: 'var(--subtle)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <MessageCircle style={{ width: 12, height: 12 }} />
               {commentCount}
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Zap style={{ width: 13, height: 13 }} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Zap style={{ width: 12, height: 12 }} />
               {totalVotes}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: 'var(--font-mono)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
             <span style={{ color: 'var(--success)' }}>{believeVotes} believe</span>
             <span style={{ color: 'var(--border-strong)' }}>·</span>
             <span style={{ color: 'var(--danger)' }}>{doubtVotes} doubt</span>
