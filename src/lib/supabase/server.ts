@@ -30,6 +30,9 @@ function createMockClient(): any {
 
 export async function createClient() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE !== 'phase-production-build') {
+      console.error('[supabase/server] Missing required Supabase environment variables')
+    }
     return createMockClient()
   }
 
@@ -52,6 +55,9 @@ export async function createClient() {
 
 export async function createAdminClient() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE !== 'phase-production-build') {
+      console.error('[supabase/server] Missing required Supabase admin environment variables')
+    }
     return createMockClient()
   }
 

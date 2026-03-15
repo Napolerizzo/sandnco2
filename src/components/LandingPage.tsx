@@ -45,6 +45,7 @@ export default function LandingPage({
   const [currentRankIdx, setCurrentRankIdx] = useState(0)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
     const t1 = setInterval(() => setLineIndex(i => (i + 1) % CITY_LINES.length), 3500)
     const t2 = setInterval(() => setCurrentRankIdx(i => (i + 1) % RANK_KEYS.length), 2000)

@@ -73,16 +73,23 @@ export default function ChallengesClient({
           </h1>
           <p style={{ fontSize: 13, color: 'var(--muted)' }}>Enter. Compete. Collect.</p>
         </div>
-        <Link href="/challenges/new" style={{ textDecoration: 'none' }}>
-          <motion.button
-            className="btn btn-primary"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', fontSize: 13, fontWeight: 600 }}
-            whileTap={{ scale: 0.96 }}
-          >
-            <Plus size={15} />
-            Create Challenge
-          </motion.button>
-        </Link>
+        {profile?.is_premium ? (
+          <Link href="/challenges/new" style={{ textDecoration: 'none' }}>
+            <motion.button
+              className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', fontSize: 13, fontWeight: 600 }}
+              whileTap={{ scale: 0.96 }}
+            >
+              <Plus size={15} />
+              Create Challenge
+            </motion.button>
+          </Link>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', fontSize: 12, color: 'var(--muted)', background: 'var(--bg-elevated)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+            <Crown size={14} style={{ color: '#FBBF24' }} />
+            Premium only
+          </div>
+        )}
       </div>
 
       {/* Stats bar */}
@@ -254,11 +261,20 @@ export default function ChallengesClient({
             <p style={{ fontSize: 12, color: 'var(--subtle)', marginBottom: 20 }}>
               {filter !== 'all' ? 'Try a different filter' : 'Be the first to create one'}
             </p>
-            <Link href="/challenges/new" style={{ textDecoration: 'none' }}>
-              <button className="btn btn-primary" style={{ padding: '9px 20px', fontSize: 13 }}>
-                Create a challenge
-              </button>
-            </Link>
+            {profile?.is_premium ? (
+              <Link href="/challenges/new" style={{ textDecoration: 'none' }}>
+                <button className="btn btn-primary" style={{ padding: '9px 20px', fontSize: 13 }}>
+                  Create a challenge
+                </button>
+              </Link>
+            ) : (
+              <Link href="/wallet" style={{ textDecoration: 'none' }}>
+                <button className="btn btn-secondary" style={{ padding: '9px 20px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Crown size={14} style={{ color: '#FBBF24' }} />
+                  Upgrade to create challenges
+                </button>
+              </Link>
+            )}
           </div>
         )}
       </div>

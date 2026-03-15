@@ -91,6 +91,7 @@ export default function NewRumorPage() {
 
     const { data, error } = await supabase.from('rumors').insert({
       author_id: user.id,
+      user_id: user.id,
       anonymous_alias: alias || generateAnonymousAlias(),
       title,
       content,
@@ -144,7 +145,7 @@ export default function NewRumorPage() {
           </h1>
         </div>
         <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, paddingLeft: 46 }}>
-          Anonymous by default. The city decides what's real.
+          Anonymous by default. The city decides what&apos;s real.
         </p>
       </motion.div>
 

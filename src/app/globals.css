@@ -463,3 +463,63 @@ p { line-height: 1.6; }
 /* ── Misc ── */
 .text-balance { text-wrap: balance; }
 .fade-in { animation: fade-in 0.3s ease both; }
+
+/* ── Legal / Terminal pages ── */
+:root {
+  --cyan: #22D3EE;
+  --text-dim: #94A3B8;
+  --text-ghost: #475569;
+  --red: #EF4444;
+}
+
+.terminal {
+  background: #0a0a0a;
+  border: 1px solid #1e293b;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #111111;
+  border-bottom: 1px solid #1e293b;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.terminal-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #333;
+}
+
+.terminal-dots span:nth-child(1) { background: #EF4444; }
+.terminal-dots span:nth-child(2) { background: #F59E0B; }
+.terminal-dots span:nth-child(3) { background: #22C55E; }
+
+.terminal-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.terminal-body {
+  padding: 24px;
+}
+
+.text-glow-cyan {
+  color: var(--cyan);
+  text-shadow: 0 0 12px rgba(34, 211, 238, 0.4);
+}

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { askSuno } from '@/lib/ai'
-import { track } from '@/lib/posthog'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()

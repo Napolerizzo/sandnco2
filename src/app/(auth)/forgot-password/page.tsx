@@ -77,7 +77,7 @@ function ForgotPasswordContent() {
                   Forgot your password?
                 </h1>
                 <p style={{ fontSize: 15, color: 'var(--muted)', margin: 0 }}>
-                  No worries. We'll send a reset link to your email.
+                  No worries. We&apos;ll send a reset link to your email.
                 </p>
               </div>
 
@@ -168,7 +168,7 @@ function ForgotPasswordContent() {
                 <strong style={{ color: 'var(--text)' }}>{email}</strong>.
               </p>
               <p style={{ fontSize: 13, color: 'var(--subtle)', marginBottom: 28 }}>
-                Check your spam folder if you don't see it in a minute.
+                Check your spam folder if you don&apos;t see it in a minute.
               </p>
               <Link href="/login">
                 <button style={{

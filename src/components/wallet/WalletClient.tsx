@@ -80,11 +80,14 @@ export default function WalletClient({
     const { order, error } = await orderRes.json()
     if (error) { toast.error(error); setDepositing(false); return }
 
+    const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+    if (!razorpayKey) { toast.error('Payment gateway not configured'); setDepositing(false); return }
+
     const win = window as unknown as Record<string, unknown>
     const Razorpay = win.Razorpay as new (opts: Record<string, unknown>) => { open: () => void }
 
     const rzp = new Razorpay({
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      key: razorpayKey,
       order_id: order.id,
       amount: order.amount,
       currency: 'INR',
@@ -130,11 +133,14 @@ export default function WalletClient({
     const { order, error } = await orderRes.json()
     if (error) { toast.error(error); setUpgrading(false); return }
 
+    const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+    if (!razorpayKey) { toast.error('Payment gateway not configured'); setUpgrading(false); return }
+
     const win = window as unknown as Record<string, unknown>
     const Razorpay = win.Razorpay as new (opts: Record<string, unknown>) => { open: () => void }
 
     const rzp = new Razorpay({
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      key: razorpayKey,
       order_id: order.id,
       amount: order.amount,
       currency: 'INR',

@@ -155,7 +155,7 @@ export default function FeedClient({
                     City Feed
                   </h1>
                   <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>
-                    What's happening in Faridabad right now
+                    What&apos;s happening in Faridabad right now
                   </p>
                 </div>
               )}
