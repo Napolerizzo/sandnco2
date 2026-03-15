@@ -258,7 +258,7 @@ export default function SupportPage() {
               </div>
 
               <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--subtle)', marginTop: 16 }}>
-                Suno can't solve everything.{' '}
+                Suno can&apos;t solve everything.{' '}
                 <button onClick={() => setMode('ticket')} style={{ color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, padding: 0, fontFamily: 'var(--font)' }}>
                   Open a ticket
                 </button>{' '}
@@ -294,7 +294,7 @@ export default function SupportPage() {
                     Ticket submitted
                   </h3>
                   <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.6 }}>
-                    We'll respond to you at your email within 24–48 hours. You can also reach us at{' '}
+                    We&apos;ll respond to you at your email within 24–48 hours. You can also reach us at{' '}
                     <a href="mailto:sandncolol@gmail.com" style={{ color: 'var(--primary)' }}>sandncolol@gmail.com</a>.
                   </p>
                   <button

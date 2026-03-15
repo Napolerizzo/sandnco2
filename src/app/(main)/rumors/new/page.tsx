@@ -144,7 +144,7 @@ export default function NewRumorPage() {
           </h1>
         </div>
         <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, paddingLeft: 46 }}>
-          Anonymous by default. The city decides what's real.
+          Anonymous by default. The city decides what&apos;s real.
         </p>
       </motion.div>
 

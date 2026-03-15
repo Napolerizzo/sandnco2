@@ -64,6 +64,7 @@ function SignupContent() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!username || username.length < 3) { setUsernameAvailable(null); return }
     setCheckingUsername(true)
     const t = setTimeout(async () => {
@@ -334,7 +335,7 @@ function SignupContent() {
                     Join the city.
                   </h1>
                   <p style={{ fontSize: 15, color: 'var(--muted)', margin: 0 }}>
-                    Create your account. It's free.
+                    Create your account. It&apos;s free.
                   </p>
                 </div>
 
@@ -594,7 +595,7 @@ function SignupContent() {
                   👑
                 </motion.div>
                 <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.025em', margin: '0 0 8px' }}>
-                  You're in.
+                  You&apos;re in.
                 </h2>
                 <p style={{ fontSize: 15, color: 'var(--muted)', marginBottom: 24 }}>
                   Check <strong style={{ color: 'var(--text)' }}>{email}</strong> to verify your account. Then sign in and start your story.

@@ -394,7 +394,7 @@ export default function SettingsPage() {
                 <div className="card" style={{ padding: 22 }}>
                   <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>Notifications</h2>
                   <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
-                    Notification preferences are coming soon. We'll let you know when they're available.
+                    Notification preferences are coming soon. We&apos;ll let you know when they&apos;re available.
                   </p>
                   <div style={{
                     padding: '14px 16px', borderRadius: 'var(--r-md)',

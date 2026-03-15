@@ -63,6 +63,7 @@ export default function Navbar() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setProfile(null); return }
     supabase.from('users')
       .select('username,display_name,rank,wallet_balance,profile_picture_url,is_premium')

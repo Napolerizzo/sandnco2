@@ -62,7 +62,7 @@ export default function RumorsClient({ rumors, userId }: { rumors: Rumor[]; user
             Rumor Mill
           </h1>
           <p style={{ fontSize: 13, color: 'var(--muted)' }}>
-            Every story has two sides. What's yours?
+            Every story has two sides. What&apos;s yours?
           </p>
         </div>
         <Link href="/rumors/new" style={{ textDecoration: 'none' }}>
