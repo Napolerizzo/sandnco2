@@ -38,10 +38,13 @@ export async function POST(req: NextRequest) {
   // Log transaction
   await admin.from('transactions').insert({
     user_id: userId,
-    type: numAmount > 0 ? 'admin_credit' : 'admin_debit',
+    type: numAmount > 0 ? 'bonus' : 'withdrawal',
     amount: Math.abs(numAmount),
+    balance_before: currentUser.wallet_balance || 0,
+    balance_after: newBalance,
     status: 'completed',
     description: reason || `Admin ${numAmount > 0 ? 'credit' : 'debit'} by ${user.email}`,
+    metadata: { admin_action: true, admin_email: user.email },
   })
 
   return NextResponse.json({ success: true, newBalance })

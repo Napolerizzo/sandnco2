@@ -17,6 +17,7 @@ const ADMIN_LINKS = [
   { href: '/admin/challenges', icon: Trophy, label: 'Challenges', roles: ['super_admin', 'platform_admin'] },
   { href: '/admin/payments', icon: Wallet, label: 'Payments', roles: ['super_admin', 'platform_admin'] },
   { href: '/admin/tickets', icon: Ticket, label: 'Support', roles: ['super_admin', 'platform_admin', 'support_staff'] },
+  { href: '/admin/admins', icon: Shield, label: 'Admins', roles: ['super_admin'] },
   { href: '/admin/moderation', icon: Shield, label: 'Moderation', roles: ['super_admin', 'platform_admin', 'moderator'] },
   { href: '/admin/analytics', icon: BarChart3, label: 'Analytics', roles: ['super_admin', 'platform_admin'] },
 ]

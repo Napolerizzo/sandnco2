@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Search, UserX, Shield, Crown, AlertTriangle, CheckCircle, Activity } from 'lucide-react'
+import {
+  Search, UserX, Shield, Crown, AlertTriangle, CheckCircle, Activity,
+  UserPlus, Wallet, X, Loader, DollarSign
+} from 'lucide-react'
 import { RANKS, type RankTier } from '@/lib/ranks'
 import { formatRelativeTime } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -27,9 +30,30 @@ const STATUS_COLORS = {
   banned: '#EF4444',
 }
 
+type ModalType = null | 'create_user' | 'add_credit' | 'membership'
+
 export default function AdminUsersClient({ users }: { users: User[] }) {
   const [search, setSearch] = useState('')
   const [actionUser, setActionUser] = useState<string | null>(null)
+  const [modal, setModal] = useState<ModalType>(null)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+
+  // Create user form
+  const [newEmail, setNewEmail] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [newUsername, setNewUsername] = useState('')
+  const [newDisplayName, setNewDisplayName] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  // Credit form
+  const [creditAmount, setCreditAmount] = useState('')
+  const [creditReason, setCreditReason] = useState('')
+  const [crediting, setCrediting] = useState(false)
+
+  // Membership form
+  const [memberDays, setMemberDays] = useState('30')
+  const [memberAction, setMemberAction] = useState<'activate' | 'deactivate'>('activate')
+  const [membering, setMembering] = useState(false)
 
   const filtered = users.filter(u =>
     u.username?.toLowerCase().includes(search.toLowerCase()) ||
@@ -54,6 +78,69 @@ export default function AdminUsersClient({ users }: { users: User[] }) {
     setActionUser(null)
   }
 
+  const handleCreateUser = async () => {
+    if (!newEmail || !newPassword || !newUsername) { toast.error('All fields required'); return }
+    setCreating(true)
+    const res = await fetch('/api/admin/users/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: newEmail, password: newPassword, username: newUsername, displayName: newDisplayName }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      toast.success(`User ${data.user.username} created!`)
+      setModal(null)
+      setNewEmail(''); setNewPassword(''); setNewUsername(''); setNewDisplayName('')
+      window.location.reload()
+    } else {
+      toast.error(data.error || 'Failed')
+    }
+    setCreating(false)
+  }
+
+  const handleAddCredit = async () => {
+    if (!selectedUser || !creditAmount) return
+    setCrediting(true)
+    const res = await fetch('/api/admin/users/balance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: selectedUser.id, amount: Number(creditAmount), reason: creditReason }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      toast.success(`Balance updated! New: ₹${data.newBalance}`)
+      setModal(null); setCreditAmount(''); setCreditReason('')
+      window.location.reload()
+    } else {
+      toast.error(data.error || 'Failed')
+    }
+    setCrediting(false)
+  }
+
+  const handleMembership = async () => {
+    if (!selectedUser) return
+    setMembering(true)
+    const res = await fetch('/api/admin/users/membership', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: selectedUser.id, action: memberAction, durationDays: Number(memberDays) }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      toast.success(memberAction === 'activate' ? `Premium activated until ${new Date(data.expiresAt).toLocaleDateString()}` : 'Premium deactivated')
+      setModal(null)
+      window.location.reload()
+    } else {
+      toast.error(data.error || 'Failed')
+    }
+    setMembering(false)
+  }
+
+  const openModal = (type: ModalType, user?: User) => {
+    setSelectedUser(user || null)
+    setModal(type)
+  }
+
   return (
     <div>
       {/* Header */}
@@ -64,6 +151,9 @@ export default function AdminUsersClient({ users }: { users: User[] }) {
           </h1>
           <p style={{ fontSize: 13, color: 'var(--muted)' }}>{users.length} total registered</p>
         </div>
+        <button onClick={() => openModal('create_user')} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <UserPlus size={13} /> Create User
+        </button>
       </div>
 
       {/* Search */}
@@ -80,7 +170,7 @@ export default function AdminUsersClient({ users }: { users: User[] }) {
       </div>
 
       {/* Table */}
-      <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -159,6 +249,37 @@ export default function AdminUsersClient({ users }: { users: User[] }) {
                     {/* Actions */}
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {/* Add credit */}
+                        <button
+                          onClick={() => openModal('add_credit', user)}
+                          title="Add/Deduct Credit"
+                          style={{
+                            width: 28, height: 28, borderRadius: 6, border: '1px solid transparent',
+                            background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: '#22C55E', transition: 'all 0.15s',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(34,197,94,0.1)'; e.currentTarget.style.borderColor = 'rgba(34,197,94,0.3)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent' }}
+                        >
+                          <DollarSign size={13} />
+                        </button>
+
+                        {/* Membership */}
+                        <button
+                          onClick={() => openModal('membership', user)}
+                          title="Manage Membership"
+                          style={{
+                            width: 28, height: 28, borderRadius: 6, border: '1px solid transparent',
+                            background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: '#F59E0B', transition: 'all 0.15s',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.1)'; e.currentTarget.style.borderColor = 'rgba(245,158,11,0.3)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent' }}
+                        >
+                          <Crown size={13} />
+                        </button>
+
+                        {/* Warn */}
                         {user.status !== 'warned' && (
                           <button
                             onClick={() => handleAction(user.id, 'warn')}
@@ -175,6 +296,8 @@ export default function AdminUsersClient({ users }: { users: User[] }) {
                             <AlertTriangle size={13} />
                           </button>
                         )}
+
+                        {/* Suspend / Unsuspend */}
                         {user.status === 'active' || user.status === 'warned' ? (
                           <button
                             onClick={() => handleAction(user.id, 'suspend')}
@@ -206,6 +329,8 @@ export default function AdminUsersClient({ users }: { users: User[] }) {
                             <CheckCircle size={13} />
                           </button>
                         )}
+
+                        {/* Ban */}
                         <button
                           onClick={() => handleAction(user.id, 'ban')}
                           disabled={actionUser === user.id}
@@ -235,6 +360,132 @@ export default function AdminUsersClient({ users }: { users: User[] }) {
           )}
         </div>
       </div>
+
+      {/* MODALS */}
+      {modal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onClick={() => setModal(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: 16, width: '100%', maxWidth: 440, padding: 24,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+          >
+            {/* Close button */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+                {modal === 'create_user' && 'Create New User'}
+                {modal === 'add_credit' && `Adjust Balance — ${selectedUser?.display_name || selectedUser?.username}`}
+                {modal === 'membership' && `Membership — ${selectedUser?.display_name || selectedUser?.username}`}
+              </h2>
+              <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Create User */}
+            {modal === 'create_user' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label className="label">Email</label>
+                  <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="user@example.com" className="input" />
+                </div>
+                <div>
+                  <label className="label">Username</label>
+                  <input type="text" value={newUsername} onChange={e => setNewUsername(e.target.value)} placeholder="username" className="input" />
+                </div>
+                <div>
+                  <label className="label">Display Name (optional)</label>
+                  <input type="text" value={newDisplayName} onChange={e => setNewDisplayName(e.target.value)} placeholder="Display Name" className="input" />
+                </div>
+                <div>
+                  <label className="label">Password</label>
+                  <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min 8 characters" className="input" />
+                </div>
+                <button onClick={handleCreateUser} disabled={creating} className="btn btn-primary" style={{ marginTop: 4 }}>
+                  {creating ? <Loader size={14} className="animate-spin" /> : <UserPlus size={14} />}
+                  Create User
+                </button>
+              </div>
+            )}
+
+            {/* Add Credit */}
+            {modal === 'add_credit' && selectedUser && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  Current balance: <strong style={{ color: 'var(--text)' }}>₹{selectedUser.wallet_balance?.toFixed(2) || '0.00'}</strong>
+                </p>
+                <div>
+                  <label className="label">Amount (positive to add, negative to deduct)</label>
+                  <input type="number" value={creditAmount} onChange={e => setCreditAmount(e.target.value)} placeholder="e.g. 500 or -200" className="input" />
+                </div>
+                <div>
+                  <label className="label">Reason (optional)</label>
+                  <input type="text" value={creditReason} onChange={e => setCreditReason(e.target.value)} placeholder="Bonus, refund, correction..." className="input" />
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  {[100, 500, 1000, -100].map(amt => (
+                    <button key={amt} onClick={() => setCreditAmount(amt.toString())} className="btn btn-secondary btn-sm" style={{ flex: 1, fontSize: 12 }}>
+                      {amt > 0 ? '+' : ''}₹{amt}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={handleAddCredit} disabled={crediting || !creditAmount} className="btn btn-primary" style={{ marginTop: 4 }}>
+                  {crediting ? <Loader size={14} className="animate-spin" /> : <Wallet size={14} />}
+                  {Number(creditAmount) >= 0 ? 'Add Credit' : 'Deduct Credit'}
+                </button>
+              </div>
+            )}
+
+            {/* Membership */}
+            {modal === 'membership' && selectedUser && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  Premium status: <strong style={{ color: selectedUser.is_premium ? '#F59E0B' : 'var(--subtle)' }}>
+                    {selectedUser.is_premium ? 'Active' : 'Inactive'}
+                  </strong>
+                </p>
+                <div>
+                  <label className="label">Action</label>
+                  <select value={memberAction} onChange={e => setMemberAction(e.target.value as 'activate' | 'deactivate')} className="input" style={{ cursor: 'pointer' }}>
+                    <option value="activate">Activate Premium</option>
+                    <option value="deactivate">Deactivate Premium</option>
+                  </select>
+                </div>
+                {memberAction === 'activate' && (
+                  <div>
+                    <label className="label">Duration (days)</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {['7', '30', '90', '365'].map(d => (
+                        <button
+                          key={d}
+                          onClick={() => setMemberDays(d)}
+                          className={`btn btn-sm ${memberDays === d ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ flex: 1, fontSize: 12 }}
+                        >
+                          {d === '7' ? '1 week' : d === '30' ? '1 month' : d === '90' ? '3 months' : '1 year'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <button onClick={handleMembership} disabled={membering} className="btn btn-primary" style={{ marginTop: 4 }}>
+                  {membering ? <Loader size={14} className="animate-spin" /> : <Crown size={14} />}
+                  {memberAction === 'activate' ? `Activate for ${memberDays} days` : 'Deactivate Premium'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

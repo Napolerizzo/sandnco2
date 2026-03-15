@@ -130,6 +130,81 @@ export async function askSuno(
   }
 }
 
+export async function verifyRumor(rumor: {
+  title: string
+  content: string
+  category: string
+}): Promise<{
+  verdict: 'TRUE' | 'MISLEADING' | 'FALSE' | 'PARTLY_TRUE' | 'UNPROVEN'
+  confidence: number
+  reasoning: string
+  summary: string
+}> {
+  if (!GLM_KEY) {
+    return { verdict: 'UNPROVEN', confidence: 0, reasoning: 'AI service unavailable', summary: 'Could not verify' }
+  }
+
+  const prompt = `You are a fact-checker for SANDNCO, an Indian social platform for anonymous rumors/gossip.
+
+Analyze this rumor and determine its likely truthfulness based on:
+1. Internal logical consistency
+2. Plausibility given common knowledge
+3. Red flags (exaggeration, emotional manipulation, impossible claims)
+4. Category-specific patterns (e.g., political rumors, celebrity gossip)
+
+RUMOR:
+Title: "${sanitizeInput(rumor.title)}"
+Content: "${sanitizeInput(rumor.content)}"
+Category: ${rumor.category}
+
+Reply with ONLY valid JSON:
+{
+  "verdict": "TRUE|MISLEADING|FALSE|PARTLY_TRUE|UNPROVEN",
+  "confidence": 0.0-1.0,
+  "reasoning": "2-3 sentence explanation",
+  "summary": "One line verdict summary"
+}
+
+Guidelines:
+- Most anonymous rumors should be UNPROVEN unless clearly true/false
+- Claims with specific verifiable details get higher confidence
+- Outrageous claims with no basis → FALSE with high confidence
+- Plausible gossip with some basis → PARTLY_TRUE or UNPROVEN
+- Be conservative — when unsure, use UNPROVEN with low confidence`
+
+  try {
+    const res = await fetch(`${GLM_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${GLM_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'glm-4-flash',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 250,
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+      }),
+    })
+
+    if (!res.ok) return { verdict: 'UNPROVEN', confidence: 0, reasoning: 'AI service error', summary: 'Verification failed' }
+    const data = await res.json()
+    const text = data.choices?.[0]?.message?.content || '{}'
+    const parsed = JSON.parse(text)
+
+    const validVerdicts = ['TRUE', 'MISLEADING', 'FALSE', 'PARTLY_TRUE', 'UNPROVEN']
+    return {
+      verdict: validVerdicts.includes(parsed.verdict) ? parsed.verdict : 'UNPROVEN',
+      confidence: Math.min(1, Math.max(0, Number(parsed.confidence) || 0)),
+      reasoning: String(parsed.reasoning || 'No reasoning provided').substring(0, 500),
+      summary: String(parsed.summary || 'No summary').substring(0, 200),
+    }
+  } catch {
+    return { verdict: 'UNPROVEN', confidence: 0, reasoning: 'Verification error', summary: 'Could not verify' }
+  }
+}
+
 export async function getModerationSuggestion(content: string): Promise<{
   safe: boolean
   reason?: string
