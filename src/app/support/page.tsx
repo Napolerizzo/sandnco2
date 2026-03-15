@@ -57,7 +57,8 @@ export default function SupportPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
       })
-      const { content } = await res.json()
+      const data = await res.json()
+      const content = data.content || "I'm not able to respond right now. Please try again or email sandncolol@gmail.com."
       setMessages(prev => [...prev, { role: 'assistant', content, timestamp: new Date() }])
     } catch {
       setMessages(prev => [...prev, {

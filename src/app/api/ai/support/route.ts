@@ -1,19 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { askSuno } from '@/lib/ai'
-import { createClient } from '@/lib/supabase/server'
 
+// Support chat is open to all visitors — no auth required
+// (rate limiting via edge config or Supabase can be added later)
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let messages: Array<{ role: string; content: string }>
 
-  const { messages } = await req.json()
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return NextResponse.json({ error: 'Invalid messages' }, { status: 400 })
+  try {
+    const body = await req.json()
+    messages = body.messages
+  } catch {
+    return NextResponse.json({ content: "Invalid request." }, { status: 400 })
   }
 
-  // Limit conversation history to save tokens
-  const trimmed = messages.slice(-6)
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return NextResponse.json({ content: "Please send a message." }, { status: 400 })
+  }
+
+  // Only keep role/content, sanitize roles, limit history to last 6
+  const trimmed = messages.slice(-6).map(m => ({
+    role: m.role === 'assistant' ? 'assistant' as const : 'user' as const,
+    content: String(m.content || '').slice(0, 800),
+  }))
+
   const result = await askSuno(trimmed, 300)
-  return NextResponse.json(result)
+  return NextResponse.json({ content: result.content })
 }

@@ -82,10 +82,17 @@ export async function askSuno(
       }),
     })
 
-    if (!res.ok) throw new Error(`AI service error: ${res.status}`)
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '')
+      console.error(`[ai] GLM API error ${res.status}:`, errText)
+      throw new Error(`AI service error: ${res.status}`)
+    }
 
     const data = await res.json()
-    const content = data.choices?.[0]?.message?.content || "I'm not sure how to help with that. Please contact support."
+    const raw = data.choices?.[0]?.message?.content
+    const content = (typeof raw === 'string' && raw.trim())
+      ? raw.trim()
+      : "I'm not sure how to help with that. Please contact support at sandncolol@gmail.com."
     const tokens_used = data.usage?.total_tokens || 0
 
     return { content, tokens_used }
