@@ -91,6 +91,7 @@ export default function NewRumorPage() {
 
     const { data, error } = await supabase.from('rumors').insert({
       author_id: user.id,
+      user_id: user.id,
       anonymous_alias: alias || generateAnonymousAlias(),
       title,
       content,
