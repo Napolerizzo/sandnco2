@@ -8,48 +8,59 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Turnstile from 'react-turnstile'
 import {
-  Lock, Mail, User, Loader, Zap, Eye, EyeOff,
-  XCircle, CheckCircle, ArrowLeft, Chrome, ArrowRight
+  Lock, Mail, User, Loader, Eye, EyeOff,
+  XCircle, CheckCircle, ArrowRight,
 } from 'lucide-react'
 import { PFP_STYLES, type PfpStyle, RANKS } from '@/lib/ranks'
-import { track, EVENTS } from '@/lib/posthog'
 import toast from 'react-hot-toast'
 
-const RANK_ENTRY = RANKS['ghost_in_the_city']
+const LEFT_LINES = [
+  { main: 'Your city. Your voice.', sub: 'Every great story starts with someone brave enough to speak.' },
+  { main: 'Anonymous by design.', sub: 'The city will hear you. They just won\'t know who said it.' },
+  { main: 'Start as a Ghost.', sub: 'Earn your legend one rumor at a time.' },
+  { main: 'Faridabad is waiting.', sub: 'Be one of the first. That matters.' },
+]
+
+const STRENGTH_COLORS = ['#ef4444', '#f59e0b', '#f59e0b', '#22c55e', '#22c55e']
+
+function getPasswordStrength(pwd: string) {
+  if (pwd.length < 8) return { level: 0, text: 'Too short' }
+  let s = 0
+  if (/[A-Z]/.test(pwd)) s++
+  if (/[0-9]/.test(pwd)) s++
+  if (/[^A-Za-z0-9]/.test(pwd)) s++
+  if (pwd.length >= 12) s++
+  const labels = ['', 'Weak', 'Fair', 'Strong', 'Very strong']
+  return { level: s, text: labels[s] || 'Weak' }
+}
 
 function SignupContent() {
-  const router = useRouter()
   const supabase = createClient()
 
   const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [lineIndex, setLineIndex] = useState(0)
+
+  // Step 1
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  // Step 2
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [city, setCity] = useState('')
-  const [pfpStyle, setPfpStyle] = useState<PfpStyle>('neon_orb')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-  const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
+  const [pfpStyle, setPfpStyle] = useState<PfpStyle>('gradient_phantom')
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [checkingUsername, setCheckingUsername] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const getPasswordStrength = (pwd: string) => {
-    if (pwd.length < 8) return { level: 0, text: 'Too short — minimum 8 characters' }
-    let s = 0
-    if (/[A-Z]/.test(pwd)) s++
-    if (/[0-9]/.test(pwd)) s++
-    if (/[^A-Za-z0-9]/.test(pwd)) s++
-    if (pwd.length >= 12) s++
-    return {
-      level: s,
-      text: s === 0 ? 'Weak' : s === 1 ? 'Fair' : s >= 2 ? 'Strong' : 'Weak',
-    }
-  }
-  const pwStrength = getPasswordStrength(password)
-  const strengthColors = ['#ef4444', '#f59e0b', '#22c55e', '#22d3ee']
+  const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
+
+  useEffect(() => {
+    const t = setInterval(() => setLineIndex(i => (i + 1) % LEFT_LINES.length), 4000)
+    return () => clearInterval(t)
+  }, [])
 
   useEffect(() => {
     if (!username || username.length < 3) { setUsernameAvailable(null); return }
@@ -61,6 +72,8 @@ function SignupContent() {
     }, 500)
     return () => clearTimeout(t)
   }, [username, supabase])
+
+  const pwStrength = getPasswordStrength(password)
 
   const handleStep1 = useCallback((e: React.FormEvent) => {
     e.preventDefault()
@@ -78,8 +91,12 @@ function SignupContent() {
 
   const handleSignup = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!username || username.length < 3) {
+      setMessage({ type: 'error', text: 'Choose a username (at least 3 characters).' })
+      return
+    }
     if (usernameAvailable === false) {
-      setMessage({ type: 'error', text: `Username "@${username}" is already taken. Choose another.` })
+      setMessage({ type: 'error', text: `"@${username}" is taken. Try another.` })
       return
     }
     setLoading(true)
@@ -92,7 +109,7 @@ function SignupContent() {
     })
     const { success } = await verify.json()
     if (!success) {
-      setMessage({ type: 'error', text: 'Security check failed. Please go back and try again.' })
+      setMessage({ type: 'error', text: 'Security check failed. Go back and try again.' })
       setLoading(false)
       return
     }
@@ -101,17 +118,17 @@ function SignupContent() {
       email: email.trim(),
       password,
       options: {
-        data: { username, display_name: displayName || username, city, pfp_style: pfpStyle },
+        data: { username, display_name: displayName || username, pfp_style: pfpStyle },
         emailRedirectTo: `${window.location.origin}/api/auth/callback`,
       },
     })
 
     if (error) {
       const msg = error.message.toLowerCase()
-      if (msg.includes('database error')) {
-        setMessage({ type: 'error', text: `Username "@${username}" may already be taken.` })
+      if (msg.includes('database') || msg.includes('unique')) {
+        setMessage({ type: 'error', text: `Username "@${username}" is already taken.` })
       } else if (msg.includes('email')) {
-        setMessage({ type: 'error', text: `An account with "${email}" already exists.` })
+        setMessage({ type: 'error', text: `An account with that email already exists.` })
       } else {
         setMessage({ type: 'error', text: error.message })
       }
@@ -119,12 +136,11 @@ function SignupContent() {
       return
     }
 
-    track(EVENTS.USER_SIGNUP, { method: 'email', pfp_style: pfpStyle })
     setStep(3)
     setLoading(false)
-  }, [email, password, username, displayName, city, pfpStyle, turnstileToken, usernameAvailable, supabase])
+  }, [email, password, username, displayName, pfpStyle, turnstileToken, usernameAvailable, supabase])
 
-  const handleGoogleSignup = useCallback(async () => {
+  const handleGoogle = useCallback(async () => {
     setGoogleLoading(true)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -133,111 +149,236 @@ function SignupContent() {
     if (error) { toast.error(error.message); setGoogleLoading(false) }
   }, [supabase])
 
+  const line = LEFT_LINES[lineIndex]
+
   return (
-    <div
-      style={{
-        minHeight: '100vh', background: '#09090b', color: '#f4f4f5',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '24px 16px', position: 'relative', overflowX: 'hidden',
-      }}
-    >
-      {/* Grid bg */}
+    <div style={{
+      minHeight: '100vh', background: 'var(--bg)', display: 'flex',
+      fontFamily: 'var(--font)', overflow: 'hidden',
+    }}>
+      {/* ── LEFT PANEL ── */}
       <div
+        className="hide-mobile"
         style={{
-          position: 'fixed', inset: 0, pointerEvents: 'none',
-          backgroundImage: 'linear-gradient(rgba(34,211,238,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.03) 1px, transparent 1px)',
-          backgroundSize: '64px 64px',
+          width: '45%', minHeight: '100vh', position: 'relative',
+          background: 'linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
+          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          padding: '40px 48px', borderRight: '1px solid var(--border)',
+          overflow: 'hidden',
         }}
-      />
+      >
+        {/* Grid texture */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          backgroundImage: 'linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }} />
 
-      <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 440 }}>
+        {/* Glow blob */}
+        <div style={{
+          position: 'absolute', top: '30%', left: '20%',
+          width: 400, height: 400, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse, rgba(99,102,241,0.15) 0%, transparent 65%)',
+        }} />
 
-        {/* Back link */}
-        <Link href="/"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#71717a', textDecoration: 'none', fontSize: 13, marginBottom: 24, fontFamily: 'monospace' }}
-          className="back-link"
-        >
-          <ArrowLeft style={{ width: 14, height: 14 }} />
-          Back
-        </Link>
+        {/* Logo */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <div style={{ position: 'relative', width: 32, height: 32 }}>
+              <Image src="/logo.png" alt="SANDNCO" fill style={{ objectFit: 'contain' }} />
+            </div>
+            <div>
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', display: 'block' }}>SANDNCO</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'block' }}>King of Good Times</span>
+            </div>
+          </Link>
+        </div>
 
-        {/* Step indicator */}
-        {step < 3 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
-            {[1, 2].map(s => (
-              <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div
-                  style={{
-                    width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
-                    border: step === s
-                      ? '1px solid #22d3ee'
-                      : s < step
-                        ? '1px solid #22c55e'
-                        : '1px solid rgba(255,255,255,0.12)',
-                    color: step === s ? '#22d3ee' : s < step ? '#22c55e' : '#52525b',
-                    background: step === s ? 'rgba(34,211,238,0.06)' : s < step ? 'rgba(34,197,94,0.06)' : 'transparent',
-                  }}
-                >
-                  {s < step ? <CheckCircle style={{ width: 13, height: 13 }} /> : s}
-                </div>
-                {s < 2 && (
-                  <div style={{ width: 32, height: 1, background: step > 1 ? 'rgba(34,211,238,0.3)' : 'rgba(255,255,255,0.1)' }} />
-                )}
-              </div>
-            ))}
+        {/* Rank preview */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)',
+            borderRadius: 8, padding: '10px 14px', marginBottom: 24,
+          }}>
+            <span style={{ fontSize: 22 }}>👻</span>
+            <div>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block' }}>Starting rank</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Ghost in the City</span>
+            </div>
           </div>
-        )}
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={lineIndex}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.5 }}
+            >
+              <h2 style={{
+                fontSize: 38, fontWeight: 700, letterSpacing: '-0.03em',
+                color: '#fff', lineHeight: 1.1, marginBottom: 10,
+              }}>
+                {line.main}
+              </h2>
+              <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)', fontWeight: 400 }}>
+                {line.sub}
+              </p>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Bottom */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 12, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em',
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)', opacity: 0.7 }} />
+            Faridabad, India · Early Access
+          </span>
+        </div>
+      </div>
+
+      {/* ── RIGHT PANEL ── */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '40px 24px', overflowY: 'auto',
+      }}>
+        {/* Mobile logo */}
+        <div className="show-mobile" style={{
+          display: 'none', alignItems: 'center', gap: 8, marginBottom: 40,
+        }}>
+          <div style={{ position: 'relative', width: 28, height: 28 }}>
+            <Image src="/logo.png" alt="SANDNCO" fill style={{ objectFit: 'contain' }} />
+          </div>
+          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>SANDNCO</span>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="auth-card"
-          style={{ padding: 32 }}
+          transition={{ duration: 0.4 }}
+          style={{ width: '100%', maxWidth: 400 }}
         >
+          {/* Step indicator */}
+          {step < 3 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
+              {[
+                { n: 1, label: 'Account' },
+                { n: 2, label: 'Profile' },
+              ].map(({ n, label }, i) => (
+                <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 600,
+                      background: step === n ? 'var(--primary)' : step > n ? 'var(--success-dim)' : 'var(--bg-elevated)',
+                      border: step === n ? '1px solid var(--primary)' : step > n ? '1px solid rgba(34,197,94,0.3)' : '1px solid var(--border)',
+                      color: step === n ? '#fff' : step > n ? '#86efac' : 'var(--subtle)',
+                      transition: 'all 0.2s',
+                    }}>
+                      {step > n ? <CheckCircle style={{ width: 13, height: 13 }} /> : n}
+                    </div>
+                    <span style={{ fontSize: 11, color: step === n ? 'var(--muted)' : 'var(--subtle)' }}>{label}</span>
+                  </div>
+                  {i < 1 && (
+                    <div style={{
+                      width: 48, height: 1, marginBottom: 20,
+                      background: step > 1 ? 'rgba(34,197,94,0.4)' : 'var(--border)',
+                      transition: 'background 0.3s',
+                    }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Message */}
+          <AnimatePresence mode="wait">
+            {message && (
+              <motion.div
+                key={message.text}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{ marginBottom: 16, overflow: 'hidden' }}
+              >
+                <div className={message.type === 'error' ? 'msg msg-error' : 'msg msg-success'}>
+                  {message.type === 'error'
+                    ? <XCircle style={{ width: 15, height: 15, flexShrink: 0 }} />
+                    : <CheckCircle style={{ width: 15, height: 15, flexShrink: 0 }} />}
+                  <span>{message.text}</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence mode="wait">
 
             {/* ── STEP 1: Credentials ── */}
             {step === 1 && (
-              <motion.div key="s1" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }}>
-                <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-                    <div style={{ position: 'relative', width: 52, height: 52, border: '1px solid rgba(34,211,238,0.25)', background: 'rgba(34,211,238,0.05)', padding: 8 }}>
-                      <Image src="/logo.png" alt="KGT" fill style={{ objectFit: 'contain', padding: 4 }} />
-                    </div>
-                  </div>
-                  <h1 style={{ fontSize: 22, fontWeight: 800, color: '#f4f4f5', margin: '0 0 6px', letterSpacing: '-0.01em' }}>
-                    Create your account
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div style={{ marginBottom: 28 }}>
+                  <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.025em', margin: '0 0 6px' }}>
+                    Join the city.
                   </h1>
-                  <p style={{ fontSize: 14, color: '#71717a', margin: 0 }}>Join the city. Start as a Ghost.</p>
+                  <p style={{ fontSize: 15, color: 'var(--muted)', margin: 0 }}>
+                    Create your account. It's free.
+                  </p>
                 </div>
 
-                <AnimatePresence mode="wait">
-                  {message && (
-                    <motion.div key={message.text} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ marginBottom: 16, overflow: 'hidden' }}>
-                      <div className={message.type === 'error' ? 'auth-msg-error' : 'auth-msg-success'}>
-                        <XCircle style={{ width: 15, height: 15, flexShrink: 0, marginTop: 1 }} />
-                        <span>{message.text}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/* Google button — prominent */}
+                <button
+                  onClick={handleGoogle}
+                  disabled={googleLoading}
+                  className="auth-btn-google"
+                  style={{ marginBottom: 16 }}
+                >
+                  {googleLoading
+                    ? <Loader style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />
+                    : (
+                      <svg width="16" height="16" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                    )
+                  }
+                  Continue with Google
+                </button>
 
-                <form onSubmit={handleStep1} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div className="divider" style={{ marginBottom: 16 }}>or</div>
+
+                <form onSubmit={handleStep1} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                      <Mail style={{ width: 11, height: 11 }} /> Email address
-                    </label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                      placeholder="you@example.com" required className="auth-input" />
+                    <label className="label">Email</label>
+                    <div style={{ position: 'relative' }}>
+                      <Mail style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: 'var(--subtle)' }} />
+                      <input
+                        type="email" value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        required className="auth-input"
+                        style={{ paddingLeft: 40 }}
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                      <Lock style={{ width: 11, height: 11 }} /> Password
-                    </label>
+                    <label className="label">Password</label>
                     <div style={{ position: 'relative' }}>
+                      <Lock style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: 'var(--subtle)' }} />
                       <input
                         type={showPassword ? 'text' : 'password'}
                         value={password}
@@ -245,21 +386,30 @@ function SignupContent() {
                         placeholder="Min. 8 characters"
                         required minLength={8}
                         className="auth-input"
-                        style={{ paddingRight: 44 }}
+                        style={{ paddingLeft: 40, paddingRight: 44 }}
                       />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)}
-                        style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#52525b', display: 'flex', padding: 2 }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--subtle)', display: 'flex', padding: 2 }}
+                      >
                         {showPassword ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
                       </button>
                     </div>
                     {password.length > 0 && (
                       <div style={{ marginTop: 8 }}>
-                        <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                        <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
                           {[0, 1, 2, 3].map(i => (
-                            <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < pwStrength.level ? strengthColors[Math.min(pwStrength.level - 1, 3)] : 'rgba(255,255,255,0.08)', transition: 'background 0.2s' }} />
+                            <div key={i} style={{
+                              flex: 1, height: 3, borderRadius: 2,
+                              background: i < pwStrength.level
+                                ? STRENGTH_COLORS[Math.max(0, pwStrength.level - 1)]
+                                : 'var(--border)',
+                              transition: 'background 0.2s',
+                            }} />
                           ))}
                         </div>
-                        <p style={{ fontSize: 12, color: password.length >= 8 ? strengthColors[Math.min(pwStrength.level - 1, 3)] : '#ef4444', margin: 0 }}>
+                        <p style={{ fontSize: 12, color: STRENGTH_COLORS[Math.max(0, pwStrength.level - 1)], margin: 0 }}>
                           {pwStrength.text}
                         </p>
                       </div>
@@ -275,66 +425,96 @@ function SignupContent() {
                     />
                   </div>
 
-                  <button type="submit" disabled={!turnstileToken} className="auth-btn-primary"
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <button
+                    type="submit"
+                    disabled={!turnstileToken}
+                    className="auth-btn"
+                  >
                     Continue
                     <ArrowRight style={{ width: 16, height: 16 }} />
                   </button>
                 </form>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
-                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
-                  <span style={{ fontSize: 12, color: '#52525b', fontFamily: 'monospace' }}>or</span>
-                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
-                </div>
-
-                <button onClick={handleGoogleSignup} disabled={googleLoading} className="auth-btn-secondary">
-                  {googleLoading ? <Loader style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> : <Chrome style={{ width: 16, height: 16 }} />}
-                  Continue with Google
-                </button>
-
-                <p style={{ textAlign: 'center', fontSize: 14, color: '#71717a', marginTop: 20 }}>
+                <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--muted)', marginTop: 20 }}>
                   Already have an account?{' '}
-                  <Link href="/login" style={{ color: '#22d3ee', textDecoration: 'none', fontWeight: 600 }}>Sign in</Link>
+                  <Link href="/login" className="link">Sign in</Link>
+                </p>
+
+                <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--subtle)', marginTop: 16 }}>
+                  By signing up you agree to our{' '}
+                  <Link href="/legal/tos" className="link-muted">Terms</Link>
+                  {' '}&amp;{' '}
+                  <Link href="/legal/privacy" className="link-muted">Privacy Policy</Link>
                 </p>
               </motion.div>
             )}
 
             {/* ── STEP 2: Profile ── */}
             {step === 2 && (
-              <motion.div key="s2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }}>
-                <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                  <h1 style={{ fontSize: 20, fontWeight: 800, color: '#f4f4f5', margin: '0 0 6px' }}>Your identity</h1>
-                  <p style={{ fontSize: 14, color: '#71717a', margin: 0 }}>How the city knows you</p>
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div style={{ marginBottom: 24 }}>
+                  <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.025em', margin: '0 0 6px' }}>
+                    Your identity.
+                  </h1>
+                  <p style={{ fontSize: 15, color: 'var(--muted)', margin: 0 }}>
+                    How the city knows you.
+                  </p>
                 </div>
-
-                {/* Starting rank */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid rgba(34,211,238,0.15)', background: 'rgba(34,211,238,0.04)', marginBottom: 20 }}>
-                  <span style={{ fontSize: 24 }}>{RANK_ENTRY.emoji}</span>
-                  <div>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', fontFamily: 'monospace', letterSpacing: '0.08em' }}>Starting rank</span>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: '#6b7280', margin: '2px 0 0' }}>{RANK_ENTRY.label}</p>
-                  </div>
-                </div>
-
-                <AnimatePresence mode="wait">
-                  {message && (
-                    <motion.div key={message.text} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ marginBottom: 16 }}>
-                      <div className={message.type === 'error' ? 'auth-msg-error' : 'auth-msg-success'}>
-                        <XCircle style={{ width: 15, height: 15, flexShrink: 0, marginTop: 1 }} />
-                        <span>{message.text}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
                 <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {/* Avatar picker */}
+                  <div>
+                    <label className="label" style={{ marginBottom: 10 }}>Pick your avatar</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                      {(Object.entries(PFP_STYLES) as [PfpStyle, typeof PFP_STYLES[PfpStyle]][]).map(([style, data]) => (
+                        <motion.button
+                          key={style}
+                          type="button"
+                          onClick={() => setPfpStyle(style)}
+                          whileTap={{ scale: 0.92 }}
+                          title={data.label}
+                          style={{
+                            aspectRatio: '1', cursor: 'pointer', padding: 0,
+                            border: pfpStyle === style ? '2px solid var(--primary)' : '2px solid var(--border)',
+                            borderRadius: 8,
+                            boxShadow: pfpStyle === style ? '0 0 0 3px var(--primary-dim)' : 'none',
+                            transition: 'all 0.15s', background: 'none', overflow: 'hidden',
+                          }}
+                        >
+                          <div style={{
+                            width: '100%', height: '100%',
+                            background: `linear-gradient(135deg, ${data.gradient[0]}, ${data.gradient[1]})`,
+                            position: 'relative',
+                          }}>
+                            {pfpStyle === style && (
+                              <div style={{
+                                position: 'absolute', inset: 0,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: 'rgba(0,0,0,0.3)',
+                              }}>
+                                <CheckCircle style={{ width: 16, height: 16, color: '#fff' }} />
+                              </div>
+                            )}
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--subtle)', marginTop: 6 }}>
+                      {PFP_STYLES[pfpStyle].label} — {PFP_STYLES[pfpStyle].description}
+                    </p>
+                  </div>
+
                   {/* Username */}
                   <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                      <User style={{ width: 11, height: 11 }} /> Username
-                    </label>
+                    <label className="label">Username</label>
                     <div style={{ position: 'relative' }}>
+                      <User style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: 'var(--subtle)' }} />
                       <input
                         type="text"
                         value={username}
@@ -342,126 +522,101 @@ function SignupContent() {
                         placeholder="your_handle"
                         required minLength={3} maxLength={20}
                         className="auth-input"
-                        style={{ paddingRight: 44 }}
+                        style={{ paddingLeft: 40, paddingRight: 36 }}
                       />
-                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
-                        {checkingUsername && <Loader style={{ width: 15, height: 15, color: '#52525b', animation: 'spin 1s linear infinite' }} />}
-                        {!checkingUsername && usernameAvailable === true && <CheckCircle style={{ width: 15, height: 15, color: '#22c55e' }} />}
-                        {!checkingUsername && usernameAvailable === false && <XCircle style={{ width: 15, height: 15, color: '#ef4444' }} />}
+                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                        {checkingUsername && <Loader style={{ width: 14, height: 14, color: 'var(--subtle)', animation: 'spin 1s linear infinite' }} />}
+                        {!checkingUsername && usernameAvailable === true && <CheckCircle style={{ width: 14, height: 14, color: 'var(--success)' }} />}
+                        {!checkingUsername && usernameAvailable === false && <XCircle style={{ width: 14, height: 14, color: 'var(--danger)' }} />}
                       </div>
                     </div>
                     {!checkingUsername && usernameAvailable === false && (
-                      <p style={{ fontSize: 12, color: '#ef4444', marginTop: 5 }}>This username is taken. Try another.</p>
+                      <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 5 }}>That username is taken.</p>
                     )}
                     {!checkingUsername && usernameAvailable === true && (
-                      <p style={{ fontSize: 12, color: '#22c55e', marginTop: 5 }}>✓ Available</p>
+                      <p style={{ fontSize: 12, color: 'var(--success)', marginTop: 5 }}>Available.</p>
                     )}
                   </div>
 
                   {/* Display name */}
                   <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                      Display name <span style={{ fontSize: 10, opacity: 0.6, marginLeft: 4 }}>(optional)</span>
+                    <label className="label">
+                      Display name{' '}
+                      <span style={{ fontSize: 11, color: 'var(--subtle)', fontWeight: 400 }}>(optional)</span>
                     </label>
-                    <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
-                      placeholder="How you appear publicly" className="auth-input" />
+                    <input
+                      type="text" value={displayName}
+                      onChange={e => setDisplayName(e.target.value)}
+                      placeholder="How you appear on posts"
+                      className="auth-input"
+                    />
                   </div>
 
-                  {/* City */}
-                  <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                      City / Region <span style={{ fontSize: 10, opacity: 0.6, marginLeft: 4 }}>(optional)</span>
-                    </label>
-                    <input type="text" value={city} onChange={e => setCity(e.target.value)}
-                      placeholder="Mumbai, Delhi, Bangalore..." className="auth-input" />
+                  <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => { setStep(1); setMessage(null) }}
+                      style={{
+                        flex: '0 0 auto', background: 'var(--bg-elevated)', color: 'var(--muted)',
+                        border: '1px solid var(--border)', borderRadius: 6, padding: '12px 16px',
+                        cursor: 'pointer', fontSize: 14, fontWeight: 500, fontFamily: 'var(--font)',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading || !username || usernameAvailable === false || checkingUsername}
+                      className="auth-btn"
+                      style={{ flex: 1 }}
+                    >
+                      {loading
+                        ? <><Loader style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Creating account...</>
+                        : 'Create Account'}
+                    </button>
                   </div>
-
-                  {/* Avatar style */}
-                  <div>
-                    <label style={{ fontSize: 12, color: '#71717a', display: 'block', marginBottom: 8, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                      Avatar style
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                      {(Object.entries(PFP_STYLES) as [PfpStyle, typeof PFP_STYLES[PfpStyle]][]).map(([style, data]) => (
-                        <motion.button
-                          key={style}
-                          type="button"
-                          onClick={() => setPfpStyle(style)}
-                          whileTap={{ scale: 0.93 }}
-                          title={data.label}
-                          style={{
-                            aspectRatio: '1', overflow: 'hidden', cursor: 'pointer',
-                            border: pfpStyle === style ? '2px solid #22d3ee' : '2px solid transparent',
-                            boxShadow: pfpStyle === style ? '0 0 12px rgba(34,211,238,0.3)' : 'none',
-                            transition: 'all 0.15s', background: 'none', padding: 0,
-                          }}
-                        >
-                          <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${data.gradient[0]}, ${data.gradient[1]})`, position: 'relative' }}>
-                            {pfpStyle === style && (
-                              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)' }}>
-                                <CheckCircle style={{ width: 16, height: 16, color: '#22d3ee' }} />
-                              </div>
-                            )}
-                          </div>
-                        </motion.button>
-                      ))}
-                    </div>
-                    <p style={{ fontSize: 11, color: '#52525b', marginTop: 6, fontFamily: 'monospace' }}>
-                      {PFP_STYLES[pfpStyle].label}
-                    </p>
-                  </div>
-
-                  <button type="submit" disabled={loading || !usernameAvailable || !username} className="auth-btn-primary"
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4 }}>
-                    {loading ? (
-                      <><Loader style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Creating account...</>
-                    ) : (
-                      <><Zap style={{ width: 16, height: 16 }} /> Create Account</>
-                    )}
-                  </button>
                 </form>
               </motion.div>
             )}
 
-            {/* ── STEP 3: Verify email ── */}
+            {/* ── STEP 3: Success ── */}
             {step === 3 && (
-              <motion.div key="s3" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ textAlign: 'center', padding: '24px 0' }}>
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+                style={{ textAlign: 'center', padding: '16px 0' }}
+              >
                 <motion.div
-                  animate={{ rotate: [0, -8, 8, -4, 4, 0] }}
-                  transition={{ duration: 1, delay: 0.3 }}
-                  style={{ fontSize: 52, marginBottom: 16 }}
+                  animate={{ rotate: [0, -10, 10, -5, 5, 0] }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  style={{ fontSize: 56, marginBottom: 20, display: 'block' }}
                 >
                   👑
                 </motion.div>
-                <h2 style={{ fontSize: 22, fontWeight: 800, color: '#f4f4f5', margin: '0 0 12px' }}>
-                  Account created!
+                <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.025em', margin: '0 0 8px' }}>
+                  You're in.
                 </h2>
-                <div className="auth-msg-success" style={{ textAlign: 'left', marginBottom: 16 }}>
-                  <CheckCircle style={{ width: 15, height: 15, flexShrink: 0, marginTop: 1 }} />
-                  <span>We sent a verification email to <strong>{email}</strong>. Check your inbox and confirm to activate your account.</span>
-                </div>
-                <p style={{ fontSize: 14, color: '#71717a', marginBottom: 24 }}>
-                  Once verified, you can sign in and start your journey.
+                <p style={{ fontSize: 15, color: 'var(--muted)', marginBottom: 24 }}>
+                  Check <strong style={{ color: 'var(--text)' }}>{email}</strong> to verify your account. Then sign in and start your story.
                 </p>
+                <div className="msg msg-success" style={{ textAlign: 'left', marginBottom: 24 }}>
+                  <CheckCircle style={{ width: 15, height: 15, flexShrink: 0 }} />
+                  <span>Verification email sent. Check your inbox — and spam, just in case.</span>
+                </div>
                 <Link href="/login">
-                  <button className="auth-btn-primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <button className="auth-btn" style={{ width: '100%' }}>
                     Go to Sign In
                     <ArrowRight style={{ width: 16, height: 16 }} />
                   </button>
                 </Link>
               </motion.div>
             )}
+
           </AnimatePresence>
         </motion.div>
-
-        {step === 1 && (
-          <p style={{ textAlign: 'center', fontSize: 12, color: '#3f3f46', marginTop: 16 }}>
-            By creating an account you agree to our{' '}
-            <Link href="/legal/tos" style={{ color: '#52525b', textDecoration: 'none' }}>Terms</Link>
-            {' '}&amp;{' '}
-            <Link href="/legal/privacy" style={{ color: '#52525b', textDecoration: 'none' }}>Privacy Policy</Link>
-          </p>
-        )}
       </div>
     </div>
   )
@@ -470,8 +625,8 @@ function SignupContent() {
 export default function SignupPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader style={{ width: 20, height: 20, color: '#22d3ee', animation: 'spin 1s linear infinite' }} />
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader style={{ width: 20, height: 20, color: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
       </div>
     }>
       <SignupContent />
