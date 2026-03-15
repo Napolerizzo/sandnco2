@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 
-// Hardcoded super admin email — the only account that auto-gets admin
-const SUPER_ADMIN_EMAIL = 'admin@sameerjhamb.com'
+// Hardcoded super admin emails — accounts that auto-get admin
+const SUPER_ADMIN_EMAILS = ['admin@sameerjhamb.com', 'sameer.jhamb1719@gmail.com']
 
 export async function POST(req: NextRequest) {
   const { secret } = await req.json().catch(() => ({ secret: '' }))
@@ -13,36 +13,34 @@ export async function POST(req: NextRequest) {
 
   const adminSupabase = await createAdminClient()
 
-  // Find user by email
-  const { data: users, error: lookupErr } = await adminSupabase
-    .from('users')
-    .select('id, email')
-    .eq('email', SUPER_ADMIN_EMAIL)
-    .limit(1)
+  const results = []
 
-  if (lookupErr || !users?.length) {
-    return NextResponse.json({
-      error: 'Admin user not found. Make sure the account exists first.',
-      detail: lookupErr?.message,
-    }, { status: 404 })
+  for (const email of SUPER_ADMIN_EMAILS) {
+    const { data: users, error: lookupErr } = await adminSupabase
+      .from('users')
+      .select('id, email')
+      .eq('email', email)
+      .limit(1)
+
+    if (lookupErr || !users?.length) {
+      results.push({ email, error: 'User not found' })
+      continue
+    }
+
+    const userId = users[0].id
+
+    const { error: roleErr } = await adminSupabase
+      .from('admin_roles')
+      .upsert({
+        id: userId,
+        user_id: userId,
+        role: 'super_admin',
+        permissions: {},
+        created_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,role' })
+
+    results.push({ email, success: !roleErr, error: roleErr?.message })
   }
 
-  const userId = users[0].id
-
-  // Upsert admin role (idempotent)
-  const { error: roleErr } = await adminSupabase
-    .from('admin_roles')
-    .upsert({
-      id: userId,
-      user_id: userId,
-      role: 'super_admin',
-      permissions: {},
-      created_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,role' })
-
-  if (roleErr) {
-    return NextResponse.json({ error: 'Failed to assign role', detail: roleErr.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ success: true, message: `${SUPER_ADMIN_EMAIL} is now super_admin` })
+  return NextResponse.json({ success: true, results })
 }

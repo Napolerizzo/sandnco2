@@ -4,8 +4,8 @@ import AdminSidebar from '@/components/admin/AdminSidebar'
 
 export const metadata = { title: 'Admin Panel — SANDNCO' }
 
-// Hardcoded super admin — auto-provisioned on first visit
-const SUPER_ADMIN_EMAIL = 'admin@sameerjhamb.com'
+// Hardcoded super admins — auto-provisioned on first visit
+const SUPER_ADMIN_EMAILS = ['admin@sameerjhamb.com', 'sameer.jhamb1719@gmail.com']
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -19,8 +19,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq('user_id', user.id)
     .single()
 
-  // Auto-provision super_admin for the hardcoded admin email
-  if (!adminRole && user.email === SUPER_ADMIN_EMAIL) {
+  // Auto-provision super_admin for the hardcoded admin emails
+  if (!adminRole && SUPER_ADMIN_EMAILS.includes(user.email || '')) {
     const adminClient = await createAdminClient()
     await adminClient.from('admin_roles').upsert({
       id: user.id,
