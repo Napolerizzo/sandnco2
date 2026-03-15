@@ -43,6 +43,7 @@ export default function Navbar() {
   const [notifCount, setNotifCount] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [profileTimedOut, setProfileTimedOut] = useState(false)
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 10)
@@ -64,11 +65,28 @@ export default function Navbar() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!user) { setProfile(null); return }
+    if (!user) { setProfile(null); setProfileTimedOut(false); return }
+    // If profile doesn't load in 4s, stop showing skeleton
+    const timeout = setTimeout(() => setProfileTimedOut(true), 4000)
     supabase.from('users')
       .select('username,display_name,rank,wallet_balance,profile_picture_url,is_premium')
       .eq('id', user.id).single()
-      .then(({ data }) => { if (data) setProfile(data as UserProfile) })
+      .then(async ({ data }) => {
+        clearTimeout(timeout)
+        if (data) {
+          setProfile(data as UserProfile)
+        } else {
+          // Profile row missing — auto-create it
+          try {
+            const res = await fetch('/api/auth/ensure-profile', { method: 'POST' })
+            const { profile: created } = await res.json()
+            if (created) setProfile(created as UserProfile)
+            else setProfileTimedOut(true)
+          } catch {
+            setProfileTimedOut(true)
+          }
+        }
+      })
     supabase.from('notifications').select('id', { count: 'exact', head: true })
       .eq('user_id', user.id).eq('is_read', false)
       .then(({ count }) => setNotifCount(count || 0))
@@ -103,7 +121,7 @@ export default function Navbar() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
         }}>
           {/* Logo */}
-          <Link href="/feed" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
             <div style={{ position: 'relative', width: 26, height: 26 }}>
               <Image src="/logo.png" alt="SANDNCO" fill style={{ objectFit: 'contain' }} />
             </div>
@@ -158,9 +176,21 @@ export default function Navbar() {
               </span>
             </button>
 
-            {(authLoading || (user && !profile)) ? (
+            {(authLoading || (user && !profile && !profileTimedOut)) ? (
               /* Skeleton while auth/profile loads — no login button flash */
               <div style={{ width: 80, height: 32, background: 'var(--bg-elevated)', borderRadius: 'var(--r)', border: '1px solid var(--border)', animation: 'shimmer 1.5s ease-in-out infinite' }} />
+            ) : user && !profile ? (
+              /* Logged in but profile missing — show settings link */
+              <Link href="/settings" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 12px', fontSize: 13, fontWeight: 500,
+                background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                borderRadius: 'var(--r)', color: 'var(--muted)', textDecoration: 'none',
+                fontFamily: 'var(--font)',
+              }}>
+                <Shield style={{ width: 13, height: 13 }} />
+                {user.email?.split('@')[0] || 'Profile'}
+              </Link>
             ) : user && profile ? (
               <>
                 {/* Wallet */}
