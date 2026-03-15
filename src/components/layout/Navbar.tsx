@@ -34,7 +34,7 @@ const NAV_LINKS = [
 ]
 
 export default function Navbar() {
-  const { supabase, user } = useSupabase()
+  const { supabase, user, loading: authLoading } = useSupabase()
   const router = useRouter()
   const pathname = usePathname()
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -157,7 +157,10 @@ export default function Navbar() {
               </span>
             </button>
 
-            {user && profile ? (
+            {(authLoading || (user && !profile)) ? (
+              /* Skeleton while auth/profile loads — no login button flash */
+              <div style={{ width: 80, height: 32, background: 'var(--bg-elevated)', borderRadius: 'var(--r)', border: '1px solid var(--border)', animation: 'shimmer 1.5s ease-in-out infinite' }} />
+            ) : user && profile ? (
               <>
                 {/* Wallet */}
                 <Link href="/wallet" className="hide-mobile" style={{

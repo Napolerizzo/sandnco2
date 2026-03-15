@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { Users, Flame, Trophy, Wallet, Ticket, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Users, Flame, Trophy, Ticket, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
@@ -19,72 +20,132 @@ export default async function AdminDashboard() {
   ])
 
   const stats = [
-    { label: 'Total Users', value: totalUsers || 0, icon: Users, color: '#06b6d4', change: '+12%' },
-    { label: 'Pending Rumors', value: pendingRumors || 0, icon: Flame, color: '#f97316', change: 'needs review' },
-    { label: 'Active Challenges', value: activeChallenges || 0, icon: Trophy, color: '#a855f7', change: 'running' },
-    { label: 'Open Tickets', value: openTickets || 0, icon: Ticket, color: '#ef4444', change: 'needs attention' },
+    { label: 'Total Users', value: totalUsers || 0, icon: Users, color: 'var(--secondary)', bg: 'rgba(59,130,246,0.1)' },
+    { label: 'Pending Rumors', value: pendingRumors || 0, icon: Flame, color: 'var(--warning)', bg: 'rgba(245,158,11,0.1)' },
+    { label: 'Active Challenges', value: activeChallenges || 0, icon: Trophy, color: 'var(--primary)', bg: 'var(--primary-dim)' },
+    { label: 'Open Tickets', value: openTickets || 0, icon: Ticket, color: 'var(--danger)', bg: 'rgba(239,68,68,0.1)' },
   ]
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="font-display text-4xl text-gradient-gold mb-1" style={{ fontFamily: "'Bebas Neue', cursive" }}>
-          ADMIN DASHBOARD
+    <div style={{ fontFamily: 'var(--font)' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.025em', margin: '0 0 6px', color: 'var(--text)' }}>
+          Dashboard
         </h1>
-        <p className="font-mono text-xs text-zinc-500">Platform overview & control center</p>
+        <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>
+          Platform overview — SANDNCO admin
+        </p>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map(({ label, value, icon: Icon, color, change }) => (
-          <div key={label} className="glass rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <Icon className="w-5 h-5" style={{ color }} />
-              <span className="font-mono text-xs text-zinc-600">{change}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
+        {stats.map(({ label, value, icon: Icon, color, bg }) => (
+          <div key={label} style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: 12, padding: 20,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 8,
+                background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icon style={{ width: 18, height: 18, color }} />
+              </div>
             </div>
-            <p className="font-display text-3xl font-bold" style={{ color, fontFamily: "'Bebas Neue', cursive" }}>
+            <p style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color, margin: '0 0 4px' }}>
               {value.toLocaleString()}
             </p>
-            <p className="font-mono text-xs text-zinc-500 mt-1">{label}</p>
+            <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0 }}>{label}</p>
           </div>
         ))}
       </div>
 
-      {/* Recent transactions */}
-      <div className="glass rounded-2xl p-6">
-        <h3 className="font-tech text-xs text-zinc-400 tracking-widest uppercase mb-4">Recent Transactions</h3>
-        <div className="space-y-3">
-          {(recentTx || []).map((tx, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-              <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${tx.status === 'completed' ? 'bg-green-400' : 'bg-yellow-400'}`} />
-                <span className="font-mono text-xs text-zinc-400">{tx.type.replace('_', ' ')}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
+        {/* Recent transactions */}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <TrendingUp style={{ width: 16, height: 16, color: 'var(--primary)' }} />
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', margin: 0 }}>Recent Transactions</h3>
+          </div>
+          <div>
+            {(recentTx || []).map((tx, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 0', borderBottom: i < (recentTx?.length || 0) - 1 ? '1px solid var(--border)' : 'none',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: tx.status === 'completed' ? 'var(--success)' : 'var(--warning)',
+                  }} />
+                  <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                    {tx.type.replace(/_/g, ' ')}
+                  </span>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>
+                  ₹{tx.amount}
+                </span>
               </div>
-              <span className="font-tech text-xs text-white">₹{tx.amount}</span>
-            </div>
-          ))}
-          {(!recentTx || recentTx.length === 0) && (
-            <p className="font-mono text-xs text-zinc-600 text-center py-4">No transactions yet.</p>
-          )}
+            ))}
+            {(!recentTx || recentTx.length === 0) && (
+              <p style={{ fontSize: 13, color: 'var(--subtle)', textAlign: 'center', padding: '20px 0' }}>
+                No transactions yet.
+              </p>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-4 mt-6">
-        <a href="/admin/rumors" className="glass-gold rounded-2xl p-5 hover:border-yellow-400/30 transition-all cursor-pointer block">
-          <div className="flex items-center gap-3 mb-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-400" />
-            <span className="font-tech text-sm text-yellow-400">Review Rumors</span>
-          </div>
-          <p className="font-mono text-xs text-zinc-500">{pendingRumors} pending approval</p>
-        </a>
-        <a href="/admin/tickets" className="glass rounded-2xl p-5 hover:border-white/10 transition-all cursor-pointer block">
-          <div className="flex items-center gap-3 mb-2">
-            <CheckCircle className="w-5 h-5 text-cyan-400" />
-            <span className="font-tech text-sm text-cyan-400">Support Queue</span>
-          </div>
-          <p className="font-mono text-xs text-zinc-500">{openTickets} open tickets</p>
-        </a>
+        {/* Quick actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Link href="/admin/rumors" style={{ textDecoration: 'none' }}>
+            <div style={{
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: 12, padding: 20, cursor: 'pointer',
+              transition: 'border-color 0.15s',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <AlertTriangle style={{ width: 16, height: 16, color: 'var(--warning)' }} />
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Review Rumors</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0 }}>
+                {pendingRumors || 0} pending approval
+              </p>
+            </div>
+          </Link>
+
+          <Link href="/admin/tickets" style={{ textDecoration: 'none' }}>
+            <div style={{
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: 12, padding: 20, cursor: 'pointer',
+              transition: 'border-color 0.15s',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <CheckCircle style={{ width: 16, height: 16, color: 'var(--secondary)' }} />
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Support Queue</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0 }}>
+                {openTickets || 0} open tickets
+              </p>
+            </div>
+          </Link>
+
+          <Link href="/admin/users" style={{ textDecoration: 'none' }}>
+            <div style={{
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: 12, padding: 20, cursor: 'pointer',
+              transition: 'border-color 0.15s',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <Users style={{ width: 16, height: 16, color: 'var(--primary)' }} />
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>User Management</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0 }}>
+                {totalUsers || 0} total members
+              </p>
+            </div>
+          </Link>
+        </div>
       </div>
     </div>
   )

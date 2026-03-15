@@ -12,6 +12,7 @@ import {
   XCircle, CheckCircle, ArrowRight,
 } from 'lucide-react'
 import { PFP_STYLES, type PfpStyle, RANKS } from '@/lib/ranks'
+import { AvatarSVG } from '@/components/AvatarSVG'
 import toast from 'react-hot-toast'
 
 const LEFT_LINES = [
@@ -480,28 +481,24 @@ function SignupContent() {
                           whileTap={{ scale: 0.92 }}
                           title={data.label}
                           style={{
-                            aspectRatio: '1', cursor: 'pointer', padding: 0,
+                            aspectRatio: '1', cursor: 'pointer', padding: 2,
                             border: pfpStyle === style ? '2px solid var(--primary)' : '2px solid var(--border)',
-                            borderRadius: 8,
+                            borderRadius: 10,
                             boxShadow: pfpStyle === style ? '0 0 0 3px var(--primary-dim)' : 'none',
-                            transition: 'all 0.15s', background: 'none', overflow: 'hidden',
+                            transition: 'all 0.15s', background: 'var(--bg-elevated)', overflow: 'hidden',
+                            position: 'relative',
                           }}
                         >
-                          <div style={{
-                            width: '100%', height: '100%',
-                            background: `linear-gradient(135deg, ${data.gradient[0]}, ${data.gradient[1]})`,
-                            position: 'relative',
-                          }}>
-                            {pfpStyle === style && (
-                              <div style={{
-                                position: 'absolute', inset: 0,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: 'rgba(0,0,0,0.3)',
-                              }}>
-                                <CheckCircle style={{ width: 16, height: 16, color: '#fff' }} />
-                              </div>
-                            )}
-                          </div>
+                          <AvatarSVG style={style} size={56} />
+                          {pfpStyle === style && (
+                            <div style={{
+                              position: 'absolute', inset: 0, borderRadius: 8,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              background: 'rgba(99,102,241,0.25)',
+                            }}>
+                              <CheckCircle style={{ width: 16, height: 16, color: '#fff' }} />
+                            </div>
+                          )}
                         </motion.button>
                       ))}
                     </div>
