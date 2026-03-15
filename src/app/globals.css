@@ -28,9 +28,9 @@
   --yellow: #ffcc00;
   --yellow-dim: #b89200;
   --purple: #bf5af2;
-  --text: #c0f0ec;
-  --text-dim: #4a7a76;
-  --text-ghost: #1e3a36;
+  --text: #ffffff;
+  --text-dim: #6b7280;
+  --text-ghost: #374151;
   --font-body: 'JetBrains Mono', 'Courier New', monospace;
   --font-display: 'Share Tech Mono', 'Courier New', monospace;
 }
@@ -88,6 +88,10 @@ body::after {
   0% { top: -5%; }
   100% { top: 105%; }
 }
+
+/* bg-cyan-400/8 helper since Tailwind JIT may not pick it up with slash notation */
+.bg-cyan-400\/8 { background-color: rgba(34, 211, 238, 0.08); }
+.border-white\/8 { border-color: rgba(255,255,255,0.08); }
 
 @keyframes blink-cursor {
   0%, 100% { opacity: 1; }
