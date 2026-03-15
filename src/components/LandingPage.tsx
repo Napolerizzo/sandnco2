@@ -5,47 +5,62 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Flame, Trophy, Crown, Zap, Eye, Shield, ArrowRight,
-  Users, TrendingUp, Activity, MessageCircle, ChevronRight
+  Flame, Trophy, Crown, Zap, Eye, ArrowRight,
+  TrendingUp, Activity, MessageSquare, ChevronRight,
+  Users, Hash, Star
 } from 'lucide-react'
 import { RANKS } from '@/lib/ranks'
+import { formatRelativeTime } from '@/lib/utils'
 
-const RANK_KEYS = Object.keys(RANKS) as (keyof typeof RANKS)[]
+type RankKey = keyof typeof RANKS
+const RANK_KEYS = Object.keys(RANKS) as RankKey[]
+
+interface PreviewRumor {
+  id: string
+  title: string
+  category: string
+  heat_score: number
+  created_at: string
+  anonymous_alias: string
+}
 
 const BOOT_LINES = [
-  '> KING OF GOOD TIMES V2 — INITIALIZING...',
-  '> CITY DATABASE ················· ONLINE',
-  '> RUMOR ENGINE ················· ACTIVE',
-  '> CHALLENGE PROTOCOL ············ READY',
-  '> WELCOME TO THE CITY.',
+  '> KING OF GOOD TIMES — ONLINE',
+  '> CITY NETWORK CONNECTED',
+  '> ENTERING THE CITY...',
 ]
 
 function BootScreen({ lines }: { lines: string[] }) {
   return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-      <div className="max-w-lg w-full px-8">
-        <div className="mb-10 flex items-center gap-3">
-          <Crown className="w-8 h-8 text-cyan-400" />
-          <span className="text-xs text-cyan-400/50 tracking-[0.4em] uppercase font-mono">System Boot</span>
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: '#09090b',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+      }}
+    >
+      <div style={{ maxWidth: 440, width: '100%', padding: '0 32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+          <div style={{ position: 'relative', width: 36, height: 36 }}>
+            <Image src="/logo.png" alt="KGT" fill style={{ objectFit: 'contain' }} />
+          </div>
+          <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#22d3ee', letterSpacing: '0.3em', textTransform: 'uppercase', opacity: 0.5 }}>
+            Initializing
+          </span>
         </div>
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {lines.map((line, i) => (
             <motion.p
               key={i}
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.15 }}
-              className={`font-mono text-sm ${
-                line.includes('ONLINE') || line.includes('ACTIVE') || line.includes('READY')
-                  ? 'text-green-400'
-                  : 'text-cyan-400/60'
-              }`}
+              style={{ fontFamily: 'monospace', fontSize: 13, color: i === lines.length - 1 ? '#22d3ee' : '#4b5563' }}
             >
               {line}
             </motion.p>
           ))}
           {lines.length > 0 && lines.length < BOOT_LINES.length && (
-            <span className="text-cyan-400 animate-pulse font-mono">█</span>
+            <span style={{ color: '#22d3ee', fontFamily: 'monospace', animation: 'blink-cursor 1s step-end infinite' }}>█</span>
           )}
         </div>
       </div>
@@ -53,13 +68,12 @@ function BootScreen({ lines }: { lines: string[] }) {
   )
 }
 
-export default function LandingPage() {
+export default function LandingPage({ previewRumors = [] }: { previewRumors?: PreviewRumor[] }) {
   const [bootDone, setBootDone] = useState(false)
   const [bootLines, setBootLines] = useState<string[]>([])
   const [currentRank, setCurrentRank] = useState(0)
 
   useEffect(() => {
-    // Only show boot sequence once per session
     if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('kgt_boot')) {
       setBootDone(true)
       return
@@ -67,25 +81,22 @@ export default function LandingPage() {
     let i = 0
     const timer = setInterval(() => {
       if (i < BOOT_LINES.length) {
-        const line = BOOT_LINES[i]
-        setBootLines(prev => [...prev, line])
+        setBootLines(prev => [...prev, BOOT_LINES[i]])
         i++
       } else {
         clearInterval(timer)
         setTimeout(() => {
           sessionStorage.setItem('kgt_boot', '1')
           setBootDone(true)
-        }, 400)
+        }, 300)
       }
-    }, 180)
+    }, 200)
     return () => clearInterval(timer)
   }, [])
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentRank(prev => (prev + 1) % RANK_KEYS.length)
-    }, 2500)
-    return () => clearInterval(timer)
+    const t = setInterval(() => setCurrentRank(p => (p + 1) % RANK_KEYS.length), 2500)
+    return () => clearInterval(t)
   }, [])
 
   const rank = RANKS[RANK_KEYS[currentRank]]
@@ -94,7 +105,7 @@ export default function LandingPage() {
     <>
       <AnimatePresence>
         {!bootDone && (
-          <motion.div exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+          <motion.div exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
             <BootScreen lines={bootLines} />
           </motion.div>
         )}
@@ -103,44 +114,101 @@ export default function LandingPage() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: bootDone ? 1 : 0 }}
-        transition={{ duration: 0.4 }}
-        className="min-h-screen bg-black text-white overflow-x-hidden"
+        transition={{ duration: 0.35 }}
+        style={{ minHeight: '100vh', background: '#09090b', color: '#f4f4f5', overflowX: 'hidden' }}
       >
-        {/* Grid background */}
+        {/* Grid overlay */}
         <div
-          className="fixed inset-0 pointer-events-none opacity-50"
           style={{
-            backgroundImage: 'linear-gradient(rgba(0,255,245,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,245,0.04) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
+            position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+            backgroundImage: 'linear-gradient(rgba(34,211,238,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.03) 1px, transparent 1px)',
+            backgroundSize: '64px 64px',
           }}
         />
 
-        {/* Scan line — CSS animation, no framer-motion */}
+        {/* Scan line */}
         <div
-          className="fixed left-0 w-full h-px pointer-events-none z-10"
           style={{
-            background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.5), transparent)',
-            animation: 'scan 10s linear infinite',
-            top: '-5%',
+            position: 'fixed', left: 0, width: '100%', height: '1px',
+            background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.4), transparent)',
+            pointerEvents: 'none', zIndex: 1,
+            animation: 'scan 10s linear infinite', top: '-5%',
           }}
         />
 
         {/* ── NAVBAR ── */}
-        <nav className="fixed top-0 inset-x-0 z-50 h-16 flex items-center justify-between px-6 md:px-10 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="relative w-8 h-8">
-              <Image src="/logo.png" alt="KGT" fill className="object-contain" />
+        <nav
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, height: 64, zIndex: 50,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 24px',
+            background: 'rgba(9, 9, 11, 0.88)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+          }}
+        >
+          {/* Logo */}
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <div style={{ position: 'relative', width: 32, height: 32, flexShrink: 0 }}>
+              <Image src="/logo.png" alt="KGT" fill style={{ objectFit: 'contain' }} />
             </div>
-            <span className="text-base font-bold tracking-wide text-white hidden sm:block">King of Good Times</span>
+            <div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#f4f4f5', letterSpacing: '0.05em', fontFamily: 'monospace' }}>
+                King of Good Times
+              </span>
+            </div>
           </Link>
-          <div className="flex items-center gap-3">
+
+          {/* Nav links — hidden on mobile */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} className="nav-desktop-links">
+            {[
+              { href: '/feed', label: 'Feed' },
+              { href: '/challenges', label: 'Challenges' },
+              { href: '/leaderboard', label: 'Ranks' },
+            ].map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                style={{
+                  padding: '6px 14px', fontSize: 13, color: '#a1a1aa',
+                  textDecoration: 'none', fontFamily: 'monospace',
+                  transition: 'color 0.15s',
+                }}
+                className="nav-link"
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Auth buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Link href="/login">
-              <button className="px-5 py-2.5 text-sm text-gray-400 border border-white/10 hover:border-cyan-400/40 hover:text-cyan-400 transition-all font-mono tracking-wide">
+              <button
+                style={{
+                  padding: '8px 16px', fontSize: 13, color: '#a1a1aa',
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  cursor: 'pointer', fontFamily: 'monospace',
+                  transition: 'all 0.15s', letterSpacing: '0.05em',
+                }}
+                className="btn-nav-secondary"
+              >
                 Login
               </button>
             </Link>
             <Link href="/signup">
-              <button className="px-5 py-2.5 text-sm font-bold bg-cyan-400 text-black hover:bg-cyan-300 transition-all tracking-wide">
+              <button
+                style={{
+                  padding: '8px 18px', fontSize: 13, fontWeight: 700,
+                  background: '#22d3ee', color: '#000',
+                  border: 'none', cursor: 'pointer',
+                  fontFamily: 'monospace', letterSpacing: '0.08em',
+                  transition: 'background 0.15s',
+                }}
+                className="btn-nav-primary"
+              >
                 Join Free
               </button>
             </Link>
@@ -148,19 +216,51 @@ export default function LandingPage() {
         </nav>
 
         {/* ── HERO ── */}
-        <section className="relative min-h-screen flex items-center justify-center pt-16">
-          <div className="max-w-5xl mx-auto px-6 text-center">
+        <section
+          style={{
+            position: 'relative', paddingTop: 64,
+            minHeight: '90vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div style={{ maxWidth: 900, margin: '0 auto', padding: '80px 24px 60px', textAlign: 'center', position: 'relative', zIndex: 2 }}>
 
-            {/* Rank cycling badge */}
+            {/* Logo */}
             <motion.div
-              className="inline-flex items-center gap-3 px-5 py-2.5 border border-white/10 text-sm text-gray-400 mb-10"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: bootDone ? 1 : 0, y: bootDone ? 0 : 10 }}
-              transition={{ delay: 0.1 }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: bootDone ? 1 : 0, scale: bootDone ? 1 : 0.8 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}
             >
-              <Activity className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Anonymous · Competitive · City-Native</span>
-              <div className="w-px h-4 bg-white/15" />
+              <div
+                style={{
+                  position: 'relative', width: 96, height: 96,
+                  border: '2px solid rgba(34,211,238,0.3)',
+                  background: 'rgba(34,211,238,0.05)',
+                  padding: 16,
+                  boxShadow: '0 0 40px rgba(34,211,238,0.15)',
+                }}
+              >
+                <Image src="/logo.png" alt="KGT" fill style={{ objectFit: 'contain', padding: 8 }} />
+              </div>
+            </motion.div>
+
+            {/* Rank badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: bootDone ? 1 : 0, y: bootDone ? 0 : 8 }}
+              transition={{ delay: 0.1 }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 10,
+                padding: '8px 18px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.03)',
+                fontSize: 13, color: '#71717a',
+                marginBottom: 28, fontFamily: 'monospace',
+              }}
+            >
+              <Activity style={{ width: 13, height: 13, color: '#22d3ee', flexShrink: 0 }} />
+              Anonymous · Competitive · City-Native
+              <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
               <AnimatePresence mode="wait">
                 <motion.span
                   key={currentRank}
@@ -168,8 +268,7 @@ export default function LandingPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.2 }}
-                  className="font-bold text-sm"
-                  style={{ color: rank.color }}
+                  style={{ fontWeight: 700, fontSize: 13, color: rank.color }}
                 >
                   {rank.emoji} {rank.label}
                 </motion.span>
@@ -178,15 +277,27 @@ export default function LandingPage() {
 
             {/* Main heading */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: bootDone ? 1 : 0, y: bootDone ? 0 : 30 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: bootDone ? 1 : 0, y: bootDone ? 0 : 20 }}
               transition={{ delay: 0.15 }}
             >
-              <h1 className="font-black leading-none mb-8 uppercase tracking-tighter" style={{ fontSize: 'clamp(3.5rem, 11vw, 9rem)' }}>
-                <span className="block text-white">King of</span>
+              <h1
+                style={{
+                  margin: '0 0 20px',
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                  lineHeight: 1,
+                  letterSpacing: '-0.02em',
+                  fontSize: 'clamp(3rem, 10vw, 7.5rem)',
+                }}
+              >
+                <span style={{ display: 'block', color: '#f4f4f5' }}>King of</span>
                 <span
-                  className="block text-cyan-400"
-                  style={{ textShadow: '0 0 80px rgba(0,255,245,0.35), 0 0 160px rgba(0,255,245,0.15)' }}
+                  style={{
+                    display: 'block',
+                    color: '#22d3ee',
+                    textShadow: '0 0 80px rgba(34,211,238,0.3), 0 0 160px rgba(34,211,238,0.1)',
+                  }}
                 >
                   Good Times
                 </span>
@@ -194,43 +305,72 @@ export default function LandingPage() {
             </motion.div>
 
             <motion.p
-              className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed"
               initial={{ opacity: 0 }}
               animate={{ opacity: bootDone ? 1 : 0 }}
-              transition={{ delay: 0.25 }}
+              transition={{ delay: 0.22 }}
+              style={{
+                fontSize: 'clamp(15px, 2.5vw, 20px)',
+                color: '#a1a1aa',
+                maxWidth: 520,
+                margin: '0 auto 36px',
+                lineHeight: 1.65,
+              }}
             >
               Post anonymous city rumors. Bust myths. Enter challenges for real money.
-              Climb 10 ranks and become the King of Good Times.
+              Climb 10 ranks and become the King.
             </motion.p>
 
             {/* CTAs */}
             <motion.div
-              className="flex items-center justify-center gap-4 flex-wrap"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: bootDone ? 1 : 0, y: bootDone ? 0 : 20 }}
-              transition={{ delay: 0.3 }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: bootDone ? 1 : 0, y: bootDone ? 0 : 12 }}
+              transition={{ delay: 0.28 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}
             >
               <Link href="/signup">
-                <button className="px-8 py-4 text-base font-bold bg-cyan-400 text-black hover:bg-cyan-300 transition-all flex items-center gap-2.5 tracking-wide">
-                  <Zap className="w-5 h-5" />
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '14px 28px', fontSize: 15, fontWeight: 700,
+                    background: '#22d3ee', color: '#000',
+                    border: 'none', cursor: 'pointer',
+                    fontFamily: 'monospace', letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  <Zap style={{ width: 17, height: 17 }} />
                   Join the City — Free
-                  <ArrowRight className="w-5 h-5" />
-                </button>
+                  <ArrowRight style={{ width: 17, height: 17 }} />
+                </motion.button>
               </Link>
               <Link href="/login">
-                <button className="px-8 py-4 text-base text-gray-300 border border-white/15 hover:border-cyan-400/50 hover:text-cyan-400 transition-all flex items-center gap-2.5 tracking-wide">
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '14px 24px', fontSize: 15, color: '#a1a1aa',
+                    background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    cursor: 'pointer', fontFamily: 'monospace', letterSpacing: '0.06em',
+                    textTransform: 'uppercase', transition: 'all 0.15s',
+                  }}
+                >
                   Already an Agent
-                  <ChevronRight className="w-5 h-5" />
-                </button>
+                  <ChevronRight style={{ width: 17, height: 17 }} />
+                </motion.button>
               </Link>
             </motion.div>
 
             {/* Stats */}
             <motion.div
-              className="flex items-center justify-center gap-10 md:gap-16 mt-20 flex-wrap"
               initial={{ opacity: 0 }}
               animate={{ opacity: bootDone ? 1 : 0 }}
-              transition={{ delay: 0.45 }}
+              transition={{ delay: 0.4 }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: 40, flexWrap: 'wrap', marginTop: 52,
+              }}
             >
               {[
                 { value: '10,000+', label: 'Active Agents', icon: Users },
@@ -238,102 +378,172 @@ export default function LandingPage() {
                 { value: '₹5L+', label: 'Prize Money', icon: Trophy },
                 { value: '8,000+', label: 'Myths Busted', icon: Eye },
               ].map(({ value, label, icon: Icon }) => (
-                <div key={label} className="text-center">
-                  <p className="text-3xl font-black text-cyan-400">{value}</p>
-                  <p className="text-sm text-gray-500 mt-1 tracking-wide flex items-center gap-1.5 justify-center">
-                    <Icon className="w-3.5 h-3.5" /> {label}
+                <div key={label} style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 'clamp(22px, 4vw, 30px)', fontWeight: 900, color: '#22d3ee', margin: 0 }}>{value}</p>
+                  <p style={{ fontSize: 12, color: '#52525b', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center', fontFamily: 'monospace', letterSpacing: '0.08em' }}>
+                    <Icon style={{ width: 12, height: 12, flexShrink: 0 }} />
+                    {label}
                   </p>
                 </div>
               ))}
             </motion.div>
           </div>
+        </section>
 
-          {/* Scroll indicator */}
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-px h-12 bg-gradient-to-b from-cyan-400/30 to-transparent"
-            />
+        {/* ── RUMOR PREVIEW ── */}
+        <section style={{ padding: '0 24px 80px', position: 'relative', zIndex: 2 }}>
+          <div style={{ maxWidth: 960, margin: '0 auto' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 11, color: '#22d3ee', letterSpacing: '0.4em', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 6, opacity: 0.6 }}>// What&apos;s Happening</p>
+                <h2 style={{ fontSize: 28, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', color: '#f4f4f5', margin: 0 }}>
+                  City <span style={{ color: '#22d3ee' }}>Rumors</span>
+                </h2>
+              </div>
+              <Link href="/signup">
+                <button
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '9px 18px', fontSize: 13, fontWeight: 600,
+                    background: 'transparent',
+                    border: '1px solid rgba(34,211,238,0.3)',
+                    color: '#22d3ee', cursor: 'pointer', fontFamily: 'monospace',
+                    letterSpacing: '0.06em', transition: 'all 0.15s',
+                  }}
+                >
+                  See All Rumors
+                  <ArrowRight style={{ width: 14, height: 14 }} />
+                </button>
+              </Link>
+            </div>
+
+            {previewRumors.length > 0 ? (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                  gap: 16,
+                }}
+              >
+                {previewRumors.map((rumor, i) => (
+                  <PreviewRumorCard key={rumor.id} rumor={rumor} index={i} />
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: '48px 24px', textAlign: 'center',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  background: '#13131a',
+                }}
+              >
+                <Flame style={{ width: 32, height: 32, color: '#3f3f46', margin: '0 auto 12px' }} />
+                <p style={{ color: '#52525b', fontSize: 15 }}>Be the first to drop a rumor.</p>
+                <Link href="/signup">
+                  <button
+                    style={{
+                      marginTop: 16, padding: '10px 22px', fontSize: 14, fontWeight: 700,
+                      background: '#22d3ee', color: '#000',
+                      border: 'none', cursor: 'pointer', fontFamily: 'monospace',
+                    }}
+                  >
+                    Join &amp; Drop
+                  </button>
+                </Link>
+              </div>
+            )}
+
+            {/* CTA below preview */}
+            <div
+              style={{
+                marginTop: 20, padding: '16px 20px',
+                background: 'rgba(34,211,238,0.04)',
+                border: '1px solid rgba(34,211,238,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
+              }}
+            >
+              <p style={{ fontSize: 14, color: '#a1a1aa', fontFamily: 'monospace', margin: 0 }}>
+                Join to see the full feed, vote on rumors, and drop your own.
+              </p>
+              <Link href="/signup">
+                <button
+                  style={{
+                    padding: '9px 20px', fontSize: 13, fontWeight: 700,
+                    background: '#22d3ee', color: '#000', border: 'none',
+                    cursor: 'pointer', fontFamily: 'monospace', whiteSpace: 'nowrap',
+                  }}
+                >
+                  Join Free →
+                </button>
+              </Link>
+            </div>
           </div>
         </section>
 
-        {/* ── FEATURES ── */}
-        <section className="py-28 px-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <p className="text-xs text-cyan-400/50 tracking-[0.4em] uppercase mb-4 font-mono">// The Game</p>
-              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-white">
-                Four Ways to <span className="text-cyan-400">Dominate</span>
+        {/* ── HOW IT WORKS ── */}
+        <section
+          style={{
+            padding: '80px 24px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            position: 'relative', zIndex: 2,
+          }}
+        >
+          <div style={{ maxWidth: 960, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: 56 }}>
+              <p style={{ fontSize: 11, color: '#22d3ee', letterSpacing: '0.4em', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 10, opacity: 0.6 }}>// How It Works</p>
+              <h2 style={{ fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', color: '#f4f4f5', margin: '0 0 16px' }}>
+                Four Ways to <span style={{ color: '#22d3ee' }}>Dominate</span>
               </h2>
-              <p className="text-gray-400 mt-5 text-lg max-w-xl mx-auto leading-relaxed">
-                This isn't just a social app. It's a city-wide game where every action has consequences.
+              <p style={{ fontSize: 16, color: '#71717a', maxWidth: 480, margin: '0 auto', lineHeight: 1.6 }}>
+                A city-wide game where every action has real consequences.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
               {[
-                {
-                  icon: Flame,
-                  title: 'Drop Rumors',
-                  color: '#ff3366',
-                  tag: 'Anonymous',
-                  desc: 'Post city secrets and gossip under a random alias. Total anonymity guaranteed. Let the streets decide what\'s real.',
-                },
-                {
-                  icon: Eye,
-                  title: 'Bust Myths',
-                  color: '#00fff5',
-                  tag: 'Investigator',
-                  desc: 'Investigate posted rumors. Submit evidence. Get verdicts: CONFIRMED, DEBUNKED, or MISLEADING from the community.',
-                },
-                {
-                  icon: Trophy,
-                  title: 'Win Challenges',
-                  color: '#a855f7',
-                  tag: 'Real Money',
-                  desc: 'Compete in city-wide challenges with real stakes. Put money on the line. Win big. PvP and community formats.',
-                },
-                {
-                  icon: Crown,
-                  title: 'Claim Your Rank',
-                  color: '#fbbf24',
-                  tag: '10 Ranks',
-                  desc: 'Start as a Ghost in the City. Every action earns XP. Rise through 10 ranks to become the King of Good Times.',
-                },
+                { icon: Flame, title: 'Drop Rumors', color: '#f87171', tag: 'Anonymous', desc: 'Post city secrets under a random alias. Total anonymity. Let the streets judge what\'s real.' },
+                { icon: Eye, title: 'Bust Myths', color: '#22d3ee', tag: 'Investigator', desc: 'Investigate rumors. Submit evidence. Get verdicts: CONFIRMED, DEBUNKED, or MISLEADING.' },
+                { icon: Trophy, title: 'Win Challenges', color: '#a78bfa', tag: 'Real Stakes', desc: 'City-wide challenges with real prize money. PvP and community formats.' },
+                { icon: Crown, title: 'Claim Your Rank', color: '#fbbf24', tag: '10 Ranks', desc: 'Start as a Ghost. Every action earns XP. Rise to become the King of Good Times.' },
               ].map(({ icon: Icon, title, color, tag, desc }, i) => (
                 <motion.div
                   key={title}
-                  className="relative bg-[#050a0e] border border-white/[0.08] p-8 hover:border-cyan-400/25 transition-all group"
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.08 }}
+                  transition={{ delay: i * 0.07 }}
                   viewport={{ once: true }}
+                  style={{
+                    background: '#13131a',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    padding: 24,
+                    position: 'relative',
+                    transition: 'border-color 0.2s',
+                  }}
                 >
-                  {/* Top accent line */}
-                  <div
-                    className="absolute top-0 left-0 right-0 h-px"
-                    style={{ background: `linear-gradient(90deg, transparent, ${color}50, transparent)` }}
-                  />
-
-                  <div className="flex items-start gap-5">
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, ${color}50, transparent)` }} />
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                     <div
-                      className="w-12 h-12 flex items-center justify-center flex-shrink-0 border"
-                      style={{ borderColor: `${color}40`, background: `${color}10` }}
+                      style={{
+                        width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0, border: `1px solid ${color}40`, background: `${color}12`,
+                      }}
                     >
-                      <Icon className="w-6 h-6" style={{ color }} />
+                      <Icon style={{ width: 22, height: 22, color }} />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-xl font-bold text-white">{title}</h3>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#f4f4f5', margin: 0 }}>{title}</h3>
                         <span
-                          className="text-xs font-bold px-2.5 py-1 border uppercase tracking-wider font-mono"
-                          style={{ color, borderColor: `${color}35`, background: `${color}10` }}
+                          style={{
+                            fontSize: 10, fontWeight: 700, padding: '2px 8px',
+                            border: `1px solid ${color}35`, background: `${color}12`,
+                            color, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em',
+                          }}
                         >
                           {tag}
                         </span>
                       </div>
-                      <p className="text-gray-400 text-base leading-relaxed">{desc}</p>
+                      <p style={{ fontSize: 14, color: '#71717a', lineHeight: 1.6, margin: 0 }}>{desc}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -343,38 +553,41 @@ export default function LandingPage() {
         </section>
 
         {/* ── RANKS ── */}
-        <section className="py-28 px-6 border-y border-white/[0.05]">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <p className="text-xs text-cyan-400/50 tracking-[0.4em] uppercase mb-4 font-mono">// The Hierarchy</p>
-              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-white">
-                10 Ranks to <span className="text-cyan-400">Royalty</span>
+        <section
+          style={{
+            padding: '80px 24px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            position: 'relative', zIndex: 2,
+          }}
+        >
+          <div style={{ maxWidth: 960, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+              <p style={{ fontSize: 11, color: '#22d3ee', letterSpacing: '0.4em', textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 10, opacity: 0.6 }}>// The Hierarchy</p>
+              <h2 style={{ fontSize: 'clamp(26px, 4.5vw, 40px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', color: '#f4f4f5', margin: '0 0 12px' }}>
+                10 Ranks to <span style={{ color: '#22d3ee' }}>Royalty</span>
               </h2>
-              <p className="text-gray-400 mt-5 text-lg">
-                Every action earns XP. Every XP brings you closer to the crown.
-              </p>
+              <p style={{ fontSize: 15, color: '#71717a', margin: 0 }}>Every action earns XP. Keep climbing.</p>
             </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
               {RANK_KEYS.map((key, i) => {
                 const r = RANKS[key]
                 const isKing = i === RANK_KEYS.length - 1
                 return (
                   <motion.div
                     key={key}
-                    className={`p-5 text-center border transition-all cursor-default ${
-                      isKing
-                        ? 'border-yellow-400/30 bg-yellow-400/5'
-                        : 'border-white/[0.08] bg-[#050a0e] hover:border-cyan-400/25'
-                    }`}
-                    initial={{ opacity: 0, scale: 0.92 }}
+                    initial={{ opacity: 0, scale: 0.9 }}
                     whileInView={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.05 }}
+                    transition={{ delay: i * 0.04 }}
                     viewport={{ once: true }}
+                    style={{
+                      padding: '18px 12px', textAlign: 'center',
+                      background: isKing ? 'rgba(251,191,36,0.06)' : '#13131a',
+                      border: isKing ? '1px solid rgba(251,191,36,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                    }}
                   >
-                    <span className="text-3xl block mb-3">{r.emoji}</span>
-                    <p className="text-sm font-bold leading-tight" style={{ color: r.color }}>{r.label}</p>
-                    <p className="text-xs text-gray-600 mt-1.5 font-mono">{r.xpRequired.toLocaleString()} XP</p>
+                    <span style={{ fontSize: 26, display: 'block', marginBottom: 8 }}>{r.emoji}</span>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: r.color, margin: '0 0 4px', lineHeight: 1.3 }}>{r.label}</p>
+                    <p style={{ fontSize: 10, color: '#3f3f46', fontFamily: 'monospace', margin: 0 }}>{r.xpRequired.toLocaleString()} XP</p>
                   </motion.div>
                 )
               })}
@@ -383,62 +596,192 @@ export default function LandingPage() {
         </section>
 
         {/* ── FINAL CTA ── */}
-        <section className="py-36 px-6">
+        <section
+          style={{
+            padding: '100px 24px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            position: 'relative', zIndex: 2,
+          }}
+        >
           <motion.div
-            className="max-w-3xl mx-auto text-center"
-            initial={{ opacity: 0, y: 30 }}
+            style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}
+            initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
             <motion.div
-              animate={{ boxShadow: ['0 0 0px rgba(251,191,36,0)', '0 0 60px rgba(251,191,36,0.25)', '0 0 0px rgba(251,191,36,0)'] }}
+              animate={{ boxShadow: ['0 0 0 rgba(251,191,36,0)', '0 0 60px rgba(251,191,36,0.2)', '0 0 0 rgba(251,191,36,0)'] }}
               transition={{ duration: 3, repeat: Infinity }}
-              className="inline-block p-5 border border-yellow-400/25 bg-yellow-400/5 mb-10"
+              style={{
+                display: 'inline-flex', padding: 20,
+                border: '1px solid rgba(251,191,36,0.25)',
+                background: 'rgba(251,191,36,0.05)',
+                marginBottom: 32,
+              }}
             >
-              <Crown className="w-14 h-14 text-yellow-400" />
+              <Crown style={{ width: 48, height: 48, color: '#fbbf24' }} />
             </motion.div>
 
-            <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tight text-white mb-6">
-              Ready to <span className="text-cyan-400">Rule?</span>
+            <h2
+              style={{
+                fontSize: 'clamp(32px, 7vw, 56px)', fontWeight: 900,
+                textTransform: 'uppercase', letterSpacing: '-0.02em',
+                color: '#f4f4f5', margin: '0 0 20px',
+              }}
+            >
+              Ready to <span style={{ color: '#22d3ee' }}>Rule?</span>
             </h2>
-            <p className="text-xl text-gray-400 mb-12 leading-relaxed max-w-xl mx-auto">
+            <p style={{ fontSize: 17, color: '#71717a', margin: '0 0 36px', lineHeight: 1.65, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
               Join thousands of city agents. Drop rumors, win challenges, and rise to the throne.
-              The city is waiting for its next King.
             </p>
             <Link href="/signup">
               <motion.button
-                className="px-12 py-5 text-lg font-black bg-cyan-400 text-black hover:bg-cyan-300 transition-all inline-flex items-center gap-3 tracking-wide"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 10,
+                  padding: '16px 40px', fontSize: 16, fontWeight: 900,
+                  background: '#22d3ee', color: '#000', border: 'none',
+                  cursor: 'pointer', fontFamily: 'monospace',
+                  textTransform: 'uppercase', letterSpacing: '0.08em',
+                }}
               >
-                <Shield className="w-6 h-6" />
                 Join the City — Free
-                <ArrowRight className="w-6 h-6" />
+                <ArrowRight style={{ width: 20, height: 20 }} />
               </motion.button>
             </Link>
           </motion.div>
         </section>
 
         {/* ── FOOTER ── */}
-        <footer className="py-10 px-6 border-t border-white/[0.05]">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5">
-            <div className="flex items-center gap-3">
-              <div className="relative w-6 h-6">
-                <Image src="/logo.png" alt="" fill className="object-contain opacity-40" />
+        <footer
+          style={{
+            padding: '32px 24px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            position: 'relative', zIndex: 2,
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 960, margin: '0 auto',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              flexWrap: 'wrap', gap: 16,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ position: 'relative', width: 22, height: 22, opacity: 0.4 }}>
+                <Image src="/logo.png" alt="" fill style={{ objectFit: 'contain' }} />
               </div>
-              <span className="text-sm text-gray-600 tracking-wide font-mono">
+              <span style={{ fontSize: 12, color: '#3f3f46', fontFamily: 'monospace', letterSpacing: '0.08em' }}>
                 sandnco.lol · King of Good Times
               </span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-gray-600">
-              <Link href="/legal/tos" className="hover:text-cyan-400 transition-colors">Terms</Link>
-              <Link href="/legal/privacy" className="hover:text-cyan-400 transition-colors">Privacy</Link>
-              <Link href="/support" className="hover:text-cyan-400 transition-colors">Support</Link>
-              <a href="mailto:sandncolol@gmail.com" className="hover:text-cyan-400 transition-colors">Contact</a>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              {[
+                { href: '/legal/tos', label: 'Terms' },
+                { href: '/legal/privacy', label: 'Privacy' },
+                { href: '/support', label: 'Support' },
+                { href: 'mailto:sandncolol@gmail.com', label: 'Contact' },
+              ].map(({ href, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  style={{ fontSize: 13, color: '#3f3f46', textDecoration: 'none', transition: 'color 0.15s', fontFamily: 'monospace' }}
+                  className="footer-link"
+                >
+                  {label}
+                </Link>
+              ))}
             </div>
           </div>
         </footer>
       </motion.div>
     </>
+  )
+}
+
+function PreviewRumorCard({ rumor, index }: { rumor: PreviewRumor; index: number }) {
+  const heat = rumor.heat_score
+  const isHot = heat > 30
+  const heatColor = isHot ? '#f87171' : heat > 10 ? '#fbbf24' : '#3f3f46'
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06 }}
+      viewport={{ once: true }}
+    >
+      <Link href="/signup" style={{ textDecoration: 'none', display: 'block' }}>
+        <div
+          style={{
+            background: '#13131a',
+            border: '1px solid rgba(255,255,255,0.08)',
+            padding: 20,
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'border-color 0.2s',
+          }}
+          className="rumor-preview-card"
+        >
+          {/* Heat bar */}
+          <div
+            style={{
+              position: 'absolute', top: 0, left: 0, height: 2,
+              background: `linear-gradient(90deg, ${heatColor}, transparent)`,
+              width: `${Math.min(100, heat)}%`,
+              transition: 'width 0.5s',
+            }}
+          />
+          {/* Meta */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 12, color: '#52525b', fontFamily: 'monospace' }}>
+              {rumor.anonymous_alias}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {rumor.category && (
+                <span
+                  style={{
+                    fontSize: 10, fontFamily: 'monospace', textTransform: 'uppercase',
+                    letterSpacing: '0.1em', padding: '2px 7px',
+                    background: 'rgba(34,211,238,0.06)',
+                    border: '1px solid rgba(34,211,238,0.15)',
+                    color: '#22d3ee', opacity: 0.7,
+                  }}
+                >
+                  {rumor.category}
+                </span>
+              )}
+              {isHot && <Flame style={{ width: 13, height: 13, color: '#f87171' }} />}
+            </div>
+          </div>
+          {/* Title */}
+          <h3
+            style={{
+              fontSize: 15, fontWeight: 700, color: '#f4f4f5', margin: '0 0 12px',
+              lineHeight: 1.4,
+              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {rumor.title}
+          </h3>
+          {/* Footer */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, color: '#3f3f46', fontFamily: 'monospace' }}>
+              {formatRelativeTime(rumor.created_at)}
+            </span>
+            <span
+              style={{
+                fontSize: 12, fontWeight: 700, color: heatColor, fontFamily: 'monospace',
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}
+            >
+              <TrendingUp style={{ width: 11, height: 11 }} />
+              {Math.floor(heat)}
+            </span>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
   )
 }

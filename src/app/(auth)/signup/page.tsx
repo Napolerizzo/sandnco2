@@ -8,8 +8,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Turnstile from 'react-turnstile'
 import {
-  Shield, Lock, Mail, User, Loader, Zap, Terminal, Eye,
-  XCircle, CheckCircle, ChevronLeft, Chrome, ArrowRight, Fingerprint
+  Lock, Mail, User, Loader, Zap, Eye, EyeOff,
+  XCircle, CheckCircle, ArrowLeft, Chrome, ArrowRight
 } from 'lucide-react'
 import { PFP_STYLES, type PfpStyle, RANKS } from '@/lib/ranks'
 import { track, EVENTS } from '@/lib/posthog'
@@ -35,18 +35,9 @@ function SignupContent() {
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [checkingUsername, setCheckingUsername] = useState(false)
-  const [glitchEffect, setGlitchEffect] = useState(false)
 
-  useEffect(() => {
-    if (message?.type === 'error') {
-      setGlitchEffect(true)
-      setTimeout(() => setGlitchEffect(false), 500)
-    }
-  }, [message])
-
-  // Password strength
   const getPasswordStrength = (pwd: string) => {
-    if (pwd.length < 8) return { level: 0, text: 'WEAK_CIPHER: MINIMUM_8_CHARS_REQUIRED' }
+    if (pwd.length < 8) return { level: 0, text: 'Too short — minimum 8 characters' }
     let s = 0
     if (/[A-Z]/.test(pwd)) s++
     if (/[0-9]/.test(pwd)) s++
@@ -54,12 +45,12 @@ function SignupContent() {
     if (pwd.length >= 12) s++
     return {
       level: s,
-      text: s === 0 ? 'STRENGTH: ACCEPTABLE' : s === 1 ? 'STRENGTH: MODERATE' : s >= 2 ? 'STRENGTH: STRONG' : 'STRENGTH: WEAK',
+      text: s === 0 ? 'Weak' : s === 1 ? 'Fair' : s >= 2 ? 'Strong' : 'Weak',
     }
   }
   const pwStrength = getPasswordStrength(password)
+  const strengthColors = ['#ef4444', '#f59e0b', '#22c55e', '#22d3ee']
 
-  // Username check with debounce
   useEffect(() => {
     if (!username || username.length < 3) { setUsernameAvailable(null); return }
     setCheckingUsername(true)
@@ -74,11 +65,11 @@ function SignupContent() {
   const handleStep1 = useCallback((e: React.FormEvent) => {
     e.preventDefault()
     if (!turnstileToken) {
-      setMessage({ type: 'error', text: 'SECURITY_BREACH: CAPTCHA_VERIFICATION_FAILED' })
+      setMessage({ type: 'error', text: 'Please complete the security check.' })
       return
     }
     if (password.length < 8) {
-      setMessage({ type: 'error', text: 'WEAK_CIPHER: MINIMUM_8_CHARS_REQUIRED' })
+      setMessage({ type: 'error', text: 'Password must be at least 8 characters.' })
       return
     }
     setMessage(null)
@@ -88,7 +79,7 @@ function SignupContent() {
   const handleSignup = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (usernameAvailable === false) {
-      setMessage({ type: 'error', text: `REGISTRATION_FAILED: USERNAME_[${username.toUpperCase()}]_ALREADY_EXISTS` })
+      setMessage({ type: 'error', text: `Username "@${username}" is already taken. Choose another.` })
       return
     }
     setLoading(true)
@@ -101,7 +92,7 @@ function SignupContent() {
     })
     const { success } = await verify.json()
     if (!success) {
-      setMessage({ type: 'error', text: 'TURNSTILE_ERROR: VERIFICATION_REJECTED' })
+      setMessage({ type: 'error', text: 'Security check failed. Please go back and try again.' })
       setLoading(false)
       return
     }
@@ -118,11 +109,11 @@ function SignupContent() {
     if (error) {
       const msg = error.message.toLowerCase()
       if (msg.includes('database error')) {
-        setMessage({ type: 'error', text: `REGISTRATION_FAILED: USERNAME_[${username.toUpperCase()}]_MAY_ALREADY_EXIST` })
+        setMessage({ type: 'error', text: `Username "@${username}" may already be taken.` })
       } else if (msg.includes('email')) {
-        setMessage({ type: 'error', text: `EMAIL_CONFLICT: [${email}]_ALREADY_REGISTERED` })
+        setMessage({ type: 'error', text: `An account with "${email}" already exists.` })
       } else {
-        setMessage({ type: 'error', text: `REGISTRATION_ERROR: ${error.message.toUpperCase().replace(/\s+/g, '_')}` })
+        setMessage({ type: 'error', text: error.message })
       }
       setLoading(false)
       return
@@ -142,295 +133,334 @@ function SignupContent() {
     if (error) { toast.error(error.message); setGoogleLoading(false) }
   }, [supabase])
 
-  const strengthColors = ['var(--red)', 'var(--yellow)', 'var(--green)', 'var(--cyan)']
-
   return (
-    <div className="min-h-screen bg-black text-[var(--cyan)] font-mono flex flex-col items-center justify-center p-4 relative overflow-hidden">
-
-      {/* Background */}
-      <div className="fixed inset-0 grid-bg pointer-events-none" style={{ maskImage: 'radial-gradient(ellipse 80% 50% at 50% 50%, black, transparent)' }} />
-      <motion.div
-        className="fixed left-0 w-full h-[2px] pointer-events-none z-10"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.6), transparent)', boxShadow: '0 0 20px rgba(0,255,245,0.5)', top: '-5%' }}
-        animate={{ top: ['-5%', '105%'] }}
-        transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+    <div
+      style={{
+        minHeight: '100vh', background: '#09090b', color: '#f4f4f5',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px 16px', position: 'relative', overflowX: 'hidden',
+      }}
+    >
+      {/* Grid bg */}
+      <div
+        style={{
+          position: 'fixed', inset: 0, pointerEvents: 'none',
+          backgroundImage: 'linear-gradient(rgba(34,211,238,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.03) 1px, transparent 1px)',
+          backgroundSize: '64px 64px',
+        }}
       />
 
-      {/* Corner brackets */}
-      <div className="fixed top-8 left-8 w-16 h-16 border-l-2 border-t-2 border-[var(--cyan-border)] pointer-events-none" />
-      <div className="fixed top-8 right-8 w-16 h-16 border-r-2 border-t-2 border-[var(--cyan-border)] pointer-events-none" />
-      <div className="fixed bottom-8 left-8 w-16 h-16 border-l-2 border-b-2 border-[var(--cyan-border)] pointer-events-none" />
-      <div className="fixed bottom-8 right-8 w-16 h-16 border-r-2 border-b-2 border-[var(--cyan-border)] pointer-events-none" />
+      <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 440 }}>
 
-      {/* Glitch overlay */}
-      <AnimatePresence>
-        {glitchEffect && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0, 0.4, 0, 0.2, 0] }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }} className="fixed inset-0 bg-red-500 mix-blend-screen pointer-events-none z-20" />
-        )}
-      </AnimatePresence>
-
-      <div className="relative z-10 w-full max-w-md">
-
-        {/* Back */}
-        <Link href="/">
-          <motion.button whileHover={{ x: -4 }}
-            className="flex items-center gap-2 text-[10px] text-[var(--text-dim)] hover:text-[var(--cyan)] mb-6 transition-colors uppercase tracking-[0.2em] group">
-            <ChevronLeft className="w-3.5 h-3.5" />
-            <span className="border-b border-[var(--cyan-border)]">ABORT_MISSION</span>
-          </motion.button>
+        {/* Back link */}
+        <Link href="/"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#71717a', textDecoration: 'none', fontSize: 13, marginBottom: 24, fontFamily: 'monospace' }}
+          className="back-link"
+        >
+          <ArrowLeft style={{ width: 14, height: 14 }} />
+          Back
         </Link>
 
         {/* Step indicator */}
         {step < 3 && (
-          <div className="flex items-center gap-2 mb-4 justify-center">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
             {[1, 2].map(s => (
-              <div key={s} className="flex items-center gap-2">
-                <div className={`w-6 h-6 flex items-center justify-center text-[10px] font-bold border transition-all ${
-                  step === s ? 'border-[var(--cyan)] text-[var(--cyan)] bg-[var(--cyan-ghost)]' :
-                  s < step ? 'border-[var(--green)] text-[var(--green)] bg-[rgba(0,255,135,0.06)]' :
-                  'border-[var(--text-ghost)] text-[var(--text-ghost)]'
-                }`}>
-                  {s < step ? <CheckCircle className="w-3 h-3" /> : s}
+              <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div
+                  style={{
+                    width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
+                    border: step === s
+                      ? '1px solid #22d3ee'
+                      : s < step
+                        ? '1px solid #22c55e'
+                        : '1px solid rgba(255,255,255,0.12)',
+                    color: step === s ? '#22d3ee' : s < step ? '#22c55e' : '#52525b',
+                    background: step === s ? 'rgba(34,211,238,0.06)' : s < step ? 'rgba(34,197,94,0.06)' : 'transparent',
+                  }}
+                >
+                  {s < step ? <CheckCircle style={{ width: 13, height: 13 }} /> : s}
                 </div>
-                {s < 2 && <div className={`h-px w-8 ${step > 1 ? 'bg-[var(--cyan-border)]' : 'bg-[var(--text-ghost)]'}`} />}
+                {s < 2 && (
+                  <div style={{ width: 32, height: 1, background: step > 1 ? 'rgba(34,211,238,0.3)' : 'rgba(255,255,255,0.1)' }} />
+                )}
               </div>
             ))}
           </div>
         )}
 
-        {/* Terminal */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`terminal transition-all ${glitchEffect ? 'border-[var(--red)]' : ''}`}
+          transition={{ duration: 0.3 }}
+          className="auth-card"
+          style={{ padding: 32 }}
         >
-          <div className="terminal-header">
-            <div className="terminal-dots"><span /><span /><span /></div>
-            <div className="terminal-title"><Terminal className="w-3 h-3" /> REGISTRATION_PROTOCOL</div>
-          </div>
+          <AnimatePresence mode="wait">
 
-          <div className="terminal-body">
-            <AnimatePresence mode="wait">
+            {/* ── STEP 1: Credentials ── */}
+            {step === 1 && (
+              <motion.div key="s1" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }}>
+                <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+                    <div style={{ position: 'relative', width: 52, height: 52, border: '1px solid rgba(34,211,238,0.25)', background: 'rgba(34,211,238,0.05)', padding: 8 }}>
+                      <Image src="/logo.png" alt="KGT" fill style={{ objectFit: 'contain', padding: 4 }} />
+                    </div>
+                  </div>
+                  <h1 style={{ fontSize: 22, fontWeight: 800, color: '#f4f4f5', margin: '0 0 6px', letterSpacing: '-0.01em' }}>
+                    Create your account
+                  </h1>
+                  <p style={{ fontSize: 14, color: '#71717a', margin: 0 }}>Join the city. Start as a Ghost.</p>
+                </div>
 
-              {/* STEP 1 */}
-              {step === 1 && (
-                <motion.div key="s1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                  <div className="text-center mb-8">
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}
-                      className="inline-block p-3 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] mb-4 relative">
-                      <Fingerprint className="w-8 h-8 text-[var(--cyan)]" />
+                <AnimatePresence mode="wait">
+                  {message && (
+                    <motion.div key={message.text} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ marginBottom: 16, overflow: 'hidden' }}>
+                      <div className={message.type === 'error' ? 'auth-msg-error' : 'auth-msg-success'}>
+                        <XCircle style={{ width: 15, height: 15, flexShrink: 0, marginTop: 1 }} />
+                        <span>{message.text}</span>
+                      </div>
                     </motion.div>
-                    <h1 className="text-xl font-extrabold uppercase tracking-wider text-glow-cyan mb-1">NEW AGENT REGISTRATION</h1>
-                    <p className="text-[9px] text-[var(--text-dim)] uppercase tracking-[0.3em]">SECURE CREDENTIAL SETUP</p>
+                  )}
+                </AnimatePresence>
+
+                <form onSubmit={handleStep1} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      <Mail style={{ width: 11, height: 11 }} /> Email address
+                    </label>
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                      placeholder="you@example.com" required className="auth-input" />
                   </div>
 
-                  <AnimatePresence mode="wait">
-                    {message && (
-                      <motion.div key={message.text} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className={`mb-5 ${message.type === 'error' ? 'msg-error' : 'msg-success'}`}>
-                        <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1 font-bold break-words">{message.text}</div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <form onSubmit={handleStep1} className="space-y-5">
-                    <div>
-                      <label className="label-terminal"><Mail className="w-3 h-3" /> EMAIL_ADDRESS</label>
-                      <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                        placeholder="agent@domain.com" required className="input-terminal" />
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      <Lock style={{ width: 11, height: 11 }} /> Password
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Min. 8 characters"
+                        required minLength={8}
+                        className="auth-input"
+                        style={{ paddingRight: 44 }}
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)}
+                        style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#52525b', display: 'flex', padding: 2 }}>
+                        {showPassword ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+                      </button>
                     </div>
-
-                    <div>
-                      <label className="label-terminal"><Lock className="w-3 h-3" /> CIPHER_KEY</label>
-                      <div className="relative">
-                        <input type={showPassword ? 'text' : 'password'} value={password}
-                          onChange={e => setPassword(e.target.value)} placeholder="MINIMUM_8_CHARACTERS" required minLength={8}
-                          className="input-terminal pr-10" style={{ letterSpacing: showPassword ? 'normal' : '0.15em' }} />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)] hover:text-[var(--cyan)] transition-colors">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </div>
-                      {password.length > 0 && (
-                        <div className="mt-2">
-                          <div className="flex gap-1 mb-1">
-                            {[0, 1, 2, 3].map(i => (
-                              <div key={i} className="flex-1 h-[2px] transition-all"
-                                style={{ background: i < pwStrength.level ? strengthColors[Math.min(pwStrength.level - 1, 3)] : 'var(--text-ghost)' }} />
-                            ))}
-                          </div>
-                          <p className="text-[9px] tracking-[0.15em]" style={{ color: password.length >= 8 ? strengthColors[Math.min(pwStrength.level - 1, 3)] || 'var(--yellow)' : 'var(--red)' }}>
-                            {password.length < 8 ? pwStrength.text : pwStrength.text}
-                          </p>
+                    {password.length > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                          {[0, 1, 2, 3].map(i => (
+                            <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < pwStrength.level ? strengthColors[Math.min(pwStrength.level - 1, 3)] : 'rgba(255,255,255,0.08)', transition: 'background 0.2s' }} />
+                          ))}
                         </div>
-                      )}
-                    </div>
-
-                    <div className="flex justify-center py-2">
-                      <Turnstile sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
-                        onVerify={t => setTurnstileToken(t)} onExpire={() => setTurnstileToken(null)} theme="dark" />
-                    </div>
-
-                    <motion.button type="submit" disabled={!turnstileToken} className="btn-execute" whileTap={{ scale: 0.98 }}>
-                      <span className="relative z-10 flex items-center justify-center gap-3">
-                        CONTINUE <ArrowRight className="w-4 h-4" />
-                      </span>
-                    </motion.button>
-                  </form>
-
-                  <div className="flex items-center gap-4 my-6">
-                    <div className="flex-1 h-px bg-[var(--cyan-border)]" />
-                    <span className="text-[9px] text-[var(--text-dim)] tracking-[0.2em]">ALTERNATE_PROTOCOL</span>
-                    <div className="flex-1 h-px bg-[var(--cyan-border)]" />
-                  </div>
-
-                  <motion.button onClick={handleGoogleSignup} disabled={googleLoading}
-                    className="btn-outline w-full flex items-center justify-center gap-3" whileTap={{ scale: 0.98 }}>
-                    {googleLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Chrome className="w-4 h-4" />}
-                    GOOGLE_AUTH
-                  </motion.button>
-
-                  <div className="mt-6 text-center">
-                    <button onClick={() => router.push('/login')} className="btn-link">
-                      <span>EXISTING_AGENT? AUTHENTICATE</span>
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* STEP 2 */}
-              {step === 2 && (
-                <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                  <div className="text-center mb-6">
-                    <h1 className="text-xl font-extrabold uppercase tracking-wider text-glow-cyan mb-1">AGENT IDENTITY</h1>
-                    <p className="text-[9px] text-[var(--text-dim)] uppercase tracking-[0.3em]">HOW THE CITY KNOWS YOU</p>
-                  </div>
-
-                  {/* Starting rank preview */}
-                  <div className="flex items-center gap-3 p-3 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] mb-6">
-                    <span className="text-2xl">{RANK_ENTRY.emoji}</span>
-                    <div>
-                      <span className="badge rank-ghost">{RANK_ENTRY.label}</span>
-                      <p className="text-[9px] text-[var(--text-dim)] mt-1 uppercase tracking-wider">INITIAL_RANK_ASSIGNMENT</p>
-                    </div>
-                  </div>
-
-                  <AnimatePresence mode="wait">
-                    {message && (
-                      <motion.div key={message.text} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className={`mb-5 ${message.type === 'error' ? 'msg-error' : 'msg-success'}`}>
-                        <XCircle className="w-4 h-4 flex-shrink-0" />
-                        <div className="flex-1 font-bold break-words">{message.text}</div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <form onSubmit={handleSignup} className="space-y-4">
-                    <div>
-                      <label className="label-terminal"><User className="w-3 h-3" /> AGENT_ALIAS</label>
-                      <div className="relative">
-                        <input type="text" value={username}
-                          onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                          placeholder="ENTER_CODENAME" required minLength={3} maxLength={20}
-                          className="input-terminal pr-10" />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          {checkingUsername && <Loader className="w-4 h-4 animate-spin text-[var(--text-dim)]" />}
-                          {!checkingUsername && usernameAvailable === true && <CheckCircle className="w-4 h-4 text-[var(--green)]" />}
-                          {!checkingUsername && usernameAvailable === false && <XCircle className="w-4 h-4 text-[var(--red)]" />}
-                        </div>
+                        <p style={{ fontSize: 12, color: password.length >= 8 ? strengthColors[Math.min(pwStrength.level - 1, 3)] : '#ef4444', margin: 0 }}>
+                          {pwStrength.text}
+                        </p>
                       </div>
-                      {!checkingUsername && usernameAvailable === false && (
-                        <p className="text-[9px] text-[var(--red)] mt-1 tracking-wider">ALIAS_UNAVAILABLE: CHOOSE_DIFFERENT_CODENAME</p>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    <div>
-                      <label className="label-terminal"><Shield className="w-3 h-3" /> DISPLAY_NAME [OPTIONAL]</label>
-                      <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
-                        placeholder="PUBLIC_IDENTITY" className="input-terminal" />
-                    </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
+                    <Turnstile
+                      sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                      onVerify={t => setTurnstileToken(t)}
+                      onExpire={() => setTurnstileToken(null)}
+                      theme="dark"
+                    />
+                  </div>
 
-                    <div>
-                      <label className="label-terminal">SECTOR [OPTIONAL]</label>
-                      <input type="text" value={city} onChange={e => setCity(e.target.value)}
-                        placeholder="CITY_OR_REGION" className="input-terminal" />
-                    </div>
+                  <button type="submit" disabled={!turnstileToken} className="auth-btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    Continue
+                    <ArrowRight style={{ width: 16, height: 16 }} />
+                  </button>
+                </form>
 
-                    {/* Avatar style */}
-                    <div>
-                      <label className="label-terminal">AVATAR_SIGNATURE</label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {(Object.entries(PFP_STYLES) as [PfpStyle, typeof PFP_STYLES[PfpStyle]][]).map(([style, data]) => (
-                          <motion.button key={style} type="button" onClick={() => setPfpStyle(style)}
-                            className={`relative aspect-square overflow-hidden border transition-all ${
-                              pfpStyle === style ? 'border-[var(--cyan)] shadow-[0_0_10px_rgba(0,255,245,0.3)]' : 'border-[var(--text-ghost)] hover:border-[var(--cyan-border)]'
-                            }`} whileTap={{ scale: 0.95 }} title={data.label}>
-                            <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${data.gradient[0]}, ${data.gradient[1]})` }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+                  <span style={{ fontSize: 12, color: '#52525b', fontFamily: 'monospace' }}>or</span>
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+                </div>
+
+                <button onClick={handleGoogleSignup} disabled={googleLoading} className="auth-btn-secondary">
+                  {googleLoading ? <Loader style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> : <Chrome style={{ width: 16, height: 16 }} />}
+                  Continue with Google
+                </button>
+
+                <p style={{ textAlign: 'center', fontSize: 14, color: '#71717a', marginTop: 20 }}>
+                  Already have an account?{' '}
+                  <Link href="/login" style={{ color: '#22d3ee', textDecoration: 'none', fontWeight: 600 }}>Sign in</Link>
+                </p>
+              </motion.div>
+            )}
+
+            {/* ── STEP 2: Profile ── */}
+            {step === 2 && (
+              <motion.div key="s2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }}>
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <h1 style={{ fontSize: 20, fontWeight: 800, color: '#f4f4f5', margin: '0 0 6px' }}>Your identity</h1>
+                  <p style={{ fontSize: 14, color: '#71717a', margin: 0 }}>How the city knows you</p>
+                </div>
+
+                {/* Starting rank */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid rgba(34,211,238,0.15)', background: 'rgba(34,211,238,0.04)', marginBottom: 20 }}>
+                  <span style={{ fontSize: 24 }}>{RANK_ENTRY.emoji}</span>
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', fontFamily: 'monospace', letterSpacing: '0.08em' }}>Starting rank</span>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#6b7280', margin: '2px 0 0' }}>{RANK_ENTRY.label}</p>
+                  </div>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {message && (
+                    <motion.div key={message.text} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ marginBottom: 16 }}>
+                      <div className={message.type === 'error' ? 'auth-msg-error' : 'auth-msg-success'}>
+                        <XCircle style={{ width: 15, height: 15, flexShrink: 0, marginTop: 1 }} />
+                        <span>{message.text}</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {/* Username */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      <User style={{ width: 11, height: 11 }} /> Username
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                        placeholder="your_handle"
+                        required minLength={3} maxLength={20}
+                        className="auth-input"
+                        style={{ paddingRight: 44 }}
+                      />
+                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
+                        {checkingUsername && <Loader style={{ width: 15, height: 15, color: '#52525b', animation: 'spin 1s linear infinite' }} />}
+                        {!checkingUsername && usernameAvailable === true && <CheckCircle style={{ width: 15, height: 15, color: '#22c55e' }} />}
+                        {!checkingUsername && usernameAvailable === false && <XCircle style={{ width: 15, height: 15, color: '#ef4444' }} />}
+                      </div>
+                    </div>
+                    {!checkingUsername && usernameAvailable === false && (
+                      <p style={{ fontSize: 12, color: '#ef4444', marginTop: 5 }}>This username is taken. Try another.</p>
+                    )}
+                    {!checkingUsername && usernameAvailable === true && (
+                      <p style={{ fontSize: 12, color: '#22c55e', marginTop: 5 }}>✓ Available</p>
+                    )}
+                  </div>
+
+                  {/* Display name */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      Display name <span style={{ fontSize: 10, opacity: 0.6, marginLeft: 4 }}>(optional)</span>
+                    </label>
+                    <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
+                      placeholder="How you appear publicly" className="auth-input" />
+                  </div>
+
+                  {/* City */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      City / Region <span style={{ fontSize: 10, opacity: 0.6, marginLeft: 4 }}>(optional)</span>
+                    </label>
+                    <input type="text" value={city} onChange={e => setCity(e.target.value)}
+                      placeholder="Mumbai, Delhi, Bangalore..." className="auth-input" />
+                  </div>
+
+                  {/* Avatar style */}
+                  <div>
+                    <label style={{ fontSize: 12, color: '#71717a', display: 'block', marginBottom: 8, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      Avatar style
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                      {(Object.entries(PFP_STYLES) as [PfpStyle, typeof PFP_STYLES[PfpStyle]][]).map(([style, data]) => (
+                        <motion.button
+                          key={style}
+                          type="button"
+                          onClick={() => setPfpStyle(style)}
+                          whileTap={{ scale: 0.93 }}
+                          title={data.label}
+                          style={{
+                            aspectRatio: '1', overflow: 'hidden', cursor: 'pointer',
+                            border: pfpStyle === style ? '2px solid #22d3ee' : '2px solid transparent',
+                            boxShadow: pfpStyle === style ? '0 0 12px rgba(34,211,238,0.3)' : 'none',
+                            transition: 'all 0.15s', background: 'none', padding: 0,
+                          }}
+                        >
+                          <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${data.gradient[0]}, ${data.gradient[1]})`, position: 'relative' }}>
                             {pfpStyle === style && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                                <CheckCircle className="w-4 h-4 text-[var(--cyan)]" />
+                              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)' }}>
+                                <CheckCircle style={{ width: 16, height: 16, color: '#22d3ee' }} />
                               </div>
                             )}
-                          </motion.button>
-                        ))}
-                      </div>
-                      <p className="text-[9px] text-[var(--text-dim)] mt-2 tracking-wider uppercase">
-                        SELECTED: {PFP_STYLES[pfpStyle].label.toUpperCase().replace(/\s+/g, '_')}
-                      </p>
+                          </div>
+                        </motion.button>
+                      ))}
                     </div>
-
-                    <motion.button type="submit" disabled={loading || !usernameAvailable || !username}
-                      className="btn-execute" whileTap={{ scale: 0.98 }}>
-                      <span className="relative z-10 flex items-center justify-center gap-3">
-                        {loading ? <><Loader className="w-4 h-4 animate-spin" /> REGISTERING_AGENT...</> : <><Zap className="w-4 h-4" /> INITIALIZE_AGENT</>}
-                      </span>
-                    </motion.button>
-                  </form>
-                </motion.div>
-              )}
-
-              {/* STEP 3: Done */}
-              {step === 3 && (
-                <motion.div key="s3" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-6">
-                  <motion.div animate={{ rotate: [0, -5, 5, 0] }} transition={{ duration: 0.8, delay: 0.3 }}
-                    className="text-5xl mb-4">👑</motion.div>
-                  <h2 className="text-2xl font-extrabold uppercase tracking-wider text-glow-cyan mb-3">
-                    AGENT_CREATED
-                  </h2>
-                  <div className="msg-success mb-4 text-left">
-                    <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">VERIFICATION_EMAIL_DISPATCHED: CHECK_SECURE_CHANNEL_[EMAIL]</div>
+                    <p style={{ fontSize: 11, color: '#52525b', marginTop: 6, fontFamily: 'monospace' }}>
+                      {PFP_STYLES[pfpStyle].label}
+                    </p>
                   </div>
-                  <p className="text-[10px] text-[var(--text-dim)] tracking-wider uppercase mb-6">
-                    CONFIRM_EMAIL_TO_ACTIVATE_AGENT_STATUS
-                  </p>
-                  <Link href="/login">
-                    <motion.button className="btn-execute" whileTap={{ scale: 0.98 }}>
-                      <span className="relative z-10">PROCEED_TO_AUTHENTICATION</span>
-                    </motion.button>
-                  </Link>
+
+                  <button type="submit" disabled={loading || !usernameAvailable || !username} className="auth-btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4 }}>
+                    {loading ? (
+                      <><Loader style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Creating account...</>
+                    ) : (
+                      <><Zap style={{ width: 16, height: 16 }} /> Create Account</>
+                    )}
+                  </button>
+                </form>
+              </motion.div>
+            )}
+
+            {/* ── STEP 3: Verify email ── */}
+            {step === 3 && (
+              <motion.div key="s3" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ textAlign: 'center', padding: '24px 0' }}>
+                <motion.div
+                  animate={{ rotate: [0, -8, 8, -4, 4, 0] }}
+                  transition={{ duration: 1, delay: 0.3 }}
+                  style={{ fontSize: 52, marginBottom: 16 }}
+                >
+                  👑
                 </motion.div>
-              )}
-
-            </AnimatePresence>
-          </div>
-
-          <div className="terminal-footer">
-            <Lock className="w-3 h-3" />
-            ENCRYPTION: AES-256 | KING_OF_GOOD_TIMES_V2
-          </div>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: '#f4f4f5', margin: '0 0 12px' }}>
+                  Account created!
+                </h2>
+                <div className="auth-msg-success" style={{ textAlign: 'left', marginBottom: 16 }}>
+                  <CheckCircle style={{ width: 15, height: 15, flexShrink: 0, marginTop: 1 }} />
+                  <span>We sent a verification email to <strong>{email}</strong>. Check your inbox and confirm to activate your account.</span>
+                </div>
+                <p style={{ fontSize: 14, color: '#71717a', marginBottom: 24 }}>
+                  Once verified, you can sign in and start your journey.
+                </p>
+                <Link href="/login">
+                  <button className="auth-btn-primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    Go to Sign In
+                    <ArrowRight style={{ width: 16, height: 16 }} />
+                  </button>
+                </Link>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {step === 1 && (
-          <div className="mt-5 text-center text-[9px] text-[var(--text-ghost)] uppercase tracking-[0.15em]">
-            By registering you accept our{' '}
-            <Link href="/legal/tos" className="text-[var(--text-dim)] hover:text-[var(--cyan)] transition-colors border-b border-[var(--text-ghost)]">TERMS</Link>{' '}
-            &{' '}
-            <Link href="/legal/privacy" className="text-[var(--text-dim)] hover:text-[var(--cyan)] transition-colors border-b border-[var(--text-ghost)]">PRIVACY_POLICY</Link>
-          </div>
+          <p style={{ textAlign: 'center', fontSize: 12, color: '#3f3f46', marginTop: 16 }}>
+            By creating an account you agree to our{' '}
+            <Link href="/legal/tos" style={{ color: '#52525b', textDecoration: 'none' }}>Terms</Link>
+            {' '}&amp;{' '}
+            <Link href="/legal/privacy" style={{ color: '#52525b', textDecoration: 'none' }}>Privacy Policy</Link>
+          </p>
         )}
       </div>
     </div>
@@ -440,10 +470,8 @@ function SignupContent() {
 export default function SignupPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-[var(--cyan)] font-mono text-sm animate-pulse flex items-center gap-3">
-          <Loader className="w-5 h-5 animate-spin" /> INITIALIZING_REGISTRATION_PROTOCOL...
-        </div>
+      <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader style={{ width: 20, height: 20, color: '#22d3ee', animation: 'spin 1s linear infinite' }} />
       </div>
     }>
       <SignupContent />

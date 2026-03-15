@@ -1,16 +1,13 @@
 'use client'
 
-import { useState, useEffect, Suspense, useCallback } from 'react'
+import { useState, useCallback, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Turnstile from 'react-turnstile'
-import {
-  Shield, Lock, Mail, Loader, Zap, Terminal, Eye,
-  XCircle, CheckCircle, ChevronLeft, Chrome
-} from 'lucide-react'
+import { Lock, Mail, Loader, Eye, EyeOff, XCircle, CheckCircle, Chrome, ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 function LoginContent() {
@@ -26,26 +23,16 @@ function LoginContent() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
-  const [glitchEffect, setGlitchEffect] = useState(false)
-
-  // Glitch on errors
-  useEffect(() => {
-    if (message?.type === 'error') {
-      setGlitchEffect(true)
-      setTimeout(() => setGlitchEffect(false), 500)
-    }
-  }, [message])
 
   const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!turnstileToken) {
-      setMessage({ type: 'error', text: 'SECURITY_BREACH: CAPTCHA_VERIFICATION_FAILED' })
+      setMessage({ type: 'error', text: 'Please complete the security check.' })
       return
     }
     setLoading(true)
     setMessage(null)
 
-    // Verify turnstile server-side
     const verify = await fetch('/api/auth/verify-turnstile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -53,7 +40,7 @@ function LoginContent() {
     })
     const { success } = await verify.json()
     if (!success) {
-      setMessage({ type: 'error', text: 'TURNSTILE_ERROR: VERIFICATION_REJECTED' })
+      setMessage({ type: 'error', text: 'Security check failed. Please try again.' })
       setLoading(false)
       return
     }
@@ -63,293 +50,219 @@ function LoginContent() {
       setMessage({
         type: 'error',
         text: error.message.includes('Invalid')
-          ? 'ACCESS_DENIED: INVALID_CREDENTIALS'
-          : `AUTH_ERROR: ${error.message.toUpperCase().replace(/\s+/g, '_')}`
+          ? 'Incorrect email or password. Please try again.'
+          : error.message,
       })
       setLoading(false)
       return
     }
 
-    setMessage({ type: 'success', text: 'ACCESS_GRANTED: ESTABLISHING_SECURE_CONNECTION...' })
-    toast.success('ACCESS_GRANTED')
-    setTimeout(() => {
-      router.push(redirectTo)
-      router.refresh()
-    }, 800)
+    setMessage({ type: 'success', text: 'Signed in! Redirecting...' })
+    toast.success('Welcome back!')
+    setTimeout(() => { router.push(redirectTo); router.refresh() }, 600)
   }, [email, password, turnstileToken, supabase, redirectTo, router])
 
   const handleGoogleLogin = useCallback(async () => {
     setGoogleLoading(true)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(redirectTo)}`,
-      },
+      options: { redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(redirectTo)}` },
     })
-    if (error) {
-      toast.error(error.message)
-      setGoogleLoading(false)
-    }
+    if (error) { toast.error(error.message); setGoogleLoading(false) }
   }, [supabase, redirectTo])
 
   return (
-    <div className="min-h-screen bg-black text-[var(--cyan)] font-mono flex flex-col items-center justify-center p-4 relative overflow-hidden">
-
-      {/* Grid background */}
-      <div className="fixed inset-0 grid-bg pointer-events-none" style={{ maskImage: 'radial-gradient(ellipse 80% 50% at 50% 50%, black, transparent)' }} />
-
-      {/* Scanning line */}
-      <motion.div
-        className="fixed left-0 w-full h-[2px] pointer-events-none z-10"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,245,0.6), transparent)', boxShadow: '0 0 20px rgba(0,255,245,0.5)', top: '-5%' }}
-        animate={{ top: ['-5%', '105%'] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+    <div
+      style={{
+        minHeight: '100vh', background: '#09090b', color: '#f4f4f5',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px 16px', position: 'relative', overflow: 'hidden',
+      }}
+    >
+      {/* Grid bg */}
+      <div
+        style={{
+          position: 'fixed', inset: 0, pointerEvents: 'none',
+          backgroundImage: 'linear-gradient(rgba(34,211,238,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.03) 1px, transparent 1px)',
+          backgroundSize: '64px 64px',
+        }}
       />
 
-      {/* Corner brackets */}
-      <div className="fixed top-8 left-8 w-16 h-16 border-l-2 border-t-2 border-[var(--cyan-border)] pointer-events-none" />
-      <div className="fixed top-8 right-8 w-16 h-16 border-r-2 border-t-2 border-[var(--cyan-border)] pointer-events-none" />
-      <div className="fixed bottom-8 left-8 w-16 h-16 border-l-2 border-b-2 border-[var(--cyan-border)] pointer-events-none" />
-      <div className="fixed bottom-8 right-8 w-16 h-16 border-r-2 border-b-2 border-[var(--cyan-border)] pointer-events-none" />
+      <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 420 }}>
 
-      {/* Glitch overlay */}
-      <AnimatePresence>
-        {glitchEffect && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.4, 0, 0.2, 0] }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="fixed inset-0 bg-red-500 mix-blend-screen pointer-events-none z-20"
-          />
-        )}
-      </AnimatePresence>
-
-      <div className="relative z-10 w-full max-w-md">
-
-        {/* Back to home */}
-        <Link href="/">
-          <motion.button
-            whileHover={{ x: -4 }}
-            className="flex items-center gap-2 text-[10px] text-[var(--text-dim)] hover:text-[var(--cyan)] mb-8 transition-colors uppercase tracking-[0.2em] group"
-          >
-            <ChevronLeft className="w-3.5 h-3.5 group-hover:animate-pulse" />
-            <span className="border-b border-[var(--cyan-border)] group-hover:border-[var(--cyan)]">ABORT_MISSION</span>
-          </motion.button>
+        {/* Back */}
+        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#71717a', textDecoration: 'none', fontSize: 13, marginBottom: 28, fontFamily: 'monospace', transition: 'color 0.15s' }}
+          className="back-link"
+        >
+          <ArrowLeft style={{ width: 14, height: 14 }} />
+          Back to home
         </Link>
 
-        {/* Terminal window */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className={`terminal transition-all duration-200 ${glitchEffect ? 'border-[var(--red)]' : ''}`}
+          transition={{ duration: 0.3 }}
+          className="auth-card"
+          style={{ padding: 32 }}
         >
-          {/* Header bar */}
-          <div className="terminal-header">
-            <div className="terminal-dots">
-              <span /><span /><span />
+          {/* Logo + Title */}
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+              <div
+                style={{
+                  position: 'relative', width: 56, height: 56,
+                  border: '1px solid rgba(34,211,238,0.25)',
+                  background: 'rgba(34,211,238,0.05)', padding: 8,
+                }}
+              >
+                <Image src="/logo.png" alt="KGT" fill style={{ objectFit: 'contain', padding: 4 }} />
+              </div>
             </div>
-            <div className="terminal-title">
-              <Terminal className="w-3 h-3" />
-              SECURE_TERMINAL_v4.2
-            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#f4f4f5', margin: '0 0 6px', letterSpacing: '-0.01em' }}>
+              Sign in
+            </h1>
+            <p style={{ fontSize: 14, color: '#71717a', margin: 0 }}>
+              Enter the city. Your alias awaits.
+            </p>
           </div>
 
-          <div className="terminal-body">
-
-            {/* Logo + Title */}
-            <div className="text-center mb-8">
+          {/* Error/Success message */}
+          <AnimatePresence mode="wait">
+            {message && (
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                className="inline-block p-4 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] mb-4 relative"
+                key={message.text}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{ marginBottom: 20, overflow: 'hidden' }}
               >
-                <Shield className="w-10 h-10 text-[var(--cyan)]" />
-                <motion.div
-                  className="absolute inset-0 border-2 border-[var(--cyan)]"
-                  animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
+                <div className={message.type === 'error' ? 'auth-msg-error' : 'auth-msg-success'}>
+                  {message.type === 'error'
+                    ? <XCircle style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1 }} />
+                    : <CheckCircle style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1 }} />}
+                  <span>{message.text}</span>
+                </div>
               </motion.div>
+            )}
+          </AnimatePresence>
 
-              <h1 className="text-2xl font-extrabold uppercase tracking-wider text-glow-cyan mb-2">
-                AUTHENTICATION
-              </h1>
-              <p className="text-[10px] text-[var(--text-dim)] uppercase tracking-[0.3em]">
-                SECURE ACCESS PORTAL
-              </p>
+          {/* Form */}
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Email */}
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', marginBottom: 7, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                <Mail style={{ width: 11, height: 11 }} />
+                Email address
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: '#52525b' }} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="auth-input"
+                  style={{ paddingLeft: 38 }}
+                />
+              </div>
             </div>
 
-            {/* Status message */}
-            <AnimatePresence mode="wait">
-              {message && (
-                <motion.div
-                  key={message.text}
-                  initial={{ opacity: 0, x: -20, height: 0 }}
-                  animate={{ opacity: 1, x: 0, height: 'auto' }}
-                  exit={{ opacity: 0, x: 20, height: 0 }}
-                  className={`mb-6 ${message.type === 'error' ? 'msg-error' : 'msg-success'}`}
+            {/* Password */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#71717a', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <Lock style={{ width: 11, height: 11 }} />
+                  Password
+                </label>
+                <Link href="/forgot-password" style={{ fontSize: 12, color: '#71717a', textDecoration: 'none', transition: 'color 0.15s' }}
+                  className="back-link"
                 >
-                  {message.type === 'error'
-                    ? <XCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    : <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />}
-                  <div className="flex-1 font-bold leading-relaxed break-words">
-                    {message.text}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Form */}
-            <form onSubmit={handleLogin} className="space-y-5">
-              {/* Email */}
-              <div>
-                <label className="label-terminal">
-                  <Mail className="w-3 h-3" /> EMAIL_ADDRESS
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-dim)]" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="agent@sandnco.lol"
-                    required
-                    className="input-terminal input-terminal-icon"
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="label-terminal">
-                  <Lock className="w-3 h-3" /> CIPHER_KEY
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-dim)]" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    required
-                    className="input-terminal input-terminal-icon pr-10"
-                    style={{ letterSpacing: showPassword ? 'normal' : '0.2em' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)] hover:text-[var(--cyan)] transition-colors"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Forgot password */}
-              <div className="flex justify-end">
-                <Link href="/forgot-password">
-                  <span className="text-[9px] text-[var(--red-dim)] hover:text-[var(--red)] transition-colors uppercase tracking-wider">
-                    LOST_CREDENTIALS?
-                  </span>
+                  Forgot password?
                 </Link>
               </div>
-
-              {/* Turnstile */}
-              <div className="flex justify-center py-2">
-                <Turnstile
-                  sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
-                  onVerify={token => setTurnstileToken(token)}
-                  onExpire={() => setTurnstileToken(null)}
-                  theme="dark"
+              <div style={{ position: 'relative' }}>
+                <Lock style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: '#52525b' }} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="auth-input"
+                  style={{ paddingLeft: 38, paddingRight: 44 }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#52525b', display: 'flex', padding: 2 }}
+                >
+                  {showPassword ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+                </button>
               </div>
-
-              {/* Execute button */}
-              <motion.button
-                type="submit"
-                disabled={loading || !turnstileToken}
-                className="btn-execute"
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="relative z-10 flex items-center justify-center gap-3">
-                  {loading ? (
-                    <><Loader className="w-4 h-4 animate-spin" /> PROCESSING</>
-                  ) : (
-                    <><Zap className="w-4 h-4" /> EXECUTE</>
-                  )}
-                </span>
-              </motion.button>
-            </form>
-
-            {/* Divider */}
-            <div className="flex items-center gap-4 my-6">
-              <div className="flex-1 h-px bg-[var(--cyan-border)]" />
-              <span className="text-[9px] text-[var(--text-dim)] tracking-[0.2em]">ALTERNATE_PROTOCOL</span>
-              <div className="flex-1 h-px bg-[var(--cyan-border)]" />
             </div>
 
-            {/* Google OAuth */}
-            <motion.button
-              onClick={handleGoogleLogin}
-              disabled={googleLoading}
-              className="btn-outline w-full flex items-center justify-center gap-3"
-              whileTap={{ scale: 0.98 }}
+            {/* Turnstile */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
+              <Turnstile
+                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                onVerify={token => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken(null)}
+                theme="dark"
+              />
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading || !turnstileToken}
+              className="auth-btn-primary"
             >
-              {googleLoading
-                ? <Loader className="w-4 h-4 animate-spin" />
-                : <Chrome className="w-4 h-4" />}
-              GOOGLE_AUTH
-            </motion.button>
+              {loading ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+                  <Loader style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />
+                  Signing in...
+                </span>
+              ) : 'Sign In'}
+            </button>
+          </form>
 
-            {/* Links */}
-            <div className="mt-6 flex flex-col gap-3 text-center">
-              <button
-                onClick={() => router.push('/signup')}
-                className="btn-link"
-              >
-                <span>NO_ACCESS? REGISTER_NEW_AGENT</span>
-              </button>
-            </div>
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+            <span style={{ fontSize: 12, color: '#52525b', fontFamily: 'monospace' }}>or</span>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
           </div>
 
-          {/* Footer bar */}
-          <div className="terminal-footer">
-            <Lock className="w-3 h-3" />
-            ENCRYPTION: AES-256 | KING_OF_GOOD_TIMES_V2
-          </div>
+          {/* Google */}
+          <button
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            className="auth-btn-secondary"
+          >
+            {googleLoading
+              ? <Loader style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />
+              : <Chrome style={{ width: 16, height: 16 }} />}
+            Continue with Google
+          </button>
+
+          {/* Sign up link */}
+          <p style={{ textAlign: 'center', fontSize: 14, color: '#71717a', marginTop: 24 }}>
+            No account?{' '}
+            <Link href="/signup" style={{ color: '#22d3ee', textDecoration: 'none', fontWeight: 600 }}>
+              Create one free
+            </Link>
+          </p>
         </motion.div>
 
         {/* Legal */}
-        <div className="mt-6 text-center text-[9px] text-[var(--text-ghost)] uppercase tracking-[0.15em]">
-          By authenticating you accept our{' '}
-          <Link href="/legal/tos" className="text-[var(--text-dim)] hover:text-[var(--cyan)] transition-colors border-b border-[var(--text-ghost)]">
-            TERMS
-          </Link>{' '}
-          &{' '}
-          <Link href="/legal/privacy" className="text-[var(--text-dim)] hover:text-[var(--cyan)] transition-colors border-b border-[var(--text-ghost)]">
-            PRIVACY_POLICY
-          </Link>
-        </div>
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#3f3f46', marginTop: 16 }}>
+          By signing in you agree to our{' '}
+          <Link href="/legal/tos" style={{ color: '#52525b', textDecoration: 'none' }}>Terms</Link>
+          {' '}&amp;{' '}
+          <Link href="/legal/privacy" style={{ color: '#52525b', textDecoration: 'none' }}>Privacy Policy</Link>
+        </p>
       </div>
-
-      {/* Panic button (Easter egg from old UI) */}
-      <motion.div
-        className="fixed bottom-4 left-4 z-50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2 }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="relative w-6 h-6">
-            <Image src="/logo.png" alt="" fill className="object-contain opacity-30 hover:opacity-80 transition-opacity" />
-          </div>
-          <span className="text-[8px] text-[var(--text-ghost)] tracking-[0.3em] uppercase">sandnco.lol</span>
-        </div>
-      </motion.div>
     </div>
   )
 }
@@ -357,11 +270,8 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-[var(--cyan)] font-mono text-sm animate-pulse flex items-center gap-3">
-          <Loader className="w-5 h-5 animate-spin" />
-          INITIALIZING_SECURE_PROTOCOL...
-        </div>
+      <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader style={{ width: 20, height: 20, color: '#22d3ee', animation: 'spin 1s linear infinite' }} />
       </div>
     }>
       <LoginContent />
