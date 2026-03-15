@@ -309,7 +309,7 @@ export default function SupportPage() {
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                    placeholder="Ask Suno anything..."
+                    placeholder="Ask about your account, wallet, or features..."
                     className="input"
                     style={{ flex: 1 }}
                   />

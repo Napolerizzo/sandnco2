@@ -56,7 +56,7 @@ export default function RumorsClient({ rumors, userId }: { rumors: Rumor[]; user
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 16px 80px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text)', marginBottom: 4 }}>
             Rumor Mill
@@ -130,13 +130,14 @@ export default function RumorsClient({ rumors, userId }: { rumors: Rumor[]; user
       </div>
 
       {/* Rumors list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {filtered.map((rumor, i) => {
           const verdict = rumor.verdict ? VERDICT_CONFIG[rumor.verdict as keyof typeof VERDICT_CONFIG] : null
           const VerdictIcon = verdict?.icon
           const catColor = CATEGORY_COLORS[rumor.category] || '#6B7280'
           const isHot = rumor.heat_score > 50
           const isWarm = rumor.heat_score > 20
+          const heatColor = isHot ? '#EF4444' : isWarm ? '#F59E0B' : 'var(--subtle)'
 
           return (
             <motion.div
@@ -146,39 +147,66 @@ export default function RumorsClient({ rumors, userId }: { rumors: Rumor[]; user
               transition={{ type: 'spring', stiffness: 400, damping: 30, delay: i * 0.03 }}
             >
               <Link href={`/rumors/${rumor.id}`} style={{ textDecoration: 'none' }}>
-                <div className="card card-interactive" style={{ padding: '16px 20px' }}>
+                <div className="feed-card" style={{ padding: '18px 20px' }}>
+                  {/* Heat bar */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, height: 3,
+                    background: `linear-gradient(90deg, ${heatColor}, ${heatColor}40, transparent)`,
+                    width: `${Math.min(100, Math.max(15, rumor.heat_score))}%`,
+                    borderRadius: '12px 0 0 0',
+                  }} />
+
                   {/* Meta row */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{rumor.anonymous_alias}</span>
-                      <span style={{ color: 'var(--border)' }}>·</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{
+                        fontSize: 11, color: 'var(--muted)', fontWeight: 500,
+                        padding: '2px 8px', borderRadius: 100,
+                        background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                        fontFamily: 'var(--font-mono)',
+                      }}>{rumor.anonymous_alias}</span>
                       <span style={{ fontSize: 11, color: 'var(--subtle)' }}>{formatRelativeTime(rumor.created_at)}</span>
                       {rumor.category && (
                         <span style={{
                           fontSize: 10, fontWeight: 600, padding: '2px 8px',
-                          borderRadius: 'var(--r-sm)', background: `${catColor}15`,
+                          borderRadius: 100, background: `${catColor}12`,
+                          border: `1px solid ${catColor}25`,
                           color: catColor, textTransform: 'capitalize',
                         }}>
                           {rumor.category}
                         </span>
                       )}
                     </div>
-                    {verdict && VerdictIcon && (
-                      <span style={{
-                        display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600,
-                        padding: '3px 8px', borderRadius: 'var(--r-sm)',
-                        background: `${verdict.color}15`, color: verdict.color,
-                      }}>
-                        <VerdictIcon size={10} />{verdict.label}
-                      </span>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {verdict && VerdictIcon && (
+                        <span style={{
+                          display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600,
+                          padding: '3px 8px', borderRadius: 100,
+                          background: `${verdict.color}12`, border: `1px solid ${verdict.color}25`,
+                          color: verdict.color,
+                        }}>
+                          <VerdictIcon size={10} />{verdict.label}
+                        </span>
+                      )}
+                      {rumor.heat_score > 0 && (
+                        <span style={{
+                          display: 'flex', alignItems: 'center', gap: 3, fontSize: 11,
+                          fontWeight: 700, fontFamily: 'var(--font-mono)', color: heatColor,
+                          padding: '2px 8px', borderRadius: 100,
+                          background: isHot ? 'rgba(239,68,68,0.1)' : isWarm ? 'rgba(245,158,11,0.1)' : 'transparent',
+                        }}>
+                          {isHot && <Flame size={11} />}
+                          {Math.floor(rumor.heat_score)}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Title */}
                   <h3 style={{
                     fontSize: 15, fontWeight: 600, color: 'var(--text)',
                     marginBottom: 6, lineHeight: 1.4,
-                    display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                   }}>
                     {rumor.title}
                   </h3>
@@ -193,22 +221,15 @@ export default function RumorsClient({ rumors, userId }: { rumors: Rumor[]; user
 
                   {/* Stats row */}
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: 16, marginTop: 12,
+                    display: 'flex', alignItems: 'center', gap: 14, marginTop: 14,
                     paddingTop: 12, borderTop: '1px solid var(--border)',
+                    flexWrap: 'wrap',
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--subtle)' }}>
                       <Zap size={12} />{rumor.rumor_votes.length} votes
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--subtle)' }}>
                       <MessageCircle size={12} />{rumor.rumor_comments.length} comments
-                    </span>
-                    <span style={{
-                      marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
-                      color: isHot ? '#EF4444' : isWarm ? '#F59E0B' : 'var(--subtle)',
-                      fontWeight: isHot ? 600 : 400,
-                    }}>
-                      {isHot && <Flame size={12} />}
-                      {Math.floor(rumor.heat_score)} heat
                     </span>
                   </div>
                 </div>

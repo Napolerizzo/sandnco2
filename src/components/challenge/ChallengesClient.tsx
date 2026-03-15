@@ -66,7 +66,7 @@ export default function ChallengesClient({
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 16px 80px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text)', marginBottom: 4 }}>
             Challenges
@@ -98,7 +98,8 @@ export default function ChallengesClient({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}
+          className="challenges-stats"
+          style={{ display: 'grid', gap: 12, marginBottom: 24 }}
         >
           {[
             { label: 'Wallet balance', value: formatCurrency(profile.wallet_balance), icon: Zap, color: '#6366F1' },
@@ -152,7 +153,7 @@ export default function ChallengesClient({
       </div>
 
       {/* Challenges grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
         {filtered.map((challenge, i) => {
           const status = STATUS_CONFIG[challenge.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.created
           const canAfford = !profile || profile.wallet_balance >= challenge.entry_fee

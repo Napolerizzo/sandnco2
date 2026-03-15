@@ -7,10 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Flame, Trophy, Eye, ArrowRight, TrendingUp,
   Zap, MapPin, Users, MessageSquare, ChevronRight,
-  BarChart2, Radio, Lock, Crown
+  BarChart2, Radio, Lock, Crown, LayoutDashboard
 } from 'lucide-react'
 import { RANKS } from '@/lib/ranks'
 import { formatRelativeTime } from '@/lib/utils'
+import { useSupabase } from '@/components/providers/SupabaseProvider'
 
 type RankKey = keyof typeof RANKS
 const RANK_KEYS = Object.keys(RANKS) as RankKey[]
@@ -40,6 +41,7 @@ export default function LandingPage({
   userCount?: number
   rumorCount?: number
 }) {
+  const { user, loading: authLoading } = useSupabase()
   const [lineIndex, setLineIndex] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [currentRankIdx, setCurrentRankIdx] = useState(0)
@@ -97,26 +99,45 @@ export default function LandingPage({
 
         {/* Auth */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link href="/login">
-            <button style={{
-              padding: '7px 14px', fontSize: 14, fontWeight: 500,
-              background: 'transparent', border: '1px solid var(--border)',
-              color: 'var(--muted)', borderRadius: 'var(--r)',
-              cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'var(--font)',
-            }}
-              className="btn-secondary btn-sm hide-mobile"
-            >Login</button>
-          </Link>
-          <Link href="/signup">
-            <button style={{
-              padding: '7px 14px', fontSize: 14, fontWeight: 600,
-              background: 'var(--primary)', border: 'none', color: '#fff',
-              borderRadius: 'var(--r)', cursor: 'pointer',
-              transition: 'background 0.15s', fontFamily: 'var(--font)',
-            }}>
-              Join Free
-            </button>
-          </Link>
+          {!authLoading && user ? (
+            <Link href="/feed">
+              <button style={{
+                padding: '8px 18px', fontSize: 14, fontWeight: 600,
+                background: 'var(--primary)', border: 'none', color: '#fff',
+                borderRadius: 'var(--r)', cursor: 'pointer',
+                transition: 'background 0.15s', fontFamily: 'var(--font)',
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+              }}>
+                <LayoutDashboard style={{ width: 15, height: 15 }} />
+                Dashboard
+              </button>
+            </Link>
+          ) : !authLoading ? (
+            <>
+              <Link href="/login">
+                <button style={{
+                  padding: '7px 14px', fontSize: 14, fontWeight: 500,
+                  background: 'transparent', border: '1px solid var(--border)',
+                  color: 'var(--muted)', borderRadius: 'var(--r)',
+                  cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'var(--font)',
+                }}
+                  className="btn-secondary btn-sm hide-mobile"
+                >Login</button>
+              </Link>
+              <Link href="/signup">
+                <button style={{
+                  padding: '7px 14px', fontSize: 14, fontWeight: 600,
+                  background: 'var(--primary)', border: 'none', color: '#fff',
+                  borderRadius: 'var(--r)', cursor: 'pointer',
+                  transition: 'background 0.15s', fontFamily: 'var(--font)',
+                }}>
+                  Join Free
+                </button>
+              </Link>
+            </>
+          ) : (
+            <div style={{ width: 100, height: 34, background: 'var(--bg-elevated)', borderRadius: 'var(--r)', border: '1px solid var(--border)', animation: 'shimmer 1.5s ease-in-out infinite' }} />
+          )}
         </div>
       </nav>
 
@@ -227,7 +248,7 @@ export default function LandingPage({
             transition={{ delay: 0.36 }}
             style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 60 }}
           >
-            <Link href="/signup">
+            <Link href={user ? '/feed' : '/signup'}>
               <motion.button
                 whileHover={{ y: -2, boxShadow: '0 8px 32px rgba(99,102,241,0.35)' }}
                 whileTap={{ scale: 0.97 }}
@@ -240,7 +261,7 @@ export default function LandingPage({
                 }}
               >
                 <Zap style={{ width: 16, height: 16 }} />
-                Join Faridabad
+                {user ? 'Go to Dashboard' : 'Join Faridabad'}
               </motion.button>
             </Link>
             <a href="#feed" style={{ textDecoration: 'none' }}>

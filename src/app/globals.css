@@ -305,10 +305,28 @@ p { line-height: 1.6; }
 .nav-item:hover { color: var(--text); background: var(--bg-elevated); }
 .nav-item.active { color: var(--text); background: var(--bg-elevated); }
 
+/* ── Feed layout ── */
+.feed-layout {
+  grid-template-columns: 1fr 300px;
+}
+
+/* ── Challenges stats grid ── */
+.challenges-stats {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 /* ── Responsive helpers ── */
 @media (max-width: 768px) {
   .hide-mobile { display: none !important; }
   .show-mobile { display: flex !important; }
+
+  .feed-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .challenges-stats {
+    grid-template-columns: 1fr !important;
+  }
 }
 @media (min-width: 769px) {
   .show-mobile { display: none !important; }
@@ -409,13 +427,17 @@ p { line-height: 1.6; }
   border-radius: var(--r-lg);
   padding: 20px;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
   position: relative;
   overflow: hidden;
   text-decoration: none;
   display: block;
 }
-.feed-card:hover { border-color: rgba(99,102,241,0.35); }
+.feed-card:hover {
+  border-color: rgba(99,102,241,0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
 
 /* ── Mono text ── */
 .mono { font-family: var(--font-mono); }
