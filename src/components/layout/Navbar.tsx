@@ -6,8 +6,9 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Home, Flame, Trophy, Wallet, User, Bell, Settings,
-  LogOut, Menu, X, Crown, Shield, Zap, MessageCircle, ChevronRight
+  Home, Flame, Trophy, Crown, Bell, Settings,
+  LogOut, Menu, X, Zap, MessageCircle, ChevronRight,
+  LayoutDashboard, Shield, Wallet, HelpCircle, Users, TrendingUp
 } from 'lucide-react'
 import { useSupabase } from '@/components/providers/SupabaseProvider'
 import { RANKS, type RankTier } from '@/lib/ranks'
@@ -20,9 +21,7 @@ interface UserProfile {
   rank: RankTier
   wallet_balance: number
   profile_picture_url: string | null
-  pfp_style: string
   is_premium: boolean
-  unread_notifications: number
 }
 
 export default function Navbar() {
@@ -32,8 +31,8 @@ export default function Navbar() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [notifCount, setNotifCount] = useState(0)
-  const [scrolled, setScrolled] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -43,9 +42,8 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!user) { setProfile(null); return }
-
     supabase.from('users')
-      .select('username,display_name,rank,wallet_balance,profile_picture_url,pfp_style,is_premium')
+      .select('username,display_name,rank,wallet_balance,profile_picture_url,is_premium')
       .eq('id', user.id).single()
       .then(({ data }) => { if (data) setProfile(data as UserProfile) })
 
@@ -59,7 +57,7 @@ export default function Navbar() {
 
   const handleSignout = async () => {
     await supabase.auth.signOut()
-    toast.success('Session terminated')
+    toast.success('Signed out')
     router.push('/login')
   }
 
@@ -67,143 +65,273 @@ export default function Navbar() {
     { href: '/feed', icon: Home, label: 'Feed' },
     { href: '/rumors', icon: Flame, label: 'Rumors' },
     { href: '/challenges', icon: Trophy, label: 'Challenges' },
-    { href: '/leaderboard', icon: Crown, label: 'Ranks' },
+    { href: '/leaderboard', icon: TrendingUp, label: 'Ranks' },
   ]
 
   const rank = profile ? RANKS[profile.rank] : null
 
+  const navBg = scrolled
+    ? 'rgba(9, 9, 11, 0.95)'
+    : 'rgba(9, 9, 11, 0.80)'
+
+  const isActive = (href: string) => pathname?.startsWith(href)
+
   return (
     <>
-      <motion.nav
-        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? 'bg-black/90 backdrop-blur-xl border-b border-white/[0.08]'
-            : 'bg-black/60 backdrop-blur-sm border-b border-white/[0.05]'
-        }`}
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      {/* ── DESKTOP/TABLET NAV ── */}
+      <nav
+        style={{
+          position: 'fixed', top: 0, left: 0, right: 0, height: 64, zIndex: 50,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 20px',
+          background: navBg,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          transition: 'background 0.2s',
+        }}
       >
-        <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
-
-          {/* Logo */}
-          <Link href="/feed" className="flex items-center gap-2.5 group">
-            <div className="relative w-7 h-7">
-              <Image src="/logo.png" alt="KGT" fill className="object-contain" />
-            </div>
-            <span className="text-sm font-bold tracking-wide text-white hidden sm:block">King of Good Times</span>
-          </Link>
-
-          {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map(({ href, icon: Icon, label }) => (
-              <Link key={href} href={href}>
-                <motion.div
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-mono tracking-wide transition-all border ${
-                    pathname?.startsWith(href)
-                      ? 'text-cyan-400 border-cyan-400/25 bg-cyan-400/[0.06]'
-                      : 'text-gray-400 border-transparent hover:text-white hover:border-white/10 hover:bg-white/[0.04]'
-                  }`}
-                  whileTap={{ scale: 0.96 }}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {label}
-                </motion.div>
-              </Link>
-            ))}
+        {/* Logo */}
+        <Link href="/feed" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
+          <div style={{ position: 'relative', width: 30, height: 30 }}>
+            <Image src="/logo.png" alt="KGT" fill style={{ objectFit: 'contain' }} />
           </div>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#f4f4f5', fontFamily: 'monospace', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}
+            className="hide-sm"
+          >
+            King of Good Times
+          </span>
+        </Link>
 
-          {/* Right side */}
-          <div className="flex items-center gap-2">
-            {user && profile ? (
-              <>
-                {/* Wallet */}
-                <Link href="/wallet" className="hidden sm:flex items-center gap-2 px-3 py-2 border border-white/[0.08] hover:border-cyan-400/30 transition-all text-sm text-gray-300">
-                  <Zap className="w-3.5 h-3.5 text-cyan-400" />
-                  <span className="font-mono">{formatCurrency(profile.wallet_balance)}</span>
-                </Link>
-
-                {/* Notifications */}
-                <Link href="/notifications" className="relative p-2.5 border border-transparent hover:border-white/10 hover:bg-white/[0.04] transition-all">
-                  <Bell className="w-4 h-4 text-gray-400" />
-                  {notifCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 flex items-center justify-center text-white font-bold text-[9px]">
-                      {notifCount > 9 ? '9+' : notifCount}
-                    </span>
-                  )}
-                </Link>
-
-                {/* Profile dropdown */}
-                <ProfileDropdown
-                  profile={profile}
-                  rank={rank}
-                  isAdmin={isAdmin}
-                  onSignout={handleSignout}
-                />
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/login">
-                  <button className="px-4 py-2 text-sm text-gray-400 border border-white/10 hover:border-cyan-400/30 hover:text-cyan-400 transition-all font-mono">
-                    Login
-                  </button>
-                </Link>
-                <Link href="/signup">
-                  <button className="px-4 py-2 text-sm font-bold bg-cyan-400 text-black hover:bg-cyan-300 transition-all">
-                    Register
-                  </button>
-                </Link>
-              </div>
-            )}
-
-            {/* Mobile toggle */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2.5 border border-white/10 hover:border-cyan-400/30 transition-all"
+        {/* Nav links (desktop) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }} className="nav-desktop-links">
+          {navLinks.map(({ href, icon: Icon, label }) => (
+            <Link
+              key={href}
+              href={href}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 12px', fontSize: 13, fontFamily: 'monospace',
+                textDecoration: 'none', transition: 'all 0.15s',
+                color: isActive(href) ? '#22d3ee' : '#71717a',
+                background: isActive(href) ? 'rgba(34,211,238,0.06)' : 'transparent',
+                border: isActive(href) ? '1px solid rgba(34,211,238,0.2)' : '1px solid transparent',
+              }}
             >
-              {mobileOpen
-                ? <X className="w-4 h-4 text-gray-300" />
-                : <Menu className="w-4 h-4 text-gray-300" />}
-            </button>
-          </div>
+              <Icon style={{ width: 13, height: 13, flexShrink: 0 }} />
+              {label}
+            </Link>
+          ))}
         </div>
-      </motion.nav>
 
-      {/* Mobile menu */}
+        {/* Right side */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {user && profile ? (
+            <>
+              {/* Wallet chip */}
+              <Link
+                href="/wallet"
+                className="hide-sm"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '6px 12px',
+                  border: '1px solid rgba(255,255,255,0.09)',
+                  background: 'transparent', textDecoration: 'none',
+                  fontSize: 13, color: '#d4d4d8', fontFamily: 'monospace',
+                  transition: 'border-color 0.15s',
+                }}
+              >
+                <Zap style={{ width: 12, height: 12, color: '#22d3ee' }} />
+                {formatCurrency(profile.wallet_balance)}
+              </Link>
+
+              {/* Notifications */}
+              <Link
+                href="/notifications"
+                style={{
+                  position: 'relative', padding: '8px',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  textDecoration: 'none',
+                  border: '1px solid transparent', transition: 'border-color 0.15s',
+                }}
+              >
+                <Bell style={{ width: 16, height: 16, color: '#71717a' }} />
+                {notifCount > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute', top: 2, right: 2,
+                      width: 16, height: 16, background: '#ef4444',
+                      borderRadius: 8,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 9, fontWeight: 700, color: '#fff', fontFamily: 'monospace',
+                    }}
+                  >
+                    {notifCount > 9 ? '9+' : notifCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Profile dropdown */}
+              <ProfileDropdown
+                profile={profile}
+                rank={rank}
+                isAdmin={isAdmin}
+                onSignout={handleSignout}
+              />
+            </>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Link href="/login">
+                <button
+                  style={{
+                    padding: '8px 16px', fontSize: 13, color: '#a1a1aa',
+                    background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    cursor: 'pointer', fontFamily: 'monospace',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  Login
+                </button>
+              </Link>
+              <Link href="/signup">
+                <button
+                  style={{
+                    padding: '8px 16px', fontSize: 13, fontWeight: 700,
+                    background: '#22d3ee', color: '#000',
+                    border: 'none', cursor: 'pointer',
+                    fontFamily: 'monospace',
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  Register
+                </button>
+              </Link>
+            </div>
+          )}
+
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            style={{
+              padding: '8px',
+              display: 'none',
+              alignItems: 'center', justifyContent: 'center',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.1)',
+              cursor: 'pointer', color: '#a1a1aa',
+              transition: 'all 0.15s',
+            }}
+            className="show-mobile"
+          >
+            {mobileOpen ? <X style={{ width: 16, height: 16 }} /> : <Menu style={{ width: 16, height: 16 }} />}
+          </button>
+        </div>
+      </nav>
+
+      {/* ── MOBILE MENU ── */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            className="fixed inset-0 z-40 md:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 40 }}
           >
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+            <div
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)' }}
+              onClick={() => setMobileOpen(false)}
+            />
             <motion.div
-              className="absolute top-16 inset-x-0 bg-black border-b border-white/[0.08] py-3"
-              initial={{ y: -10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -10, opacity: 0 }}
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              style={{
+                position: 'absolute', top: 64, right: 0, bottom: 0, width: 280,
+                background: '#0f0f14',
+                borderLeft: '1px solid rgba(255,255,255,0.08)',
+                overflowY: 'auto',
+                padding: '8px 0',
+              }}
             >
+              {/* Nav links */}
               {navLinks.map(({ href, icon: Icon, label }) => (
-                <Link key={href} href={href} onClick={() => setMobileOpen(false)}>
-                  <div className={`flex items-center gap-3 px-5 py-3.5 text-sm transition-all ${
-                    pathname?.startsWith(href)
-                      ? 'text-cyan-400 bg-cyan-400/[0.05]'
-                      : 'text-gray-400'
-                  }`}>
-                    <Icon className="w-4 h-4" />
-                    {label}
-                  </div>
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMobileOpen(false)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '14px 20px', textDecoration: 'none',
+                    fontSize: 15,
+                    color: isActive(href) ? '#22d3ee' : '#a1a1aa',
+                    background: isActive(href) ? 'rgba(34,211,238,0.05)' : 'transparent',
+                    transition: 'all 0.1s',
+                  }}
+                >
+                  <Icon style={{ width: 18, height: 18, flexShrink: 0 }} />
+                  {label}
                 </Link>
               ))}
-              {user && (
-                <Link href="/wallet" onClick={() => setMobileOpen(false)}>
-                  <div className="flex items-center gap-3 px-5 py-3.5 text-sm text-gray-400">
-                    <Wallet className="w-4 h-4" />
-                    Wallet
+
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
+
+              {user && profile && (
+                <>
+                  <Link href="/wallet" onClick={() => setMobileOpen(false)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textDecoration: 'none', fontSize: 15, color: '#a1a1aa' }}>
+                    <Wallet style={{ width: 18, height: 18 }} />
+                    Wallet — {formatCurrency(profile.wallet_balance)}
+                  </Link>
+                  <Link href={`/profile/${profile.username}`} onClick={() => setMobileOpen(false)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textDecoration: 'none', fontSize: 15, color: '#a1a1aa' }}>
+                    <LayoutDashboard style={{ width: 18, height: 18 }} />
+                    My Dashboard
+                  </Link>
+                </>
+              )}
+
+              <Link href="/support" onClick={() => setMobileOpen(false)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textDecoration: 'none', fontSize: 15, color: '#a1a1aa' }}>
+                <HelpCircle style={{ width: 18, height: 18 }} />
+                Support &amp; Help
+              </Link>
+
+              {user ? (
+                <>
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
+                  <button
+                    onClick={() => { handleSignout(); setMobileOpen(false) }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '14px 20px', width: '100%',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: 15, color: '#f87171', textAlign: 'left',
+                    }}
+                  >
+                    <LogOut style={{ width: 18, height: 18 }} />
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
+                  <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <Link href="/login" onClick={() => setMobileOpen(false)}>
+                      <button style={{
+                        width: '100%', padding: '12px', fontSize: 15, color: '#a1a1aa',
+                        background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', fontFamily: 'monospace',
+                      }}>Login</button>
+                    </Link>
+                    <Link href="/signup" onClick={() => setMobileOpen(false)}>
+                      <button style={{
+                        width: '100%', padding: '12px', fontSize: 15, fontWeight: 700,
+                        background: '#22d3ee', color: '#000', border: 'none', cursor: 'pointer', fontFamily: 'monospace',
+                      }}>Join Free</button>
+                    </Link>
                   </div>
-                </Link>
+                </>
               )}
             </motion.div>
           </motion.div>
@@ -225,50 +353,71 @@ function ProfileDropdown({
   const router = useRouter()
 
   return (
-    <div className="relative">
+    <div style={{ position: 'relative' }}>
+      {/* Avatar trigger */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 p-1.5 border border-transparent hover:border-white/10 hover:bg-white/[0.04] transition-all"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 7,
+          padding: '5px 5px 5px 8px',
+          background: 'transparent',
+          border: '1px solid rgba(255,255,255,0.09)',
+          cursor: 'pointer', transition: 'border-color 0.15s',
+        }}
       >
         <div
-          className="w-8 h-8 border flex items-center justify-center text-sm font-bold overflow-hidden"
-          style={rank
-            ? { background: `linear-gradient(135deg, ${rank.color}20, ${rank.color}08)`, borderColor: `${rank.color}35` }
-            : { borderColor: 'rgba(255,255,255,0.1)' }
-          }
+          style={{
+            width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, fontWeight: 700, overflow: 'hidden',
+            background: rank ? `linear-gradient(135deg, ${rank.color}20, ${rank.color}08)` : '#1f1f27',
+            border: `1px solid ${rank ? rank.color + '30' : 'rgba(255,255,255,0.1)'}`,
+            color: rank?.color || '#f4f4f5',
+            flexShrink: 0,
+          }}
         >
-          {profile.profile_picture_url ? (
-            <Image src={profile.profile_picture_url} alt="pfp" width={32} height={32} className="object-cover" />
-          ) : (
-            <span style={{ color: rank?.color || '#00fff5' }}>{profile.display_name?.[0]?.toUpperCase() || '?'}</span>
-          )}
+          {profile.profile_picture_url
+            ? <Image src={profile.profile_picture_url} alt="pfp" width={30} height={30} style={{ objectFit: 'cover' }} />
+            : (profile.display_name?.[0] || profile.username?.[0] || '?').toUpperCase()
+          }
         </div>
-        {rank && <span className="text-base">{rank.emoji}</span>}
+        {rank && <span style={{ fontSize: 14, lineHeight: 1 }}>{rank.emoji}</span>}
       </button>
 
       <AnimatePresence>
         {open && (
           <>
-            <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+            <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
             <motion.div
-              className="absolute right-0 top-full mt-2 w-60 bg-black border border-white/[0.1] overflow-hidden z-20"
+              style={{
+                position: 'absolute', right: 0, top: '100%', marginTop: 8,
+                width: 220, background: '#0f0f14',
+                border: '1px solid rgba(255,255,255,0.1)',
+                zIndex: 20, overflow: 'hidden',
+              }}
               initial={{ opacity: 0, y: -8, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.97 }}
-              transition={{ duration: 0.15 }}
+              transition={{ duration: 0.12 }}
             >
-              {/* Profile info */}
-              <div className="p-4 border-b border-white/[0.08] bg-white/[0.02]">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-sm font-bold text-white">{profile.display_name || profile.username}</span>
-                  {profile.is_premium && <Crown className="w-3.5 h-3.5 text-yellow-400" />}
+              {/* Profile header */}
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#f4f4f5' }}>
+                    {profile.display_name || profile.username}
+                  </span>
+                  {profile.is_premium && <Crown style={{ width: 12, height: 12, color: '#fbbf24' }} />}
                 </div>
-                <span className="text-gray-500 text-xs">@{profile.username}</span>
+                <span style={{ fontSize: 12, color: '#52525b', fontFamily: 'monospace' }}>@{profile.username}</span>
                 {rank && (
-                  <div className="mt-2.5">
+                  <div style={{ marginTop: 8 }}>
                     <span
-                      className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 border font-mono"
-                      style={{ color: rank.color, borderColor: `${rank.color}35`, background: `${rank.color}10` }}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        fontSize: 11, fontWeight: 700, padding: '3px 10px',
+                        border: `1px solid ${rank.color}30`,
+                        background: `${rank.color}10`,
+                        color: rank.color, fontFamily: 'monospace',
+                      }}
                     >
                       {rank.emoji} {rank.label}
                     </span>
@@ -277,41 +426,59 @@ function ProfileDropdown({
               </div>
 
               {/* Menu items */}
-              <div className="p-1.5">
+              <div style={{ padding: '6px 0' }}>
                 {[
-                  { icon: User, label: 'Profile', href: `/profile/${profile.username}` },
+                  { icon: LayoutDashboard, label: 'My Dashboard', href: `/profile/${profile.username}` },
                   { icon: Settings, label: 'Settings', href: '/settings' },
-                  { icon: MessageCircle, label: 'Support', href: '/support' },
+                  { icon: Wallet, label: 'Wallet', href: '/wallet' },
+                  { icon: HelpCircle, label: 'Support & Help', href: '/support' },
                 ].map(({ icon: Icon, label, href }) => (
                   <button
                     key={href}
                     onClick={() => { router.push(href); setOpen(false) }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/[0.05] transition-all"
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 16px', background: 'none', border: 'none',
+                      cursor: 'pointer', fontSize: 14, color: '#a1a1aa',
+                      textAlign: 'left', transition: 'all 0.1s',
+                      fontFamily: 'inherit',
+                    }}
+                    className="dropdown-item"
                   >
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
                     {label}
-                    <ChevronRight className="w-3 h-3 ml-auto opacity-40" />
+                    <ChevronRight style={{ width: 12, height: 12, marginLeft: 'auto', opacity: 0.3 }} />
                   </button>
                 ))}
+
                 {isAdmin && (
                   <button
                     onClick={() => { router.push('/admin'); setOpen(false) }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-yellow-400 hover:bg-yellow-400/[0.06] transition-all"
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 16px', background: 'none', border: 'none',
+                      cursor: 'pointer', fontSize: 14, color: '#fbbf24',
+                      textAlign: 'left', transition: 'all 0.1s', fontFamily: 'inherit',
+                    }}
                   >
-                    <Shield className="w-3.5 h-3.5" />
+                    <Shield style={{ width: 14, height: 14 }} />
                     Admin Panel
-                    <ChevronRight className="w-3 h-3 ml-auto opacity-40" />
                   </button>
                 )}
-                <div className="border-t border-white/[0.06] mt-1 pt-1">
-                  <button
-                    onClick={() => { onSignout(); setOpen(false) }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-400/[0.06] transition-all"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    Sign Out
-                  </button>
-                </div>
+
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
+                <button
+                  onClick={() => { onSignout(); setOpen(false) }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 16px', background: 'none', border: 'none',
+                    cursor: 'pointer', fontSize: 14, color: '#f87171',
+                    textAlign: 'left', transition: 'all 0.1s', fontFamily: 'inherit',
+                  }}
+                >
+                  <LogOut style={{ width: 14, height: 14 }} />
+                  Sign Out
+                </button>
               </div>
             </motion.div>
           </>

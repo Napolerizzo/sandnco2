@@ -10,5 +10,12 @@ export default async function RootPage() {
 
   if (user) redirect('/feed')
 
-  return <LandingPage />
+  // Fetch top rumors for the landing page preview
+  const { data: previewRumors } = await supabase
+    .from('rumors')
+    .select('id, title, category, heat_score, created_at, anonymous_alias')
+    .order('heat_score', { ascending: false })
+    .limit(4)
+
+  return <LandingPage previewRumors={previewRumors || []} />
 }
