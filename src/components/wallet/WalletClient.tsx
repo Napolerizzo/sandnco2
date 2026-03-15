@@ -4,13 +4,13 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Zap, ArrowUpRight, ArrowDownLeft, Crown, Clock, Loader,
-  TrendingUp, Trophy, Gift, Terminal, Shield, Lock, Activity
+  TrendingUp, Trophy, Gift, Shield, Lock, Activity, Wallet
 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { loadRazorpayScript } from '@/lib/razorpay'
 import toast from 'react-hot-toast'
 
-interface Wallet {
+interface WalletData {
   balance: number
   locked_balance: number
   total_deposited: number
@@ -37,13 +37,13 @@ const DEPOSIT_AMOUNTS = [100, 200, 500, 1000, 2000, 5000]
 const MEMBERSHIP_PRICE = 299
 
 const TX_ICONS: Record<string, { icon: typeof Zap; color: string }> = {
-  deposit: { icon: ArrowDownLeft, color: 'var(--green)' },
-  withdrawal: { icon: ArrowUpRight, color: '#f97316' },
-  challenge_entry: { icon: Trophy, color: '#fbbf24' },
-  challenge_win: { icon: Trophy, color: '#a855f7' },
-  membership: { icon: Crown, color: '#fbbf24' },
-  refund: { icon: ArrowDownLeft, color: 'var(--cyan)' },
-  bonus: { icon: Gift, color: '#ec4899' },
+  deposit: { icon: ArrowDownLeft, color: '#22C55E' },
+  withdrawal: { icon: ArrowUpRight, color: '#F97316' },
+  challenge_entry: { icon: Trophy, color: '#F59E0B' },
+  challenge_win: { icon: Trophy, color: '#A855F7' },
+  membership: { icon: Crown, color: '#F59E0B' },
+  refund: { icon: ArrowDownLeft, color: '#6366F1' },
+  bonus: { icon: Gift, color: '#EC4899' },
 }
 
 export default function WalletClient({
@@ -52,7 +52,7 @@ export default function WalletClient({
   membership,
   userId,
 }: {
-  wallet: Wallet | null
+  wallet: WalletData | null
   transactions: Transaction[]
   membership: Membership | null
   userId: string
@@ -66,11 +66,11 @@ export default function WalletClient({
   const balance = wallet?.balance || 0
 
   const handleDeposit = async (amount: number) => {
-    if (amount < 10) { toast.error('MINIMUM_DEPOSIT: ₹10'); return }
+    if (amount < 10) { toast.error('Minimum deposit is ₹10'); return }
     setDepositing(true)
 
     const loaded = await loadRazorpayScript()
-    if (!loaded) { toast.error('PAYMENT_GATEWAY_ERROR'); setDepositing(false); return }
+    if (!loaded) { toast.error('Payment gateway failed to load. Please try again.'); setDepositing(false); return }
 
     const orderRes = await fetch('/api/payments/create-order', {
       method: 'POST',
@@ -90,7 +90,7 @@ export default function WalletClient({
       currency: 'INR',
       name: 'King of Good Times',
       description: 'Wallet Deposit',
-      theme: { color: '#00fff5' },
+      theme: { color: '#6366F1' },
       handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
         const verifyRes = await fetch('/api/payments/verify', {
           method: 'POST',
@@ -105,10 +105,10 @@ export default function WalletClient({
         })
         const result = await verifyRes.json()
         if (result.success) {
-          toast.success(`DEPOSIT_CONFIRMED: ₹${amount}`)
+          toast.success(`₹${amount} added to your wallet!`)
           setTimeout(() => window.location.reload(), 1500)
         } else {
-          toast.error('VERIFICATION_FAILED. CONTACT_SUPPORT.')
+          toast.error('Payment verification failed. Contact support.')
         }
         setDepositing(false)
       },
@@ -120,7 +120,7 @@ export default function WalletClient({
   const handleMembership = async () => {
     setUpgrading(true)
     const loaded = await loadRazorpayScript()
-    if (!loaded) { toast.error('PAYMENT_GATEWAY_ERROR'); setUpgrading(false); return }
+    if (!loaded) { toast.error('Payment gateway failed to load. Please try again.'); setUpgrading(false); return }
 
     const orderRes = await fetch('/api/payments/create-order', {
       method: 'POST',
@@ -140,7 +140,7 @@ export default function WalletClient({
       currency: 'INR',
       name: 'King of Good Times',
       description: 'Premium Membership',
-      theme: { color: '#00fff5' },
+      theme: { color: '#6366F1' },
       handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
         const verifyRes = await fetch('/api/payments/verify', {
           method: 'POST',
@@ -149,10 +149,10 @@ export default function WalletClient({
         })
         const result = await verifyRes.json()
         if (result.success) {
-          toast.success('PREMIUM_ACTIVATED. WELCOME_KING.')
+          toast.success('Welcome to Premium! 👑')
           setTimeout(() => window.location.reload(), 1500)
         } else {
-          toast.error('PAYMENT_FAILED. CONTACT_SUPPORT.')
+          toast.error('Payment failed. Please contact support.')
         }
         setUpgrading(false)
       },
@@ -161,218 +161,225 @@ export default function WalletClient({
     rzp.open()
   }
 
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'deposit', label: 'Add Funds' },
+    { id: 'history', label: 'History' },
+  ] as const
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <div className="text-[9px] text-[var(--text-dim)] tracking-[0.3em] uppercase mb-1">
-          // SECURE_VAULT
-        </div>
-        <h1 className="text-2xl font-extrabold text-glow-cyan uppercase tracking-wider">
-          YOUR_VAULT
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px 80px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Wallet size={22} style={{ color: 'var(--primary)' }} />
+          Your Wallet
         </h1>
-        <p className="text-[10px] text-[var(--text-dim)] mt-1 tracking-wider">SECURE. SWIFT. SOVEREIGN.</p>
+        <p style={{ fontSize: 13, color: 'var(--muted)' }}>Secure · Swift · Sovereign</p>
       </div>
 
       {/* Balance card */}
-      <div className="terminal mb-6">
-        <div className="terminal-header">
-          <div className="terminal-dots"><span /><span /><span /></div>
-          <div className="terminal-title">
-            <Zap className="w-3 h-3" /> VAULT_STATUS
+      <motion.div
+        className="card"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        style={{ marginBottom: 20, padding: '24px', background: 'linear-gradient(135deg, #1e1b4b 0%, var(--bg-card) 100%)' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+              Available balance
+            </p>
+            <p style={{ fontSize: 36, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.03em', marginBottom: 4 }}>
+              {formatCurrency(balance)}
+            </p>
+            {wallet?.locked_balance && wallet.locked_balance > 0 && (
+              <p style={{ fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Lock size={11} />
+                {formatCurrency(wallet.locked_balance)} locked in challenges
+              </p>
+            )}
+          </div>
+          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <p style={{ fontSize: 10, color: 'var(--subtle)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total deposited</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>{formatCurrency(wallet?.total_deposited || 0)}</p>
+            </div>
+            <div>
+              <p style={{ fontSize: 10, color: 'var(--subtle)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total won</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#A855F7' }}>{formatCurrency(wallet?.total_won || 0)}</p>
+            </div>
           </div>
         </div>
-        <div className="terminal-body">
-          <motion.div
-            className="flex items-start justify-between"
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          >
-            <div>
-              <p className="text-[9px] text-[var(--text-dim)] tracking-[0.2em] uppercase mb-2">AVAILABLE_BALANCE</p>
-              <p className="text-4xl font-extrabold text-glow-cyan">
-                {formatCurrency(balance)}
-              </p>
-              {wallet?.locked_balance && wallet.locked_balance > 0 && (
-                <p className="text-[9px] text-[var(--text-dim)] mt-2 tracking-wider">
-                  + {formatCurrency(wallet.locked_balance)} LOCKED_IN_CHALLENGES
-                </p>
-              )}
-            </div>
-            <div className="text-right space-y-3">
-              <div>
-                <p className="text-[8px] text-[var(--text-ghost)] tracking-wider">TOTAL_DEPOSITED</p>
-                <p className="text-sm font-bold text-[var(--text-dim)]">{formatCurrency(wallet?.total_deposited || 0)}</p>
-              </div>
-              <div>
-                <p className="text-[8px] text-[var(--text-ghost)] tracking-wider">TOTAL_WON</p>
-                <p className="text-sm font-bold text-[#a855f7]">{formatCurrency(wallet?.total_won || 0)}</p>
-              </div>
-            </div>
-          </motion.div>
+        <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--subtle)' }}>
+          <Shield size={11} />
+          Secured by Razorpay · AES-256 encryption
         </div>
-        <div className="terminal-footer">
-          <Lock className="w-3 h-3" />
-          ENCRYPTION: AES-256 | RAZORPAY_SECURED
-        </div>
-      </div>
+      </motion.div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6">
-        {(['overview', 'deposit', 'history'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-[10px] tracking-[0.15em] border transition-all uppercase ${
-              activeTab === tab
-                ? 'text-[var(--cyan)] border-[var(--cyan)] bg-[var(--cyan-ghost)]'
-                : 'text-[var(--text-dim)] border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)]'
-            }`}>
-            {tab}
+      <div style={{ display: 'flex', gap: 4, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: 3, marginBottom: 20 }}>
+        {tabs.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+            flex: 1, padding: '8px 12px', fontSize: 13, fontWeight: 500,
+            borderRadius: 'var(--r)', border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+            background: activeTab === tab.id ? 'var(--bg-card)' : 'transparent',
+            color: activeTab === tab.id ? 'var(--text)' : 'var(--muted)',
+            boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+          }}>
+            {tab.label}
           </button>
         ))}
       </div>
 
       <AnimatePresence mode="wait">
         {activeTab === 'overview' && (
-          <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+          <motion.div key="overview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
             {/* Premium membership */}
-            <div className="terminal">
-              <div className="terminal-header">
-                <div className="terminal-dots"><span /><span /><span /></div>
-                <div className="terminal-title">
-                  <Crown className="w-3 h-3" /> PREMIUM_MEMBERSHIP
-                </div>
-              </div>
-              <div className="terminal-body">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Crown className={`w-6 h-6 ${membership?.is_active ? 'text-[#fbbf24]' : 'text-[var(--text-dim)]'}`} />
-                    <div>
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">KING_MEMBERSHIP</h3>
-                      <p className="text-[9px] text-[var(--text-dim)] mt-0.5 tracking-wider">
-                        {membership?.is_active
-                          ? `ACTIVE_UNTIL: ${new Date(membership.expires_at).toLocaleDateString('en-IN')}`
-                          : 'UNLOCK_EXCLUSIVE_CHALLENGES, BADGES_&_EARLY_ACCESS'}
-                      </p>
-                    </div>
+            <div className="card" style={{ padding: '18px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                    background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Crown size={18} style={{ color: '#F59E0B' }} />
                   </div>
-                  {!membership?.is_active && (
-                    <motion.button
-                      onClick={handleMembership}
-                      disabled={upgrading}
-                      className="btn-execute px-5 py-2 text-[10px] flex items-center gap-2"
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      {upgrading ? <Loader className="w-3 h-3 animate-spin" /> : <Crown className="w-3 h-3" />}
-                      ₹{MEMBERSHIP_PRICE}/MONTH
-                    </motion.button>
-                  )}
+                  <div>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>King Membership</h3>
+                    <p style={{ fontSize: 12, color: 'var(--muted)' }}>
+                      {membership?.is_active
+                        ? `Active until ${new Date(membership.expires_at).toLocaleDateString('en-IN')}`
+                        : 'Exclusive challenges, badges & early access'}
+                    </p>
+                  </div>
                 </div>
+                {!membership?.is_active && (
+                  <motion.button
+                    onClick={handleMembership}
+                    disabled={upgrading}
+                    className="btn btn-primary"
+                    style={{ padding: '8px 16px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
+                    whileTap={{ scale: 0.96 }}
+                  >
+                    {upgrading ? <Loader size={13} className="animate-spin" /> : <Crown size={13} />}
+                    ₹{MEMBERSHIP_PRICE}/mo
+                  </motion.button>
+                )}
               </div>
             </div>
 
             {/* Quick deposit */}
-            <div className="terminal">
-              <div className="terminal-header">
-                <div className="terminal-dots"><span /><span /><span /></div>
-                <div className="terminal-title">
-                  <Zap className="w-3 h-3" /> QUICK_DEPOSIT
-                </div>
+            <div className="card" style={{ padding: '18px 20px' }}>
+              <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Zap size={14} style={{ color: 'var(--primary)' }} />
+                Quick deposit
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                {DEPOSIT_AMOUNTS.map(amt => (
+                  <motion.button
+                    key={amt}
+                    onClick={() => handleDeposit(amt)}
+                    disabled={depositing}
+                    style={{
+                      padding: '10px', fontSize: 13, fontWeight: 600,
+                      borderRadius: 'var(--r-md)', border: '1px solid var(--border)',
+                      background: 'var(--bg-elevated)', color: 'var(--text)', cursor: 'pointer',
+                      transition: 'all 0.15s', opacity: depositing ? 0.6 : 1,
+                    }}
+                    whileHover={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                    whileTap={{ scale: 0.96 }}
+                  >
+                    ₹{amt}
+                  </motion.button>
+                ))}
               </div>
-              <div className="terminal-body">
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  {DEPOSIT_AMOUNTS.map(amt => (
-                    <motion.button
-                      key={amt}
-                      onClick={() => handleDeposit(amt)}
-                      disabled={depositing}
-                      className="py-3 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)] hover:border-[var(--cyan)] hover:bg-[var(--cyan)]/10 text-[10px] font-bold transition-all disabled:opacity-50 text-[var(--cyan)]"
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      ₹{amt}
-                    </motion.button>
-                  ))}
-                </div>
-                <button onClick={() => setActiveTab('deposit')} className="btn-outline w-full py-2 text-[10px]">
-                  CUSTOM_AMOUNT →
-                </button>
-              </div>
+              <button onClick={() => setActiveTab('deposit')} className="btn btn-secondary" style={{ width: '100%', fontSize: 13 }}>
+                Custom amount →
+              </button>
             </div>
           </motion.div>
         )}
 
         {activeTab === 'deposit' && (
-          <motion.div key="deposit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="terminal">
-              <div className="terminal-header">
-                <div className="terminal-dots"><span /><span /><span /></div>
-                <div className="terminal-title">
-                  <Zap className="w-3 h-3" /> DEPOSIT_FUNDS
-                </div>
+          <motion.div key="deposit" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }}>
+            <div className="card" style={{ padding: '22px' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Zap size={15} style={{ color: 'var(--primary)' }} />
+                Add funds to wallet
+              </h3>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  value={customAmount}
+                  onChange={e => setCustomAmount(e.target.value)}
+                  placeholder="Enter amount (minimum ₹10)"
+                  min={10}
+                  max={100000}
+                  className="input"
+                  style={{ width: '100%', fontSize: 15 }}
+                />
               </div>
-              <div className="terminal-body space-y-4">
-                <div>
-                  <label className="label-terminal">
-                    <Zap className="w-3 h-3" /> AMOUNT (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={customAmount}
-                    onChange={e => setCustomAmount(e.target.value)}
-                    placeholder="ENTER_AMOUNT (MIN ₹10)"
-                    min={10}
-                    max={100000}
-                    className="input-terminal w-full text-lg"
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {DEPOSIT_AMOUNTS.map(amt => (
-                    <button key={amt} onClick={() => setCustomAmount(amt.toString())}
-                      className={`py-2 text-[10px] border transition-all ${
-                        customAmount === amt.toString()
-                          ? 'text-[var(--cyan)] border-[var(--cyan)] bg-[var(--cyan-ghost)]'
-                          : 'text-[var(--text-dim)] border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)]'
-                      }`}>
-                      ₹{amt}
-                    </button>
-                  ))}
-                </div>
-                <motion.button
-                  onClick={() => handleDeposit(parseFloat(customAmount) || 0)}
-                  disabled={depositing || !customAmount || parseFloat(customAmount) < 10}
-                  className="btn-execute w-full"
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-3">
-                    {depositing ? (
-                      <><Loader className="w-4 h-4 animate-spin" />PROCESSING...</>
-                    ) : (
-                      <><Zap className="w-4 h-4" />DEPOSIT ₹{customAmount || '0'}</>
-                    )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
+                {DEPOSIT_AMOUNTS.map(amt => (
+                  <button key={amt} onClick={() => setCustomAmount(amt.toString())} style={{
+                    padding: '8px', fontSize: 12, fontWeight: 500,
+                    borderRadius: 'var(--r-md)',
+                    border: `1px solid ${customAmount === amt.toString() ? 'var(--primary)' : 'var(--border)'}`,
+                    background: customAmount === amt.toString() ? 'var(--primary-dim)' : 'transparent',
+                    color: customAmount === amt.toString() ? 'var(--primary)' : 'var(--muted)',
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}>
+                    ₹{amt}
+                  </button>
+                ))}
+              </div>
+              <motion.button
+                onClick={() => handleDeposit(parseFloat(customAmount) || 0)}
+                disabled={depositing || !customAmount || parseFloat(customAmount) < 10}
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '13px', fontSize: 14, fontWeight: 600, marginBottom: 10, opacity: (!customAmount || parseFloat(customAmount) < 10 || depositing) ? 0.6 : 1 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {depositing ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <Loader size={15} className="animate-spin" />Processing...
                   </span>
-                </motion.button>
-                <p className="text-center text-[8px] text-[var(--text-ghost)] tracking-wider">
-                  POWERED_BY_RAZORPAY · 256-BIT_SSL_ENCRYPTED
-                </p>
-              </div>
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <Zap size={15} />Add ₹{customAmount || '0'} to wallet
+                  </span>
+                )}
+              </motion.button>
+              <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--subtle)' }}>
+                Powered by Razorpay · 256-bit SSL
+              </p>
             </div>
           </motion.div>
         )}
 
         {activeTab === 'history' && (
-          <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="terminal">
-              <div className="terminal-header">
-                <div className="terminal-dots"><span /><span /><span /></div>
-                <div className="terminal-title">
-                  <Activity className="w-3 h-3" /> TRANSACTION_LOG
-                </div>
+          <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }}>
+            <div className="card">
+              <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Activity size={14} style={{ color: 'var(--primary)' }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Transaction history</span>
               </div>
-              <div className="terminal-body">
-                {transactions.length === 0 && (
-                  <div className="text-center py-12">
-                    <TrendingUp className="w-8 h-8 mx-auto mb-3 text-[var(--text-dim)] opacity-30" />
-                    <p className="text-[var(--text-dim)] text-xs tracking-wider">NO_TRANSACTIONS_RECORDED.</p>
-                  </div>
-                )}
-                <div className="space-y-2">
+
+              {transactions.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)' }}>
+                  <TrendingUp size={36} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+                  <p style={{ fontSize: 14 }}>No transactions yet</p>
+                </div>
+              ) : (
+                <div>
                   {transactions.map((tx, i) => {
                     const txConfig = TX_ICONS[tx.type] || TX_ICONS.deposit
                     const TxIcon = txConfig.icon
@@ -381,29 +388,36 @@ export default function WalletClient({
                     return (
                       <motion.div
                         key={tx.id}
-                        className="flex items-center gap-3 p-3 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)]"
-                        initial={{ opacity: 0, x: -10 }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '12px 18px',
+                          borderBottom: i < transactions.length - 1 ? '1px solid var(--border)' : 'none',
+                        }}
+                        initial={{ opacity: 0, x: -6 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.04 }}
+                        transition={{ delay: i * 0.03 }}
                       >
-                        <div className="w-8 h-8 border flex items-center justify-center flex-shrink-0"
-                          style={{ borderColor: txConfig.color, background: `${txConfig.color}10` }}>
-                          <TxIcon className="w-3.5 h-3.5" style={{ color: txConfig.color }} />
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: `${txConfig.color}15`, border: `1px solid ${txConfig.color}30`,
+                        }}>
+                          <TxIcon size={15} style={{ color: txConfig.color }} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] text-white font-bold uppercase tracking-wider truncate">
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
                             {tx.description || tx.type.replace(/_/g, ' ')}
                           </p>
-                          <p className="text-[8px] text-[var(--text-ghost)] tracking-wider">{formatRelativeTime(tx.created_at)}</p>
+                          <p style={{ fontSize: 11, color: 'var(--subtle)' }}>{formatRelativeTime(tx.created_at)}</p>
                         </div>
-                        <div className="text-right">
-                          <p className={`text-xs font-extrabold ${isCredit ? 'text-[var(--green)]' : 'text-[var(--red)]'}`}>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: isCredit ? '#22C55E' : '#EF4444', marginBottom: 2 }}>
                             {isCredit ? '+' : '-'}{formatCurrency(Math.abs(tx.amount))}
                           </p>
-                          <span className={`text-[8px] font-bold tracking-wider uppercase ${
-                            tx.status === 'completed' ? 'text-[var(--green)]' :
-                            tx.status === 'pending' ? 'text-[#fbbf24]' : 'text-[var(--red)]'
-                          }`}>
+                          <span style={{
+                            fontSize: 10, fontWeight: 600, textTransform: 'capitalize',
+                            color: tx.status === 'completed' ? '#22C55E' : tx.status === 'pending' ? '#F59E0B' : '#EF4444',
+                          }}>
                             {tx.status}
                           </span>
                         </div>
@@ -411,7 +425,7 @@ export default function WalletClient({
                     )
                   })}
                 </div>
-              </div>
+              )}
             </div>
           </motion.div>
         )}

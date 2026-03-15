@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Search, UserX, Shield, Crown, AlertTriangle, CheckCircle, Terminal, Activity } from 'lucide-react'
+import { Search, UserX, Shield, Crown, AlertTriangle, CheckCircle, Activity } from 'lucide-react'
 import { RANKS, type RankTier } from '@/lib/ranks'
 import { formatRelativeTime } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -18,6 +18,13 @@ interface User {
   is_premium: boolean
   created_at: string
   wallet_balance: number
+}
+
+const STATUS_COLORS = {
+  active: '#22C55E',
+  warned: '#F59E0B',
+  suspended: '#F97316',
+  banned: '#EF4444',
 }
 
 export default function AdminUsersClient({ users }: { users: User[] }) {
@@ -38,122 +45,194 @@ export default function AdminUsersClient({ users }: { users: User[] }) {
     })
     const { success, error } = await res.json()
     if (success) {
-      toast.success(`ACTION_${action.toUpperCase()}_EXECUTED`)
+      const labels = { warn: 'warned', suspend: 'suspended', ban: 'banned', unsuspend: 'unsuspended' }
+      toast.success(`User ${labels[action]}`)
       window.location.reload()
     } else {
-      toast.error(error || 'ACTION_FAILED')
+      toast.error(error || 'Action failed')
     }
     setActionUser(null)
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <div className="text-[9px] text-[var(--text-dim)] tracking-[0.3em] uppercase mb-1">
-            // USER_MANAGEMENT
-          </div>
-          <h1 className="text-xl font-extrabold text-glow-cyan uppercase tracking-wider">AGENTS</h1>
-          <p className="text-[9px] text-[var(--text-dim)] tracking-wider">{users.length} TOTAL_REGISTERED</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 2 }}>
+            Users
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--muted)' }}>{users.length} total registered</p>
         </div>
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-dim)]" />
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="SEARCH_USERNAME_OR_EMAIL..."
-          className="input-terminal w-full pl-10 pr-4 py-3 text-[10px]" />
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: 16 }}>
+        <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--subtle)' }} />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by username or email..."
+          className="input"
+          style={{ width: '100%', paddingLeft: 38 }}
+        />
       </div>
 
-      <div className="terminal">
-        <div className="terminal-header">
-          <div className="terminal-dots"><span /><span /><span /></div>
-          <div className="terminal-title">
-            <Activity className="w-3 h-3" /> AGENT_REGISTRY
-          </div>
-        </div>
-        <div className="terminal-body p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[var(--cyan-border)]">
-                  {['AGENT', 'RANK', 'STATUS', 'BALANCE', 'JOINED', 'ACTIONS'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[8px] text-[var(--text-dim)] tracking-[0.2em] uppercase">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((user, i) => {
-                  const rank = RANKS[user.rank] || RANKS.ghost_in_the_city
-                  return (
-                    <motion.tr key={user.id} className="border-b border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)] transition-all"
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base">{rank.emoji}</span>
-                          <div>
-                            <p className="text-[10px] text-white font-bold uppercase tracking-wider">{user.display_name || user.username}</p>
-                            <p className="text-[8px] text-[var(--text-dim)] tracking-wider">@{user.username}</p>
-                          </div>
-                          {user.is_premium && <Crown className="w-3 h-3 text-[#fbbf24]" />}
+      {/* Table */}
+      <div className="card" style={{ overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                {['User', 'Rank', 'Status', 'Balance', 'Joined', 'Actions'].map(h => (
+                  <th key={h} style={{
+                    padding: '10px 14px', textAlign: 'left',
+                    fontSize: 11, fontWeight: 600, color: 'var(--muted)',
+                    textTransform: 'uppercase', letterSpacing: '0.06em',
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((user, i) => {
+                const rank = RANKS[user.rank] || RANKS.ghost_in_the_city
+                const statusColor = STATUS_COLORS[user.status as keyof typeof STATUS_COLORS] || '#6B7280'
+                return (
+                  <motion.tr
+                    key={user.id}
+                    style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.02 }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {/* User */}
+                    <td style={{ padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 18 }}>{rank.emoji}</span>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 1 }}>
+                            {user.display_name || user.username}
+                            {user.is_premium && <Crown size={11} style={{ color: '#F59E0B', marginLeft: 5, display: 'inline' }} />}
+                          </p>
+                          <p style={{ fontSize: 11, color: 'var(--subtle)' }}>@{user.username}</p>
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 border"
-                          style={{ color: rank.color, borderColor: `${rank.color}40`, background: `${rank.color}10` }}>
-                          {rank.label.toUpperCase().replace(/\s+/g, '_')}
-                        </span>
-                        <p className="text-[8px] text-[var(--text-ghost)] mt-0.5">{user.xp?.toLocaleString() || 0} XP</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 border ${
-                          user.status === 'active' ? 'text-[var(--green)] border-[var(--green)]' :
-                          user.status === 'warned' ? 'text-[#fbbf24] border-[#fbbf24]' :
-                          user.status === 'suspended' ? 'text-[#f97316] border-[#f97316]' :
-                          'text-[var(--red)] border-[var(--red)]'
-                        }`}>{user.status}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-[10px] text-[var(--text-dim)]">₹{user.wallet_balance?.toFixed(2) || '0.00'}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-[9px] text-[var(--text-ghost)] tracking-wider">{formatRelativeTime(user.created_at)}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          {user.status !== 'warned' && (
-                            <button onClick={() => handleAction(user.id, 'warn')} disabled={actionUser === user.id}
-                              title="WARN"
-                              className="p-1.5 border border-transparent hover:border-[#fbbf24]/30 hover:bg-[#fbbf24]/10 text-[#fbbf24] transition-all">
-                              <AlertTriangle className="w-3 h-3" />
-                            </button>
-                          )}
-                          {user.status === 'active' || user.status === 'warned' ? (
-                            <button onClick={() => handleAction(user.id, 'suspend')} disabled={actionUser === user.id}
-                              title="SUSPEND"
-                              className="p-1.5 border border-transparent hover:border-[#f97316]/30 hover:bg-[#f97316]/10 text-[#f97316] transition-all">
-                              <Shield className="w-3 h-3" />
-                            </button>
-                          ) : (
-                            <button onClick={() => handleAction(user.id, 'unsuspend')} disabled={actionUser === user.id}
-                              title="UNSUSPEND"
-                              className="p-1.5 border border-transparent hover:border-[var(--green)]/30 hover:bg-[var(--green)]/10 text-[var(--green)] transition-all">
-                              <CheckCircle className="w-3 h-3" />
-                            </button>
-                          )}
-                          <button onClick={() => handleAction(user.id, 'ban')} disabled={actionUser === user.id}
-                            title="BAN"
-                            className="p-1.5 border border-transparent hover:border-[var(--red)]/30 hover:bg-[var(--red)]/10 text-[var(--red)] transition-all">
-                            <UserX className="w-3 h-3" />
+                      </div>
+                    </td>
+
+                    {/* Rank */}
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, padding: '2px 8px',
+                        borderRadius: 'var(--r-sm)', background: `${rank.color}15`, color: rank.color,
+                      }}>
+                        {rank.label}
+                      </span>
+                      <p style={{ fontSize: 10, color: 'var(--subtle)', marginTop: 2 }}>{user.xp?.toLocaleString() || 0} XP</p>
+                    </td>
+
+                    {/* Status */}
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, padding: '3px 8px',
+                        borderRadius: 'var(--r-sm)', textTransform: 'capitalize',
+                        background: `${statusColor}15`, color: statusColor,
+                      }}>
+                        {user.status}
+                      </span>
+                    </td>
+
+                    {/* Balance */}
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
+                        ₹{user.wallet_balance?.toFixed(2) || '0.00'}
+                      </span>
+                    </td>
+
+                    {/* Joined */}
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{ fontSize: 12, color: 'var(--subtle)' }}>{formatRelativeTime(user.created_at)}</span>
+                    </td>
+
+                    {/* Actions */}
+                    <td style={{ padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {user.status !== 'warned' && (
+                          <button
+                            onClick={() => handleAction(user.id, 'warn')}
+                            disabled={actionUser === user.id}
+                            title="Warn"
+                            style={{
+                              width: 28, height: 28, borderRadius: 6, border: '1px solid transparent',
+                              background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              color: '#F59E0B', transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.1)'; e.currentTarget.style.borderColor = 'rgba(245,158,11,0.3)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent' }}
+                          >
+                            <AlertTriangle size={13} />
                           </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                        )}
+                        {user.status === 'active' || user.status === 'warned' ? (
+                          <button
+                            onClick={() => handleAction(user.id, 'suspend')}
+                            disabled={actionUser === user.id}
+                            title="Suspend"
+                            style={{
+                              width: 28, height: 28, borderRadius: 6, border: '1px solid transparent',
+                              background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              color: '#F97316', transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(249,115,22,0.1)'; e.currentTarget.style.borderColor = 'rgba(249,115,22,0.3)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent' }}
+                          >
+                            <Shield size={13} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleAction(user.id, 'unsuspend')}
+                            disabled={actionUser === user.id}
+                            title="Unsuspend"
+                            style={{
+                              width: 28, height: 28, borderRadius: 6, border: '1px solid transparent',
+                              background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              color: '#22C55E', transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(34,197,94,0.1)'; e.currentTarget.style.borderColor = 'rgba(34,197,94,0.3)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent' }}
+                          >
+                            <CheckCircle size={13} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleAction(user.id, 'ban')}
+                          disabled={actionUser === user.id}
+                          title="Ban"
+                          style={{
+                            width: 28, height: 28, borderRadius: 6, border: '1px solid transparent',
+                            background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: '#EF4444', transition: 'all 0.15s',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent' }}
+                        >
+                          <UserX size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                )
+              })}
+            </tbody>
+          </table>
+
+          {filtered.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
+              <p style={{ fontSize: 14 }}>No users found</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

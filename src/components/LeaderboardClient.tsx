@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Crown, Trophy, Flame, Search, Star, MapPin, Terminal, Activity } from 'lucide-react'
+import { Crown, Trophy, Flame, Search, Star, MapPin } from 'lucide-react'
 import { RANKS, PFP_STYLES, type RankTier, type PfpStyle } from '@/lib/ranks'
 
 interface User {
@@ -21,6 +21,11 @@ interface User {
   city: string | null
 }
 
+const PODIUM_COLORS = ['#C0C0C0', '#FFD700', '#CD7F32']
+const PODIUM_ORDER = [1, 0, 2] // 2nd, 1st, 3rd
+const PODIUM_HEIGHTS = [96, 120, 80]
+const PODIUM_LABELS = ['2nd', '1st', '3rd']
+
 export default function LeaderboardClient({ users, currentUserId }: { users: User[]; currentUserId: string }) {
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<'xp' | 'challenges' | 'myths'>('xp')
@@ -36,61 +41,89 @@ export default function LeaderboardClient({ users, currentUserId }: { users: Use
   const currentUserPos = sorted.findIndex(u => u.id === currentUserId) + 1
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 16px 80px' }}>
       {/* Header */}
-      <div className="text-center mb-8">
-        <div className="text-[9px] text-[var(--text-dim)] tracking-[0.3em] uppercase mb-2">
-          // RANK_HIERARCHY
-        </div>
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200 }}>
-          <span className="text-5xl">👑</span>
+      <div style={{ textAlign: 'center', marginBottom: 36 }}>
+        <motion.div
+          initial={{ scale: 0, rotate: -10 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+          style={{ fontSize: 48, marginBottom: 12 }}
+        >
+          👑
         </motion.div>
-        <h1 className="text-3xl font-extrabold text-glow-cyan uppercase tracking-wider mt-4">
-          CITY_THRONE
+        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text)', marginBottom: 6 }}>
+          City Throne
         </h1>
-        <p className="text-[10px] text-[var(--text-dim)] mt-2 tracking-wider">WHO_RULES_THE_STREETS?</p>
+        <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>Who rules the streets of Faridabad?</p>
         {currentUserPos > 0 && (
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 border border-[var(--cyan-border)] bg-[var(--cyan-ghost)]">
-            <Star className="w-3 h-3 text-[var(--cyan)]" />
-            <span className="text-[10px] text-[var(--cyan)] tracking-wider">YOUR_RANK: #{currentUserPos}</span>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '7px 16px', borderRadius: 'var(--r-lg)',
+              background: 'var(--primary-dim)', border: '1px solid rgba(99,102,241,0.3)',
+              fontSize: 13, color: 'var(--primary)', fontWeight: 600,
+            }}
+          >
+            <Star size={13} />
+            Your rank: #{currentUserPos}
+          </motion.div>
         )}
       </div>
 
       {/* Top 3 podium */}
       {sorted.length >= 3 && (
-        <div className="flex items-end justify-center gap-4 mb-10">
-          {[1, 0, 2].map((pos, i) => {
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 16, marginBottom: 40 }}>
+          {PODIUM_ORDER.map((pos, i) => {
             const user = sorted[pos]
+            if (!user) return null
             const rank = RANKS[user.rank]
             const pfp = PFP_STYLES[user.pfp_style] || PFP_STYLES.neon_orb
-            const heights = ['h-28', 'h-36', 'h-24']
-            const podiumLabels = ['2ND', '1ST', '3RD']
-            const podiumColors = ['#9ca3af', 'var(--cyan)', '#cd7f32']
+            const color = PODIUM_COLORS[i]
 
             return (
-              <motion.div key={pos} className="flex flex-col items-center"
-                initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                <div className="relative mb-2">
-                  <div className="w-14 h-14 overflow-hidden border-2"
-                    style={{
-                      borderColor: podiumColors[i],
-                      background: `linear-gradient(135deg, ${pfp.gradient[0]}, ${pfp.gradient[1]})`,
-                      boxShadow: `0 0 20px ${podiumColors[i]}40`,
-                    }}>
-                    <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white">
-                      {user.display_name?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase()}
-                    </div>
+              <motion.div
+                key={pos}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25, delay: i * 0.1 }}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+              >
+                {/* Avatar */}
+                <div style={{ position: 'relative', marginBottom: 10 }}>
+                  <div style={{
+                    width: 52, height: 52, borderRadius: '50%', overflow: 'hidden',
+                    border: `2px solid ${color}`,
+                    background: `linear-gradient(135deg, ${pfp.gradient[0]}, ${pfp.gradient[1]})`,
+                    boxShadow: `0 0 20px ${color}40`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 20, fontWeight: 700, color: '#fff',
+                  }}>
+                    {user.display_name?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase()}
                   </div>
-                  <span className="absolute -top-2 -right-2 text-base">{rank.emoji}</span>
+                  <span style={{ position: 'absolute', top: -6, right: -6, fontSize: 16 }}>{rank.emoji}</span>
                 </div>
-                <p className="text-[10px] text-white font-bold uppercase tracking-wider">{user.display_name || user.username}</p>
-                <p className="text-[9px] text-[var(--text-dim)]">{user.xp.toLocaleString()} XP</p>
-                <div className={`${heights[i]} w-20 mt-2 flex items-end justify-center pb-2 border-t-2`}
-                  style={{ background: `linear-gradient(to top, ${podiumColors[i]}15, transparent)`, borderColor: podiumColors[i] }}>
-                  <span className="text-[10px] font-bold tracking-wider" style={{ color: podiumColors[i] }}>
-                    {podiumLabels[i]}
-                  </span>
+
+                {/* Name */}
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 2, textAlign: 'center', maxWidth: 80 }}>
+                  {user.display_name || user.username}
+                </p>
+                <p style={{ fontSize: 11, color: 'var(--subtle)', marginBottom: 8 }}>
+                  {user.xp.toLocaleString()} XP
+                </p>
+
+                {/* Podium block */}
+                <div style={{
+                  width: 72, height: PODIUM_HEIGHTS[i],
+                  background: `linear-gradient(to top, ${color}20, transparent)`,
+                  borderTop: `2px solid ${color}`,
+                  borderRadius: '6px 6px 0 0',
+                  display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                  paddingBottom: 8,
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color }}>{PODIUM_LABELS[i]}</span>
                 </div>
               </motion.div>
             )
@@ -99,99 +132,131 @@ export default function LeaderboardClient({ users, currentUserId }: { users: Use
       )}
 
       {/* Tabs + search */}
-      <div className="flex items-center gap-3 mb-5 flex-wrap">
-        <div className="flex gap-1">
-          {([['xp', 'XP', Crown], ['challenges', 'WINS', Trophy], ['myths', 'BUSTED', Flame]] as const).map(([id, label, Icon]) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] tracking-[0.1em] border transition-all ${
-                tab === id
-                  ? 'text-[var(--cyan)] border-[var(--cyan)] bg-[var(--cyan-ghost)]'
-                  : 'text-[var(--text-dim)] border-[var(--cyan-border)] hover:bg-[var(--cyan-ghost)]'
-              }`}>
-              <Icon className="w-3 h-3" />{label}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: 3 }}>
+          {([
+            ['xp', 'XP', Crown],
+            ['challenges', 'Wins', Trophy],
+            ['myths', 'Busted', Flame],
+          ] as const).map(([id, label, Icon]) => (
+            <button key={id} onClick={() => setTab(id)} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 12px', fontSize: 12, fontWeight: 500,
+              borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
+              transition: 'all 0.15s',
+              background: tab === id ? 'var(--bg-card)' : 'transparent',
+              color: tab === id ? 'var(--text)' : 'var(--muted)',
+              boxShadow: tab === id ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+            }}>
+              <Icon size={12} />{label}
             </button>
           ))}
         </div>
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-dim)]" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="SEARCH_AGENT..."
-            className="input-terminal w-full pl-9 pr-4 py-2 text-[10px]" />
+        <div style={{ flex: 1, minWidth: 180, position: 'relative' }}>
+          <Search size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--subtle)' }} />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search players..."
+            className="input"
+            style={{ width: '100%', paddingLeft: 34 }}
+          />
         </div>
       </div>
 
       {/* Full list */}
-      <div className="terminal">
-        <div className="terminal-header">
-          <div className="terminal-dots"><span /><span /><span /></div>
-          <div className="terminal-title">
-            <Activity className="w-3 h-3" /> RANKED_AGENTS
-          </div>
-        </div>
-        <div className="terminal-body space-y-1">
-          {sorted.map((user, i) => {
-            const rank = RANKS[user.rank]
-            const pfp = PFP_STYLES[user.pfp_style] || PFP_STYLES.neon_orb
-            const isCurrentUser = user.id === currentUserId
-            const value = tab === 'xp' ? `${user.xp.toLocaleString()} XP` : tab === 'challenges' ? `${user.challenges_won} WINS` : `${user.myths_busted} BUSTED`
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {sorted.map((user, i) => {
+          const rank = RANKS[user.rank]
+          const pfp = PFP_STYLES[user.pfp_style] || PFP_STYLES.neon_orb
+          const isCurrentUser = user.id === currentUserId
+          const value = tab === 'xp'
+            ? `${user.xp.toLocaleString()} XP`
+            : tab === 'challenges'
+            ? `${user.challenges_won} wins`
+            : `${user.myths_busted} busted`
 
-            return (
-              <motion.div key={user.id}
-                className={`flex items-center gap-3 p-3 border transition-all cursor-pointer ${
-                  isCurrentUser
-                    ? 'border-[var(--cyan)] bg-[var(--cyan-ghost)]'
-                    : 'border-[var(--cyan-border)] bg-transparent hover:bg-[var(--cyan-ghost)]'
-                }`}
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
-                whileHover={{ x: 2 }}
-              >
-                {/* Rank number */}
-                <div className={`w-8 text-center text-[10px] font-bold ${
-                  i === 0 ? 'text-[var(--cyan)]' : i === 1 ? 'text-[var(--text-dim)]' : i === 2 ? 'text-[#cd7f32]' : 'text-[var(--text-ghost)]'
-                }`}>
-                  {i < 3 ? ['#1', '#2', '#3'][i] : `#${i + 1}`}
-                </div>
+          const posColor = i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'var(--subtle)'
 
-                {/* Avatar */}
-                <div className="w-9 h-9 overflow-hidden flex-shrink-0 border"
-                  style={{
-                    background: `linear-gradient(135deg, ${pfp.gradient[0]}, ${pfp.gradient[1]})`,
-                    borderColor: `${rank.color}40`,
+          return (
+            <motion.div
+              key={user.id}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+                borderRadius: 'var(--r-md)', cursor: 'pointer', transition: 'background 0.15s',
+                background: isCurrentUser ? 'var(--primary-dim)' : 'var(--bg-card)',
+                border: `1px solid ${isCurrentUser ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
+              }}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30, delay: i * 0.02 }}
+              whileHover={{ x: 2 }}
+            >
+              {/* Position */}
+              <div style={{ width: 28, textAlign: 'center', fontSize: 12, fontWeight: 700, color: posColor, flexShrink: 0 }}>
+                #{i + 1}
+              </div>
+
+              {/* Avatar */}
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                background: `linear-gradient(135deg, ${pfp.gradient[0]}, ${pfp.gradient[1]})`,
+                border: `1.5px solid ${rank.color}40`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, fontWeight: 700, color: '#fff',
+              }}>
+                {user.display_name?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase()}
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Link href={`/profile/${user.username}`} style={{
+                    fontSize: 13, fontWeight: 600, color: 'var(--text)',
+                    textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
-                  <div className="w-full h-full flex items-center justify-center text-sm font-bold text-white">
-                    {user.display_name?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase()}
-                  </div>
+                    {user.display_name || user.username}
+                  </Link>
+                  {user.is_premium && <Crown size={12} style={{ color: '#F59E0B', flexShrink: 0 }} />}
+                  {isCurrentUser && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
+                      background: 'var(--primary-dim)', color: 'var(--primary)',
+                    }}>You</span>
+                  )}
                 </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Link href={`/profile/${user.username}`} className="font-bold text-[10px] text-white hover:text-[var(--cyan)] transition-colors truncate uppercase tracking-wider">
-                      {user.display_name || user.username}
-                    </Link>
-                    {user.is_premium && <Crown className="w-3 h-3 text-[#fbbf24] flex-shrink-0" />}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 border"
-                      style={{ color: rank.color, borderColor: `${rank.color}40`, background: `${rank.color}10` }}>
-                      {rank.emoji} {rank.label.toUpperCase().replace(/\s+/g, '_')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 'var(--r-sm)',
+                    background: `${rank.color}15`, color: rank.color,
+                  }}>
+                    {rank.emoji} {rank.label}
+                  </span>
+                  {user.city && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--subtle)' }}>
+                      <MapPin size={9} />{user.city}
                     </span>
-                    {user.city && (
-                      <span className="flex items-center gap-0.5 text-[var(--text-ghost)] text-[8px] tracking-wider">
-                        <MapPin className="w-2 h-2" />{user.city}
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
+              </div>
 
-                {/* Score */}
-                <div className="text-right">
-                  <p className="text-[10px] font-extrabold text-[var(--cyan)]">{value}</p>
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
+              {/* Score */}
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: isCurrentUser ? 'var(--primary)' : 'var(--text)' }}>
+                  {value}
+                </p>
+              </div>
+            </motion.div>
+          )
+        })}
+
+        {sorted.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)' }}>
+            <Trophy size={36} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+            <p style={{ fontSize: 14 }}>No players found</p>
+          </div>
+        )}
       </div>
     </div>
   )
