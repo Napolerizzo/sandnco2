@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Flame, AlertTriangle, CheckCircle, Loader, Eye, EyeOff,
-  Hash, X, Shield, Lock, XCircle, ChevronLeft, MapPin, Sparkles
+  Flame, CheckCircle, Loader, Eye, EyeOff,
+  Hash, X, Shield, XCircle, ChevronLeft, MapPin, Sparkles, Crown, Lock
 } from 'lucide-react'
 import { generateAnonymousAlias } from '@/lib/utils'
 import { track, EVENTS } from '@/lib/posthog'
@@ -16,15 +16,9 @@ import Link from 'next/link'
 const CATEGORIES = ['general', 'drama', 'politics', 'music', 'sports', 'tech', 'lifestyle', 'crime', 'romance']
 
 const CATEGORY_COLORS: Record<string, string> = {
-  drama: '#EF4444',
-  politics: '#F59E0B',
-  music: '#A855F7',
-  sports: '#22C55E',
-  tech: '#3B82F6',
-  romance: '#EC4899',
-  crime: '#F97316',
-  lifestyle: '#6366F1',
-  general: '#6B7280',
+  drama: '#EF4444', politics: '#F59E0B', music: '#A855F7',
+  sports: '#22C55E', tech: '#3B82F6', romance: '#EC4899',
+  crime: '#F97316', lifestyle: '#6366F1', general: '#6B7280',
 }
 
 export default function NewRumorPage() {
@@ -42,6 +36,18 @@ export default function NewRumorPage() {
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
   const [rulesAccepted, setRulesAccepted] = useState(false)
   const [aiChecking, setAiChecking] = useState(false)
+  const [isPremium, setIsPremium] = useState<boolean | null>(null)
+  const [checkingPremium, setCheckingPremium] = useState(true)
+
+  // Check premium status on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { router.push('/login?next=/rumors/new'); return }
+      const { data } = await supabase.from('users').select('is_premium').eq('id', user.id).single()
+      setIsPremium(data?.is_premium ?? false)
+      setCheckingPremium(false)
+    })
+  }, [supabase, router])
 
   const addTag = useCallback(() => {
     const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -70,6 +76,7 @@ export default function NewRumorPage() {
     setAiChecking(true)
     setMessage(null)
 
+    // AI moderation check
     const modRes = await fetch('/api/ai/moderate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -84,34 +91,84 @@ export default function NewRumorPage() {
       return
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
+    // Post via server API (bypasses RLS)
+    const res = await fetch('/api/rumors/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        content,
+        category,
+        tags,
+        isAnonymous,
+        city,
+        anonymousAlias: generateAnonymousAlias(),
+      }),
+    })
+    const result = await res.json()
 
-    const alias = isAnonymous ? generateAnonymousAlias() : undefined
-
-    const { data, error } = await supabase.from('rumors').insert({
-      author_id: user.id,
-      anonymous_alias: alias || generateAnonymousAlias(),
-      title,
-      content,
-      category,
-      tags,
-      is_anonymous: isAnonymous,
-      city: city || null,
-      status: 'pending',
-    }).select('id').single()
-
-    if (error) {
-      setMessage({ type: 'error', text: `Something went wrong: ${error.message}` })
+    if (!res.ok || result.error) {
+      setMessage({ type: 'error', text: result.error || 'Something went wrong. Please try again.' })
       setLoading(false)
       return
     }
 
-    await supabase.rpc('increment_xp', { user_id: user.id, amount: 50 }).catch(() => {})
     track(EVENTS.RUMOR_POSTED, { category, is_anonymous: isAnonymous, has_city: !!city })
     toast.success('Rumor posted! +50 XP')
-    router.push(`/rumors/${data.id}`)
-  }, [title, content, category, tags, isAnonymous, city, rulesAccepted, supabase, router])
+    router.push(`/rumors/${result.id}`)
+  }, [title, content, category, tags, isAnonymous, city, rulesAccepted, router])
+
+  // Loading state
+  if (checkingPremium) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+        <Loader size={24} className="animate-spin" style={{ color: 'var(--primary)' }} />
+      </div>
+    )
+  }
+
+  // Non-premium gate
+  if (!isPremium) {
+    return (
+      <div style={{ maxWidth: 520, margin: '80px auto', padding: '0 16px', textAlign: 'center' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          className="card"
+          style={{ padding: '40px 32px' }}
+        >
+          <div style={{
+            width: 64, height: 64, borderRadius: 16, margin: '0 auto 20px',
+            background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Crown size={28} style={{ color: '#F59E0B' }} />
+          </div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 10, letterSpacing: '-0.02em' }}>
+            Premium Feature
+          </h1>
+          <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 28 }}>
+            Posting rumors is exclusive to <strong style={{ color: '#F59E0B' }}>Premium members</strong>.
+            Upgrade for ₹80/month to drop intel, create challenges, and unlock exclusive badges.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Link href="/wallet" style={{ textDecoration: 'none' }}>
+              <button className="btn btn-primary" style={{ width: '100%', padding: '12px', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <Crown size={15} />
+                Upgrade to Premium — ₹80/mo
+              </button>
+            </Link>
+            <Link href="/rumors" style={{ textDecoration: 'none' }}>
+              <button className="btn btn-secondary" style={{ width: '100%', padding: '11px', fontSize: 14 }}>
+                Back to Rumors
+              </button>
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '32px 16px 80px' }}>
@@ -155,10 +212,8 @@ export default function NewRumorPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 400, damping: 30, delay: 0.05 }}
           style={{
-            background: 'rgba(239,68,68,0.06)',
-            border: '1px solid rgba(239,68,68,0.2)',
-            borderRadius: 'var(--r-lg)',
-            padding: '16px 20px',
+            background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
+            borderRadius: 'var(--r-lg)', padding: '16px 20px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -208,13 +263,9 @@ export default function NewRumorPage() {
                 Rumor Title
               </label>
               <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
+                type="text" value={title} onChange={e => setTitle(e.target.value)}
                 placeholder="What's the tea? Make it intriguing..."
-                maxLength={150}
-                className="input"
-                style={{ width: '100%' }}
+                maxLength={150} className="input" style={{ width: '100%' }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
                 <span style={{ fontSize: 11, color: 'var(--subtle)' }}>Be cryptic, be compelling</span>
@@ -228,12 +279,9 @@ export default function NewRumorPage() {
                 The Story
               </label>
               <textarea
-                value={content}
-                onChange={e => setContent(e.target.value)}
+                value={content} onChange={e => setContent(e.target.value)}
                 placeholder="Spill it. What do you know? Keep it interesting without naming names..."
-                maxLength={2000}
-                rows={6}
-                className="input"
+                maxLength={2000} rows={6} className="input"
                 style={{ width: '100%', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
@@ -252,23 +300,13 @@ export default function NewRumorPage() {
                   const color = CATEGORY_COLORS[cat]
                   const isSelected = category === cat
                   return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCategory(cat)}
-                      style={{
-                        padding: '6px 14px',
-                        fontSize: 12,
-                        fontWeight: 500,
-                        borderRadius: 'var(--r-md)',
-                        border: `1px solid ${isSelected ? color : 'var(--border)'}`,
-                        background: isSelected ? `${color}15` : 'transparent',
-                        color: isSelected ? color : 'var(--muted)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                        textTransform: 'capitalize',
-                      }}
-                    >
+                    <button key={cat} type="button" onClick={() => setCategory(cat)} style={{
+                      padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--r-md)',
+                      border: `1px solid ${isSelected ? color : 'var(--border)'}`,
+                      background: isSelected ? `${color}15` : 'transparent',
+                      color: isSelected ? color : 'var(--muted)',
+                      cursor: 'pointer', transition: 'all 0.15s', textTransform: 'capitalize',
+                    }}>
                       {cat}
                     </button>
                   )
@@ -285,19 +323,13 @@ export default function NewRumorPage() {
                 <div style={{ flex: 1, position: 'relative' }}>
                   <Hash size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--subtle)' }} />
                   <input
-                    type="text"
-                    value={tagInput}
-                    onChange={e => setTagInput(e.target.value)}
+                    type="text" value={tagInput} onChange={e => setTagInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                    placeholder="Add a tag"
-                    className="input"
-                    style={{ width: '100%', paddingLeft: 36 }}
+                    placeholder="Add a tag" className="input" style={{ width: '100%', paddingLeft: 36 }}
                     disabled={tags.length >= 5}
                   />
                 </div>
-                <button type="button" onClick={addTag} className="btn btn-secondary" style={{ flexShrink: 0 }}>
-                  Add
-                </button>
+                <button type="button" onClick={addTag} className="btn btn-secondary" style={{ flexShrink: 0 }}>Add</button>
               </div>
               {tags.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
@@ -305,8 +337,7 @@ export default function NewRumorPage() {
                     <span key={tag} style={{
                       display: 'inline-flex', alignItems: 'center', gap: 4,
                       background: 'var(--primary-dim)', border: '1px solid rgba(99,102,241,0.3)',
-                      borderRadius: 'var(--r)', padding: '3px 10px',
-                      fontSize: 12, color: 'var(--primary)',
+                      borderRadius: 'var(--r)', padding: '3px 10px', fontSize: 12, color: 'var(--primary)',
                     }}>
                       #{tag}
                       <button type="button" onClick={() => setTags(tags.filter(t => t !== tag))}
@@ -327,12 +358,9 @@ export default function NewRumorPage() {
               <div style={{ position: 'relative' }}>
                 <MapPin size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--subtle)' }} />
                 <input
-                  type="text"
-                  value={city}
-                  onChange={e => setCity(e.target.value)}
+                  type="text" value={city} onChange={e => setCity(e.target.value)}
                   placeholder="Which city does this come from?"
-                  className="input"
-                  style={{ width: '100%', paddingLeft: 36 }}
+                  className="input" style={{ width: '100%', paddingLeft: 36 }}
                 />
               </div>
             </div>
@@ -343,16 +371,14 @@ export default function NewRumorPage() {
               padding: '14px 16px',
               background: isAnonymous ? 'rgba(99,102,241,0.06)' : 'var(--bg-elevated)',
               border: `1px solid ${isAnonymous ? 'rgba(99,102,241,0.25)' : 'var(--border)'}`,
-              borderRadius: 'var(--r-md)',
-              transition: 'all 0.2s',
+              borderRadius: 'var(--r-md)', transition: 'all 0.2s',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{
                   width: 32, height: 32, borderRadius: 8,
                   background: isAnonymous ? 'rgba(99,102,241,0.15)' : 'var(--bg-card)',
                   border: `1px solid ${isAnonymous ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.2s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s',
                 }}>
                   {isAnonymous ? <EyeOff size={14} style={{ color: 'var(--primary)' }} /> : <Eye size={14} style={{ color: 'var(--muted)' }} />}
                 </div>
@@ -363,22 +389,14 @@ export default function NewRumorPage() {
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsAnonymous(!isAnonymous)}
-                style={{
-                  width: 44, height: 24, borderRadius: 12,
-                  background: isAnonymous ? 'var(--primary)' : 'var(--border)',
-                  border: 'none', cursor: 'pointer', position: 'relative',
-                  transition: 'background 0.2s', flexShrink: 0,
-                }}
-              >
+              <button type="button" onClick={() => setIsAnonymous(!isAnonymous)} style={{
+                width: 44, height: 24, borderRadius: 12,
+                background: isAnonymous ? 'var(--primary)' : 'var(--border)',
+                border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+              }}>
                 <span style={{
-                  position: 'absolute', top: 3, width: 18, height: 18,
-                  borderRadius: '50%', background: '#fff',
-                  left: isAnonymous ? 23 : 3,
-                  transition: 'left 0.2s',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                  position: 'absolute', top: 3, width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                  left: isAnonymous ? 23 : 3, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                 }} />
               </button>
             </div>
@@ -387,9 +405,7 @@ export default function NewRumorPage() {
             <AnimatePresence>
               {message && (
                 <motion.div
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
+                  initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
                   className={message.type === 'error' ? 'msg-error' : 'msg-success'}
                 >
                   {message.type === 'error'
@@ -402,8 +418,7 @@ export default function NewRumorPage() {
 
             {/* Submit button */}
             <motion.button
-              type="submit"
-              disabled={loading || !rulesAccepted}
+              type="submit" disabled={loading || !rulesAccepted}
               className="btn btn-primary"
               style={{ width: '100%', padding: '13px', fontSize: 14, fontWeight: 600, opacity: (!rulesAccepted || loading) ? 0.6 : 1 }}
               whileTap={{ scale: 0.98 }}
