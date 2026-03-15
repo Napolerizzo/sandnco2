@@ -34,7 +34,8 @@ interface Membership {
 }
 
 const DEPOSIT_AMOUNTS = [100, 200, 500, 1000, 2000, 5000]
-const MEMBERSHIP_PRICE = 299
+const MEMBERSHIP_PRICE = 89
+const BETA_PRICE = 1
 
 const TX_ICONS: Record<string, { icon: typeof Zap; color: string }> = {
   deposit: { icon: ArrowDownLeft, color: '#22C55E' },
@@ -135,49 +136,17 @@ export default function WalletClient({
 
   const handleMembership = async () => {
     setUpgrading(true)
-    const loaded = await loadRazorpayScript()
-    if (!loaded) { toast.error('Payment gateway failed to load. Please try again.'); setUpgrading(false); return }
-
-    const orderRes = await fetch('/api/payments/create-order', {
+    const res = await fetch('/api/payments/upi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: MEMBERSHIP_PRICE, type: 'membership' }),
+      body: JSON.stringify({ amount: BETA_PRICE, type: 'membership' }),
     })
-    const { order, error } = await orderRes.json()
-    if (error) { toast.error(error); setUpgrading(false); return }
-
-    const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
-    if (!razorpayKey) { toast.error('Payment gateway not configured'); setUpgrading(false); return }
-
-    const win = window as unknown as Record<string, unknown>
-    const Razorpay = win.Razorpay as new (opts: Record<string, unknown>) => { open: () => void }
-
-    const rzp = new Razorpay({
-      key: razorpayKey,
-      order_id: order.id,
-      amount: order.amount,
-      currency: 'INR',
-      name: 'King of Good Times',
-      description: 'Premium Membership',
-      theme: { color: '#6366F1' },
-      handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
-        const verifyRes = await fetch('/api/payments/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...response, type: 'membership', amount: MEMBERSHIP_PRICE }),
-        })
-        const result = await verifyRes.json()
-        if (result.success) {
-          toast.success('Welcome to Premium! 👑')
-          setTimeout(() => window.location.reload(), 1500)
-        } else {
-          toast.error('Payment failed. Please contact support.')
-        }
-        setUpgrading(false)
-      },
-      modal: { ondismiss: () => setUpgrading(false) },
-    })
-    rzp.open()
+    const data = await res.json()
+    if (data.error) { toast.error(data.error); setUpgrading(false); return }
+    setUpiPayment(data)
+    setUpiStatus('created')
+    setUpgrading(false)
+    setActiveTab('deposit')
   }
 
   const handleUpiDeposit = async (amount: number) => {
@@ -312,16 +281,19 @@ export default function WalletClient({
                   </div>
                 </div>
                 {!membership?.is_active && (
-                  <motion.button
-                    onClick={handleMembership}
-                    disabled={upgrading}
-                    className="btn btn-primary"
-                    style={{ padding: '8px 16px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
-                    whileTap={{ scale: 0.96 }}
-                  >
-                    {upgrading ? <Loader size={13} className="animate-spin" /> : <Crown size={13} />}
-                    ₹{MEMBERSHIP_PRICE}/mo
-                  </motion.button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <motion.button
+                      onClick={handleMembership}
+                      disabled={upgrading}
+                      className="btn btn-primary"
+                      style={{ padding: '8px 16px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
+                      whileTap={{ scale: 0.96 }}
+                    >
+                      {upgrading ? <Loader size={13} className="animate-spin" /> : <Crown size={13} />}
+                      ₹{MEMBERSHIP_PRICE}/mo
+                      <span style={{ fontSize: 10, opacity: 0.8, fontWeight: 400 }}>(Beta: ₹{BETA_PRICE})</span>
+                    </motion.button>
+                  </div>
                 )}
               </div>
             </div>
@@ -468,6 +440,15 @@ export default function WalletClient({
               </div>
             ) : (
               <div className="card" style={{ padding: '22px' }}>
+                {/* Razorpay disabled banner */}
+                <div style={{
+                  padding: '10px 14px', marginBottom: 16, borderRadius: 8,
+                  background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
+                  fontSize: 12, color: '#F59E0B', fontWeight: 500,
+                }}>
+                  Razorpay payments are currently disabled. Please use UPI for deposits.
+                </div>
+
                 <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Zap size={15} style={{ color: 'var(--primary)' }} />
                   Add funds to wallet
@@ -484,14 +465,14 @@ export default function WalletClient({
                   }}>
                     UPI Direct
                   </button>
-                  <button onClick={() => setDepositMethod('razorpay')} style={{
+                  <button disabled style={{
                     flex: 1, padding: '7px 12px', fontSize: 13, fontWeight: 500,
-                    borderRadius: 6, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                    background: depositMethod === 'razorpay' ? 'var(--bg-card)' : 'transparent',
-                    color: depositMethod === 'razorpay' ? 'var(--text)' : 'var(--muted)',
-                    boxShadow: depositMethod === 'razorpay' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                    borderRadius: 6, border: 'none', cursor: 'not-allowed', transition: 'all 0.15s',
+                    background: 'transparent',
+                    color: 'var(--subtle)',
+                    opacity: 0.5,
                   }}>
-                    Razorpay
+                    Razorpay — Coming soon
                   </button>
                 </div>
 
