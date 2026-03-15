@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -17,10 +17,27 @@ const PFP_STYLE_KEYS = Object.keys(PFP_STYLES) as PfpStyle[]
 
 type SettingsTab = 'profile' | 'account' | 'notifications' | 'danger'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UserProfile = Record<string, any>
+
 export default function SettingsPage() {
   const router = useRouter()
   const supabase = createClient()
-  const { user, profile, loading: authLoading } = useSupabase()
+  const { user, loading: authLoading } = useSupabase()
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user) { setProfileLoading(false); return }
+    supabase.from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) setProfile(data)
+        setProfileLoading(false)
+      })
+  }, [user, supabase])
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
   const [saving, setSaving] = useState(false)
@@ -121,7 +138,7 @@ export default function SettingsPage() {
     toast.error('Please contact sandncolol@gmail.com to delete your account.')
   }
 
-  if (authLoading) {
+  if (authLoading || profileLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
         <Loader size={24} className="animate-spin" style={{ color: 'var(--primary)' }} />
@@ -129,9 +146,17 @@ export default function SettingsPage() {
     )
   }
 
-  if (!user || !profile) {
+  if (!user) {
     router.push('/login?next=/settings')
     return null
+  }
+
+  if (!profile) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--muted)' }}>
+        Unable to load profile. Please try again.
+      </div>
+    )
   }
 
   const tabs: Array<{ id: SettingsTab; label: string; icon: typeof User }> = [
