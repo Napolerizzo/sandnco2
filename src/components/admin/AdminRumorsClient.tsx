@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Flame, CheckCircle, XCircle, Brain, Eye, AlertTriangle, Loader } from 'lucide-react'
+import { Flame, CheckCircle, XCircle, Brain, Eye, AlertTriangle, Loader, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -21,12 +21,12 @@ interface Rumor {
   created_at: string
 }
 
-const VERDICT_COLORS: Record<string, { bg: string; color: string }> = {
-  TRUE: { bg: 'var(--success-dim)', color: '#86efac' },
-  FALSE: { bg: 'var(--danger-dim)', color: '#fca5a5' },
-  MISLEADING: { bg: 'var(--warning-dim)', color: '#fcd34d' },
-  PARTLY_TRUE: { bg: 'rgba(59,130,246,0.12)', color: '#93c5fd' },
-  UNPROVEN: { bg: 'var(--bg-elevated)', color: 'var(--muted)' },
+const VERDICT_COLORS: Record<string, { bg: string; color: string; border: string }> = {
+  TRUE: { bg: 'rgba(34,197,94,0.1)', color: '#86EFAC', border: 'rgba(34,197,94,0.25)' },
+  FALSE: { bg: 'rgba(239,68,68,0.1)', color: '#FCA5A5', border: 'rgba(239,68,68,0.25)' },
+  MISLEADING: { bg: 'rgba(245,158,11,0.1)', color: '#FCD34D', border: 'rgba(245,158,11,0.25)' },
+  PARTLY_TRUE: { bg: 'rgba(59,130,246,0.1)', color: '#93C5FD', border: 'rgba(59,130,246,0.25)' },
+  UNPROVEN: { bg: 'rgba(255,255,255,0.04)', color: 'var(--muted)', border: 'rgba(255,255,255,0.06)' },
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -63,42 +63,62 @@ export default function AdminRumorsClient({ pending, active }: { pending: Rumor[
     setActing(null)
   }
 
-  const tabs = [
-    { id: 'pending' as const, label: `Pending (${pending.length})` },
-    { id: 'active' as const, label: `Active (${active.length})` },
-  ]
-
   const rumors = tab === 'pending' ? pending : active
 
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Flame size={20} style={{ color: '#F59E0B' }} />
           Rumors
         </h1>
         <p style={{ fontSize: 13, color: 'var(--muted)' }}>Review, approve, and AI-verify rumors</p>
       </div>
 
-      {/* AI Bulk Verify */}
-      <div style={{
-        background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)',
-        borderRadius: 10, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12,
+      {/* Summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+        {[
+          { label: 'Pending Review', value: pending.length, color: '#F59E0B' },
+          { label: 'Active Rumors', value: active.length, color: '#22C55E' },
+          { label: 'With Verdicts', value: active.filter(r => r.verdict).length, color: '#A855F7' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="glass" style={{ borderRadius: 12, padding: '14px 16px' }}>
+            <p style={{ fontSize: 22, fontWeight: 700, color, margin: '0 0 2px', fontFamily: 'var(--font-mono)' }}>{value}</p>
+            <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0 }}>{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* AI Info Banner */}
+      <div className="glass" style={{
+        borderRadius: 12, padding: '14px 18px', marginBottom: 20,
+        display: 'flex', alignItems: 'center', gap: 12,
+        borderLeft: '3px solid #A855F7',
       }}>
-        <Brain size={16} style={{ color: '#C084FC', flexShrink: 0 }} />
-        <span style={{ fontSize: 12, color: '#C084FC', flex: 1 }}>
-          AI auto-verification is available. Click the brain icon on any rumor to get an AI analysis.
+        <div style={{
+          width: 34, height: 34, borderRadius: 10,
+          background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <Brain size={15} style={{ color: '#C084FC' }} />
+        </div>
+        <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+          AI auto-verification is available. Click the <strong style={{ color: '#C084FC' }}>AI Verify</strong> button on any rumor to get an AI analysis.
         </span>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, background: 'var(--bg-elevated)', borderRadius: 8, padding: 3, marginBottom: 16 }}>
-        {tabs.map(t => (
+      <div style={{ display: 'flex', gap: 4, borderRadius: 10, padding: 3, marginBottom: 16 }} className="neu-inset">
+        {[
+          { id: 'pending' as const, label: `Pending (${pending.length})` },
+          { id: 'active' as const, label: `Active (${active.length})` },
+        ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
-            flex: 1, padding: '7px 12px', fontSize: 13, fontWeight: 500,
-            borderRadius: 6, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-            background: tab === t.id ? 'var(--bg-card)' : 'transparent',
+            flex: 1, padding: '8px 14px', fontSize: 13, fontWeight: 500,
+            borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+            background: tab === t.id ? 'rgba(99,102,241,0.12)' : 'transparent',
             color: tab === t.id ? 'var(--text)' : 'var(--muted)',
+            fontFamily: 'var(--font)',
           }}>
             {t.label}
           </button>
@@ -107,7 +127,7 @@ export default function AdminRumorsClient({ pending, active }: { pending: Rumor[
 
       {/* Rumors list */}
       {rumors.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)' }}>
+        <div className="glass" style={{ textAlign: 'center', padding: '60px 0', borderRadius: 14, color: 'var(--muted)' }}>
           <Flame size={32} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
           <p style={{ fontSize: 14 }}>No {tab} rumors</p>
         </div>
@@ -119,66 +139,70 @@ export default function AdminRumorsClient({ pending, active }: { pending: Rumor[
             const isExpanded = expanded === r.id
 
             return (
-              <div key={r.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '16px 20px' }}>
+              <div key={r.id} className="glass" style={{ borderRadius: 14, padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '18px 22px' }}>
                   {/* Header */}
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                         <span style={{
-                          fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 4,
-                          background: `${catColor}15`, color: catColor, textTransform: 'uppercase',
+                          fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6,
+                          background: `${catColor}15`, color: catColor, textTransform: 'uppercase', letterSpacing: '0.04em',
                         }}>
                           {r.category}
                         </span>
                         {r.city && <span style={{ fontSize: 11, color: 'var(--subtle)' }}>{r.city}</span>}
                         <span style={{ fontSize: 11, color: 'var(--subtle)' }}>{formatRelativeTime(r.created_at)}</span>
                       </div>
-                      <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{r.title}</h3>
-                      <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, maxHeight: isExpanded ? 'none' : 60, overflow: 'hidden' }}>
+                      <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', margin: '0 0 6px' }}>{r.title}</h3>
+                      <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, margin: 0, maxHeight: isExpanded ? 'none' : 60, overflow: 'hidden' }}>
                         {r.content}
                       </p>
                       {r.content.length > 150 && (
                         <button onClick={() => setExpanded(isExpanded ? null : r.id)} style={{
                           background: 'none', border: 'none', color: 'var(--primary)', fontSize: 12,
                           cursor: 'pointer', padding: '4px 0', fontFamily: 'var(--font)',
+                          display: 'flex', alignItems: 'center', gap: 4,
                         }}>
-                          {isExpanded ? 'Show less' : 'Show more'}
+                          {isExpanded ? <><ChevronUp size={12} /> Show less</> : <><ChevronDown size={12} /> Show more</>}
                         </button>
                       )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 12, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 16, flexShrink: 0 }}>
                       <span style={{ fontSize: 11, color: 'var(--subtle)', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Eye size={12} /> {r.view_count}
                       </span>
-                      <span style={{ fontSize: 11, color: '#F59E0B', fontWeight: 600 }}>
+                      <span style={{ fontSize: 13, color: '#F59E0B', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                         {r.heat_score?.toFixed(1)}
                       </span>
                     </div>
                   </div>
 
                   {/* Verdict badge */}
-                  {(r.verdict || aiResult) && (
-                    <div style={{
-                      background: VERDICT_COLORS[aiResult?.verdict || r.verdict || 'UNPROVEN']?.bg || 'var(--bg-elevated)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 8, padding: '10px 14px', marginBottom: 10,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <Brain size={13} style={{ color: '#C084FC' }} />
-                        <span style={{
-                          fontSize: 12, fontWeight: 700,
-                          color: VERDICT_COLORS[aiResult?.verdict || r.verdict || 'UNPROVEN']?.color || 'var(--muted)',
-                        }}>
-                          {aiResult?.verdict || r.verdict}
-                          {aiResult && <span style={{ fontWeight: 400, marginLeft: 6 }}>({Math.round(aiResult.confidence * 100)}% confidence)</span>}
-                        </span>
+                  {(r.verdict || aiResult) && (() => {
+                    const v = VERDICT_COLORS[aiResult?.verdict || r.verdict || 'UNPROVEN'] || VERDICT_COLORS.UNPROVEN
+                    return (
+                      <div className="neu-inset" style={{
+                        borderRadius: 10, padding: '12px 16px', marginBottom: 12,
+                        borderLeft: `3px solid ${v.color}`,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <Brain size={13} style={{ color: '#C084FC' }} />
+                          <span style={{ fontSize: 12, fontWeight: 700, color: v.color }}>
+                            {aiResult?.verdict || r.verdict}
+                          </span>
+                          {aiResult && (
+                            <span style={{ fontSize: 11, color: 'var(--subtle)', fontFamily: 'var(--font-mono)' }}>
+                              {Math.round(aiResult.confidence * 100)}% confidence
+                            </span>
+                          )}
+                        </div>
+                        <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, margin: 0 }}>
+                          {aiResult?.reasoning || r.verdict_reason}
+                        </p>
                       </div>
-                      <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
-                        {aiResult?.reasoning || r.verdict_reason}
-                      </p>
-                    </div>
-                  )}
+                    )
+                  })()}
 
                   {/* Actions */}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -187,16 +211,24 @@ export default function AdminRumorsClient({ pending, active }: { pending: Rumor[
                         <button
                           onClick={() => handleAction(r.id, 'approve')}
                           disabled={acting === r.id}
-                          className="btn btn-sm"
-                          style={{ background: 'var(--success-dim)', color: '#86efac', border: '1px solid rgba(34,197,94,0.3)', fontSize: 12 }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px',
+                            fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer',
+                            background: 'rgba(34,197,94,0.12)', color: '#86EFAC',
+                            border: '1px solid rgba(34,197,94,0.25)',
+                          }}
                         >
                           <CheckCircle size={13} /> Approve
                         </button>
                         <button
                           onClick={() => handleAction(r.id, 'reject')}
                           disabled={acting === r.id}
-                          className="btn btn-sm btn-danger"
-                          style={{ fontSize: 12 }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px',
+                            fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer',
+                            background: 'rgba(239,68,68,0.12)', color: '#FCA5A5',
+                            border: '1px solid rgba(239,68,68,0.25)',
+                          }}
                         >
                           <XCircle size={13} /> Reject
                         </button>
@@ -205,28 +237,35 @@ export default function AdminRumorsClient({ pending, active }: { pending: Rumor[
                     <button
                       onClick={() => handleAction(r.id, 'ai_verify')}
                       disabled={acting === r.id}
-                      className="btn btn-sm"
-                      style={{ background: 'rgba(168,85,247,0.1)', color: '#C084FC', border: '1px solid rgba(168,85,247,0.3)', fontSize: 12 }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px',
+                        fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer',
+                        background: 'rgba(168,85,247,0.12)', color: '#C084FC',
+                        border: '1px solid rgba(168,85,247,0.25)',
+                      }}
                     >
                       {acting === r.id ? <Loader size={13} className="animate-spin" /> : <Brain size={13} />}
                       AI Verify
                     </button>
                     {tab === 'active' && !r.verdict && (
                       <>
-                        {['TRUE', 'FALSE', 'MISLEADING', 'PARTLY_TRUE', 'UNPROVEN'].map(v => (
-                          <button
-                            key={v}
-                            onClick={() => handleAction(r.id, 'set_verdict', { verdict: v })}
-                            disabled={acting === r.id}
-                            className="btn btn-sm"
-                            style={{
-                              background: VERDICT_COLORS[v]?.bg, color: VERDICT_COLORS[v]?.color,
-                              border: '1px solid var(--border)', fontSize: 11, padding: '4px 8px',
-                            }}
-                          >
-                            {v.replace(/_/g, ' ')}
-                          </button>
-                        ))}
+                        {['TRUE', 'FALSE', 'MISLEADING', 'PARTLY_TRUE', 'UNPROVEN'].map(v => {
+                          const vc = VERDICT_COLORS[v] || VERDICT_COLORS.UNPROVEN
+                          return (
+                            <button
+                              key={v}
+                              onClick={() => handleAction(r.id, 'set_verdict', { verdict: v })}
+                              disabled={acting === r.id}
+                              style={{
+                                padding: '5px 10px', fontSize: 11, fontWeight: 600, borderRadius: 6,
+                                cursor: 'pointer', background: vc.bg, color: vc.color,
+                                border: `1px solid ${vc.border}`,
+                              }}
+                            >
+                              {v.replace(/_/g, ' ')}
+                            </button>
+                          )
+                        })}
                       </>
                     )}
                   </div>
