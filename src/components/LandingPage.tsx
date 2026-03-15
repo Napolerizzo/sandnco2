@@ -120,177 +120,221 @@ export default function LandingPage({
       </nav>
 
       {/* ── HERO ── */}
-      <section style={{ paddingTop: 64, minHeight: '92vh', display: 'flex', alignItems: 'center', position: 'relative' }}>
-        {/* Subtle grid */}
+      <section style={{ paddingTop: 64, minHeight: '96vh', display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+        {/* Layered background */}
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          backgroundImage: 'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
-          backgroundSize: '64px 64px', opacity: 0.3,
-          maskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 80%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 80%)',
+          backgroundImage: 'linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px)',
+          backgroundSize: '56px 56px',
+          maskImage: 'radial-gradient(ellipse 100% 80% at 50% 50%, black 20%, transparent 80%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 100% 80% at 50% 50%, black 20%, transparent 80%)',
         }} />
-
-        {/* Glow */}
+        {/* Primary glow */}
         <div style={{
-          position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
-          width: 600, height: 300, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.12) 0%, transparent 70%)',
+          position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
+          width: 800, height: 400, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.18) 0%, rgba(59,130,246,0.06) 50%, transparent 70%)',
+        }} />
+        {/* Secondary smaller accent */}
+        <div style={{
+          position: 'absolute', top: '40%', right: '10%',
+          width: 300, height: 300, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse, rgba(99,102,241,0.08) 0%, transparent 70%)',
         }} />
 
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 60px', width: '100%', position: 'relative' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 80px', width: '100%', position: 'relative', zIndex: 1 }}>
+          {/* Staggered reveal */}
+
           {/* Early access badge */}
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: mounted ? 1 : 0, y: mounted ? 0 : 8 }}
-            transition={{ duration: 0.4 }}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 28 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: mounted ? 1 : 0, y: mounted ? 0 : 12 }}
+            transition={{ duration: 0.5 }}
+            style={{ marginBottom: 28 }}
           >
             <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '4px 12px', fontSize: 12, fontWeight: 600,
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '5px 14px', fontSize: 12, fontWeight: 600,
               background: 'var(--primary-dim)', color: '#a5b4fc',
               border: '1px solid rgba(99,102,241,0.3)', borderRadius: 100,
             }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a5b4fc', animation: 'pulse-ring 2s infinite', flexShrink: 0 }} />
-              Early Access · Faridabad
+              Early Access · Faridabad, India
             </span>
           </motion.div>
 
-          {/* Main heading */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: mounted ? 1 : 0, y: mounted ? 0 : 20 }}
-            transition={{ duration: 0.5, delay: 0.05 }}
-            style={{ marginBottom: 20, maxWidth: 720 }}
-          >
-            <h1 style={{
-              fontSize: 'clamp(38px, 7vw, 72px)',
-              fontWeight: 700,
-              letterSpacing: '-0.03em',
-              lineHeight: 1.1,
-              color: 'var(--text)',
-            }}>
+          {/* Main heading — split word by word for stagger */}
+          <div style={{ marginBottom: 22, maxWidth: 780, overflow: 'hidden' }}>
+            <motion.h1
+              initial={{ opacity: 0, y: 32 }}
+              animate={{ opacity: mounted ? 1 : 0, y: mounted ? 0 : 32 }}
+              transition={{ duration: 0.65, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+              style={{
+                fontSize: 'clamp(40px, 7.5vw, 80px)',
+                fontWeight: 700,
+                letterSpacing: '-0.035em',
+                lineHeight: 1.05,
+                color: 'var(--text)',
+                margin: 0,
+              }}
+            >
               Faridabad&apos;s city<br />
-              <span style={{ color: 'var(--primary)' }}>intelligence</span> platform.
-            </h1>
-          </motion.div>
+              <span style={{
+                color: 'var(--primary)',
+                position: 'relative',
+                display: 'inline-block',
+              }}>intelligence</span>{' '}
+              <span style={{ color: 'var(--text)' }}>platform.</span>
+            </motion.h1>
+          </div>
 
           {/* Rotating city line */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: mounted ? 1 : 0 }}
-            transition={{ delay: 0.15 }}
-            style={{ height: 28, marginBottom: 20, overflow: 'hidden' }}
+            transition={{ delay: 0.2 }}
+            style={{ height: 30, marginBottom: 22, overflow: 'hidden' }}
           >
             <AnimatePresence mode="wait">
               <motion.p
                 key={lineIndex}
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.3 }}
-                style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 400 }}
+                exit={{ opacity: 0, y: -14 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 400, margin: 0 }}
               >
                 {CITY_LINES[lineIndex]}
               </motion.p>
             </AnimatePresence>
           </motion.div>
 
-          {/* Sub description */}
+          {/* Description */}
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: mounted ? 1 : 0 }}
-            transition={{ delay: 0.2 }}
-            style={{ fontSize: 16, color: 'var(--subtle)', maxWidth: 520, lineHeight: 1.65, marginBottom: 40 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: mounted ? 1 : 0, y: mounted ? 0 : 12 }}
+            transition={{ delay: 0.28, duration: 0.5 }}
+            style={{ fontSize: 16, color: 'var(--subtle)', maxWidth: 500, lineHeight: 1.7, marginBottom: 40, margin: '0 0 40px' }}
           >
-            Post anonymous city rumors, enter challenges for real stakes, bust myths with evidence, and climb through 10 ranks to become the King of Good Times.
+            Anonymous city rumors. Real money challenges. Myth-busting. 10 ranks from Ghost to King of Good Times.
           </motion.p>
 
           {/* CTAs */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: mounted ? 1 : 0, y: mounted ? 0 : 12 }}
-            transition={{ delay: 0.25 }}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: mounted ? 1 : 0, y: mounted ? 0 : 14 }}
+            transition={{ delay: 0.36 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 60 }}
           >
             <Link href="/signup">
               <motion.button
-                whileHover={{ translateY: -2 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ y: -2, boxShadow: '0 8px 32px rgba(99,102,241,0.35)' }}
+                whileTap={{ scale: 0.97 }}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '11px 22px', fontSize: 15, fontWeight: 600,
+                  padding: '12px 24px', fontSize: 15, fontWeight: 600,
                   background: 'var(--primary)', color: '#fff', border: 'none',
                   borderRadius: 'var(--r)', cursor: 'pointer',
-                  fontFamily: 'var(--font)',
+                  fontFamily: 'var(--font)', transition: 'box-shadow 0.2s',
                 }}
               >
                 <Zap style={{ width: 16, height: 16 }} />
                 Join Faridabad
               </motion.button>
             </Link>
-            <a href="#feed">
+            <a href="#feed" style={{ textDecoration: 'none' }}>
               <motion.button
-                whileHover={{ translateY: -2 }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '11px 20px', fontSize: 15, fontWeight: 500,
-                  background: 'var(--bg-elevated)', color: 'var(--text)',
+                  padding: '12px 20px', fontSize: 15, fontWeight: 500,
+                  background: 'transparent', color: 'var(--text)',
                   border: '1px solid var(--border)', borderRadius: 'var(--r)',
-                  cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none',
+                  cursor: 'pointer', fontFamily: 'var(--font)',
                 }}
               >
                 See what&apos;s happening
-                <ArrowRight style={{ width: 16, height: 16 }} />
+                <ArrowRight style={{ width: 15, height: 15 }} />
               </motion.button>
             </a>
           </motion.div>
 
-          {/* Real stats — only if data exists */}
+          {/* Stats bar */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: mounted ? 1 : 0 }}
-            transition={{ delay: 0.4 }}
-            style={{ display: 'flex', alignItems: 'center', gap: 32, marginTop: 56, flexWrap: 'wrap' }}
+            transition={{ delay: 0.5 }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 0,
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: 12, overflow: 'hidden',
+            }}
           >
             {userCount > 0 ? (
-              <div>
-                <p style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em', margin: 0 }}>{userCount}</p>
-                <p style={{ fontSize: 12, color: 'var(--subtle)', margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Users style={{ width: 12, height: 12 }} /> Members
+              <div style={{ padding: '12px 20px', borderRight: '1px solid var(--border)' }}>
+                <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em', margin: 0 }}>{userCount}</p>
+                <p style={{ fontSize: 11, color: 'var(--subtle)', margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Users style={{ width: 11, height: 11 }} /> Members
                 </p>
               </div>
             ) : (
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted)', margin: 0 }}>Brand new.</p>
-                <p style={{ fontSize: 12, color: 'var(--subtle)', margin: '4px 0 0' }}>Be the first member.</p>
+              <div style={{ padding: '12px 20px', borderRight: '1px solid var(--border)' }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', margin: 0 }}>Brand new.</p>
+                <p style={{ fontSize: 11, color: 'var(--subtle)', margin: '2px 0 0' }}>Be the first.</p>
               </div>
             )}
-            {rumorCount > 0 ? (
-              <div>
-                <p style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em', margin: 0 }}>{rumorCount}</p>
-                <p style={{ fontSize: 12, color: 'var(--subtle)', margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Radio style={{ width: 12, height: 12 }} /> Rumors in the city
+            {rumorCount > 0 && (
+              <div style={{ padding: '12px 20px', borderRight: '1px solid var(--border)' }}>
+                <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em', margin: 0 }}>{rumorCount}</p>
+                <p style={{ fontSize: 11, color: 'var(--subtle)', margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Radio style={{ width: 11, height: 11 }} /> Rumors
                 </p>
               </div>
-            ) : null}
-            <div style={{ height: 40, width: 1, background: 'var(--border)' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'var(--subtle)' }}>Current top rank:</span>
+            )}
+            <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 11, color: 'var(--subtle)' }}>Top rank:</span>
               <AnimatePresence mode="wait">
                 <motion.span
                   key={currentRankIdx}
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.2 }}
-                  style={{ fontSize: 13, fontWeight: 600, color: currentRank.color, display: 'flex', alignItems: 'center', gap: 5 }}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.25 }}
+                  style={{ fontSize: 12, fontWeight: 600, color: currentRank.color, display: 'flex', alignItems: 'center', gap: 4 }}
                 >
                   {currentRank.emoji} {currentRank.label}
                 </motion.span>
               </AnimatePresence>
             </div>
           </motion.div>
+
+          {/* Floating rank cards — decorative */}
+          {mounted && (
+            <div className="hide-mobile" style={{ position: 'absolute', right: 60, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { emoji: '👻', label: 'Ghost', color: '#6b7280', delay: 0 },
+                { emoji: '⚡', label: 'Chaos Agent', color: '#f97316', delay: 0.1 },
+                { emoji: '🤴', label: 'King', color: '#fbbf24', delay: 0.2 },
+              ].map(({ emoji, label, color, delay }) => (
+                <motion.div
+                  key={label}
+                  initial={{ opacity: 0, x: 24 }}
+                  animate={{ opacity: 0.7, x: 0 }}
+                  transition={{ delay: 0.6 + delay, duration: 0.5 }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '8px 14px', background: 'var(--bg-card)',
+                    border: `1px solid ${color}30`, borderRadius: 8,
+                    backdropFilter: 'blur(8px)',
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>{emoji}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color, letterSpacing: '0.02em' }}>{label}</span>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
