@@ -62,6 +62,19 @@ export default function WalletClient({
   const [depositing, setDepositing] = useState(false)
   const [upgrading, setUpgrading] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'deposit' | 'history'>('overview')
+  const [depositMethod, setDepositMethod] = useState<'razorpay' | 'upi'>('upi')
+
+  // UPI payment state
+  const [upiPayment, setUpiPayment] = useState<{
+    payment_id: string
+    unique_amount: number
+    upi_id: string
+    upi_link: string
+    expires_at: string
+  } | null>(null)
+  const [utrInput, setUtrInput] = useState('')
+  const [submittingUtr, setSubmittingUtr] = useState(false)
+  const [upiStatus, setUpiStatus] = useState<'idle' | 'created' | 'submitted'>('idle')
 
   const balance = wallet?.balance || 0
 
@@ -165,6 +178,40 @@ export default function WalletClient({
       modal: { ondismiss: () => setUpgrading(false) },
     })
     rzp.open()
+  }
+
+  const handleUpiDeposit = async (amount: number) => {
+    if (amount < 10) { toast.error('Minimum deposit is ₹10'); return }
+    setDepositing(true)
+    const res = await fetch('/api/payments/upi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount }),
+    })
+    const data = await res.json()
+    if (data.error) { toast.error(data.error); setDepositing(false); return }
+    setUpiPayment(data)
+    setUpiStatus('created')
+    setDepositing(false)
+    setActiveTab('deposit')
+  }
+
+  const handleSubmitUtr = async () => {
+    if (!upiPayment || !utrInput.trim()) { toast.error('Enter your UTR number'); return }
+    setSubmittingUtr(true)
+    const res = await fetch('/api/payments/upi/submit-utr', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_id: upiPayment.payment_id, utr_number: utrInput.trim() }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      toast.success('UTR submitted! Your payment will be verified shortly.')
+      setUpiStatus('submitted')
+    } else {
+      toast.error(data.error || 'Failed to submit UTR')
+    }
+    setSubmittingUtr(false)
   }
 
   const tabs = [
@@ -289,7 +336,7 @@ export default function WalletClient({
                 {DEPOSIT_AMOUNTS.map(amt => (
                   <motion.button
                     key={amt}
-                    onClick={() => handleDeposit(amt)}
+                    onClick={() => handleUpiDeposit(amt)}
                     disabled={depositing}
                     style={{
                       padding: '10px', fontSize: 13, fontWeight: 600,
@@ -313,61 +360,197 @@ export default function WalletClient({
 
         {activeTab === 'deposit' && (
           <motion.div key="deposit" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }}>
-            <div className="card" style={{ padding: '22px' }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Zap size={15} style={{ color: 'var(--primary)' }} />
-                Add funds to wallet
-              </h3>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Amount (₹)
-                </label>
-                <input
-                  type="number"
-                  value={customAmount}
-                  onChange={e => setCustomAmount(e.target.value)}
-                  placeholder="Enter amount (minimum ₹10)"
-                  min={10}
-                  max={100000}
-                  className="input"
-                  style={{ width: '100%', fontSize: 15 }}
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
-                {DEPOSIT_AMOUNTS.map(amt => (
-                  <button key={amt} onClick={() => setCustomAmount(amt.toString())} style={{
-                    padding: '8px', fontSize: 12, fontWeight: 500,
-                    borderRadius: 'var(--r-md)',
-                    border: `1px solid ${customAmount === amt.toString() ? 'var(--primary)' : 'var(--border)'}`,
-                    background: customAmount === amt.toString() ? 'var(--primary-dim)' : 'transparent',
-                    color: customAmount === amt.toString() ? 'var(--primary)' : 'var(--muted)',
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}>
-                    ₹{amt}
-                  </button>
-                ))}
-              </div>
-              <motion.button
-                onClick={() => handleDeposit(parseFloat(customAmount) || 0)}
-                disabled={depositing || !customAmount || parseFloat(customAmount) < 10}
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '13px', fontSize: 14, fontWeight: 600, marginBottom: 10, opacity: (!customAmount || parseFloat(customAmount) < 10 || depositing) ? 0.6 : 1 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {depositing ? (
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <Loader size={15} className="animate-spin" />Processing...
-                  </span>
+
+            {/* UPI Payment Created — Show payment details */}
+            {upiStatus !== 'idle' && upiPayment ? (
+              <div className="card" style={{ padding: '22px' }}>
+                {upiStatus === 'submitted' ? (
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <div style={{
+                      width: 56, height: 56, borderRadius: 16, margin: '0 auto 16px',
+                      background: 'var(--success-dim)', border: '1px solid rgba(34,197,94,0.3)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Activity size={24} style={{ color: '#22C55E' }} />
+                    </div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Payment Submitted</h3>
+                    <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16 }}>
+                      Your UTR has been submitted. Your wallet will be credited automatically once verified.
+                      This usually takes a few seconds.
+                    </p>
+                    <button onClick={() => { setUpiStatus('idle'); setUpiPayment(null); setUtrInput(''); window.location.reload() }} className="btn btn-primary" style={{ fontSize: 13 }}>
+                      Back to Wallet
+                    </button>
+                  </div>
                 ) : (
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <Zap size={15} />Add ₹{customAmount || '0'} to wallet
-                  </span>
+                  <>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Zap size={15} style={{ color: 'var(--primary)' }} />
+                      Complete UPI Payment
+                    </h3>
+
+                    {/* Amount to pay */}
+                    <div style={{
+                      background: 'var(--bg-elevated)', borderRadius: 10, padding: 16, marginBottom: 16,
+                      border: '1px solid var(--border)', textAlign: 'center',
+                    }}>
+                      <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pay exactly</p>
+                      <p style={{ fontSize: 32, fontWeight: 800, color: '#22C55E', letterSpacing: '-0.03em' }}>
+                        ₹{upiPayment.unique_amount}
+                      </p>
+                      <p style={{ fontSize: 12, color: 'var(--warning)', marginTop: 4 }}>
+                        Amount must match exactly for auto-verification
+                      </p>
+                    </div>
+
+                    {/* UPI ID */}
+                    <div style={{
+                      background: 'var(--bg-elevated)', borderRadius: 10, padding: 14, marginBottom: 16,
+                      border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}>
+                      <div>
+                        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>UPI ID</p>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{upiPayment.upi_id}</p>
+                      </div>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(upiPayment.upi_id); toast.success('UPI ID copied!') }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: 12, flexShrink: 0 }}
+                      >
+                        Copy
+                      </button>
+                    </div>
+
+                    {/* Pay via UPI app button */}
+                    <a
+                      href={upiPayment.upi_link}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        width: '100%', padding: '12px', fontSize: 14, fontWeight: 600,
+                        borderRadius: 8, background: '#22C55E', color: '#fff', textDecoration: 'none',
+                        marginBottom: 16,
+                      }}
+                    >
+                      <Zap size={15} />
+                      Pay via UPI App
+                    </a>
+
+                    {/* UTR Submission */}
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 8 }}>
+                        After paying, enter your UTR/Reference number:
+                      </p>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          type="text"
+                          value={utrInput}
+                          onChange={e => setUtrInput(e.target.value)}
+                          placeholder="Enter UTR number"
+                          className="input"
+                          style={{ flex: 1 }}
+                        />
+                        <motion.button
+                          onClick={handleSubmitUtr}
+                          disabled={submittingUtr || !utrInput.trim()}
+                          className="btn btn-primary"
+                          style={{ flexShrink: 0, opacity: !utrInput.trim() ? 0.5 : 1 }}
+                          whileTap={{ scale: 0.96 }}
+                        >
+                          {submittingUtr ? <Loader size={14} className="animate-spin" /> : 'Submit'}
+                        </motion.button>
+                      </div>
+                      <p style={{ fontSize: 11, color: 'var(--subtle)', marginTop: 8 }}>
+                        Payment auto-verifies in seconds. If not, admin will approve manually.
+                      </p>
+                    </div>
+                  </>
                 )}
-              </motion.button>
-              <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--subtle)' }}>
-                Powered by Razorpay · 256-bit SSL
-              </p>
-            </div>
+              </div>
+            ) : (
+              <div className="card" style={{ padding: '22px' }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Zap size={15} style={{ color: 'var(--primary)' }} />
+                  Add funds to wallet
+                </h3>
+
+                {/* Payment method toggle */}
+                <div style={{ display: 'flex', gap: 4, background: 'var(--bg-elevated)', borderRadius: 8, padding: 3, marginBottom: 16 }}>
+                  <button onClick={() => setDepositMethod('upi')} style={{
+                    flex: 1, padding: '7px 12px', fontSize: 13, fontWeight: 500,
+                    borderRadius: 6, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                    background: depositMethod === 'upi' ? 'var(--bg-card)' : 'transparent',
+                    color: depositMethod === 'upi' ? 'var(--text)' : 'var(--muted)',
+                    boxShadow: depositMethod === 'upi' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                  }}>
+                    UPI Direct
+                  </button>
+                  <button onClick={() => setDepositMethod('razorpay')} style={{
+                    flex: 1, padding: '7px 12px', fontSize: 13, fontWeight: 500,
+                    borderRadius: 6, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                    background: depositMethod === 'razorpay' ? 'var(--bg-card)' : 'transparent',
+                    color: depositMethod === 'razorpay' ? 'var(--text)' : 'var(--muted)',
+                    boxShadow: depositMethod === 'razorpay' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                  }}>
+                    Razorpay
+                  </button>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={customAmount}
+                    onChange={e => setCustomAmount(e.target.value)}
+                    placeholder="Enter amount (minimum ₹10)"
+                    min={10}
+                    max={100000}
+                    className="input"
+                    style={{ width: '100%', fontSize: 15 }}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
+                  {DEPOSIT_AMOUNTS.map(amt => (
+                    <button key={amt} onClick={() => setCustomAmount(amt.toString())} style={{
+                      padding: '8px', fontSize: 12, fontWeight: 500,
+                      borderRadius: 'var(--r-md)',
+                      border: `1px solid ${customAmount === amt.toString() ? 'var(--primary)' : 'var(--border)'}`,
+                      background: customAmount === amt.toString() ? 'var(--primary-dim)' : 'transparent',
+                      color: customAmount === amt.toString() ? 'var(--primary)' : 'var(--muted)',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}>
+                      ₹{amt}
+                    </button>
+                  ))}
+                </div>
+                <motion.button
+                  onClick={() => {
+                    const amt = parseFloat(customAmount) || 0
+                    if (depositMethod === 'upi') handleUpiDeposit(amt)
+                    else handleDeposit(amt)
+                  }}
+                  disabled={depositing || !customAmount || parseFloat(customAmount) < 10}
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '13px', fontSize: 14, fontWeight: 600, marginBottom: 10, opacity: (!customAmount || parseFloat(customAmount) < 10 || depositing) ? 0.6 : 1 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {depositing ? (
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <Loader size={15} className="animate-spin" />Processing...
+                    </span>
+                  ) : (
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <Zap size={15} />
+                      {depositMethod === 'upi' ? `Pay ₹${customAmount || '0'} via UPI` : `Add ₹${customAmount || '0'} via Razorpay`}
+                    </span>
+                  )}
+                </motion.button>
+                <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--subtle)' }}>
+                  {depositMethod === 'upi' ? 'Direct UPI · Instant verification' : 'Powered by Razorpay · 256-bit SSL'}
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
 
