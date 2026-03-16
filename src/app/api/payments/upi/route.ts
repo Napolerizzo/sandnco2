@@ -10,7 +10,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { amount } = await req.json()
+  const { amount, type } = await req.json()
+  const paymentType = type === 'membership' ? 'membership' : 'deposit'
   const baseAmount = Number(amount)
 
   if (!baseAmount || baseAmount < 10 || baseAmount > 100000) {
@@ -53,6 +54,8 @@ export async function POST(req: NextRequest) {
     amount: baseAmount,
     unique_amount: uniqueAmount,
     status: 'pending',
+    payment_type: paymentType,
+    metadata: paymentType === 'membership' ? { plan: 'premium', duration_days: 30 } : {},
     expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
   }).select('id, unique_amount, expires_at').single()
 

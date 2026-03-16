@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const { data: payment } = await admin
     .from('upi_payments')
-    .select('id, user_id, amount, unique_amount, status')
+    .select('id, user_id, amount, unique_amount, status, payment_type, metadata')
     .eq('id', paymentId)
     .single()
 
@@ -67,10 +67,50 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
   }
 
-  // Approve — credit wallet
+  // Approve — check if membership or deposit
+  const baseAmount = Number(payment.amount)
+  const isMembership = payment.payment_type === 'membership'
+
+  if (isMembership) {
+    // Activate premium membership (30 days)
+    const durationDays = payment.metadata?.duration_days || 30
+    const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
+
+    await admin.from('users').update({
+      is_premium: true,
+      premium_expires_at: expiresAt,
+    }).eq('id', payment.user_id)
+
+    const { data: tx } = await admin.from('transactions').insert({
+      user_id: payment.user_id,
+      type: 'membership',
+      amount: baseAmount,
+      balance_before: 0,
+      balance_after: 0,
+      status: 'completed',
+      description: 'King Membership activated (UPI)',
+      metadata: { upi_payment_id: payment.id, verified_by: 'admin', duration_days: durationDays },
+    }).select('id').single()
+
+    await admin.from('upi_payments').update({
+      status: 'verified',
+      verified_by: 'admin',
+      transaction_id: tx?.id,
+    }).eq('id', paymentId)
+
+    await admin.from('notifications').insert({
+      user_id: payment.user_id,
+      type: 'membership',
+      title: 'King Membership Activated',
+      body: `Your premium membership is now active for ${durationDays} days. Enjoy exclusive features!`,
+    })
+
+    return NextResponse.json({ success: true, membership_activated: true, expires_at: expiresAt })
+  }
+
+  // Deposit — credit wallet
   const { data: userData } = await admin.from('users').select('wallet_balance').eq('id', payment.user_id).single()
   const currentBalance = userData?.wallet_balance || 0
-  const baseAmount = Number(payment.amount)
   const newBalance = currentBalance + baseAmount
 
   await admin.from('users').update({ wallet_balance: newBalance }).eq('id', payment.user_id)

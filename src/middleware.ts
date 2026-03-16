@@ -6,6 +6,16 @@ const ADMIN_ROUTES = ['/admin']
 // Auth-required routes
 const PROTECTED_ROUTES = ['/feed', '/rumors/new', '/challenges', '/wallet', '/profile', '/leaderboard']
 
+// Routes that bypass beta check entirely
+const BETA_BYPASS_ROUTES = ['/', '/login', '/signup', '/beta-wait', '/legal', '/api']
+
+function isBetaBypassed(pathname: string): boolean {
+  return BETA_BYPASS_ROUTES.some(route => {
+    if (route === '/') return pathname === '/'
+    return pathname === route || pathname.startsWith(route + '/')
+  })
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -75,6 +85,21 @@ export async function middleware(request: NextRequest) {
   // Already logged in trying to access auth pages
   if (user && (pathname === '/login' || pathname === '/signup')) {
     return NextResponse.redirect(new URL('/feed', request.url))
+  }
+
+  // Beta mode gate — check after auth redirects so login/signup flow works
+  const betaMode = process.env.NEXT_PUBLIC_BETA_MODE
+  if (betaMode === 'true' && user && !isBetaBypassed(pathname)) {
+    // Check if user's email is in the beta_access table
+    const { data: betaRow } = await supabase
+      .from('beta_access')
+      .select('id')
+      .eq('email', user.email || '')
+      .single()
+
+    if (!betaRow) {
+      return NextResponse.redirect(new URL('/beta-wait', request.url))
+    }
   }
 
   return supabaseResponse

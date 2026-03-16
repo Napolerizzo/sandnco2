@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import PostHogProvider from "@/components/providers/PostHogProvider";
 import SupabaseProvider from "@/components/providers/SupabaseProvider";
+import BugReport from "@/components/BugReport";
 
 export const metadata: Metadata = {
   title: {
@@ -45,6 +46,7 @@ export default function RootLayout({
         <SupabaseProvider>
           <PostHogProvider>
             {children}
+            <BugReport />
             <Toaster
               position="bottom-right"
               toastOptions={{
