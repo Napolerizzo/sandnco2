@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue } from 'framer-motion'
+import { motion, AnimatePresence, useTransform, useSpring, useMotionValue } from 'framer-motion'
 import {
   Flame, Trophy, Eye, ArrowRight, TrendingUp,
   Zap, MapPin, Users, MessageSquare, ShieldAlert,
   BarChart2, Lock, Crown, LayoutDashboard, Crosshair,
   Shield, Star, Sparkles, ChevronRight, Activity, 
-  Terminal, Radar, Database, Network, Cpu, Layers, ShieldCheck
+  Terminal, Radar, Database, Network, Cpu, Layers, ShieldCheck, ArrowUpRight
 } from 'lucide-react'
 import { RANKS } from '@/lib/ranks'
 import { formatRelativeTime } from '@/lib/utils'
@@ -99,12 +98,17 @@ export default function LandingPage({
   const [booting, setBooting] = useState(true)
   const [mounted, setMounted] = useState(false)
 
-  // Mouse Parallax Engine
+  // Mouse Parallax Engine - ALL HOOKS DECLARED UP TOP
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   const springConfig = { damping: 25, stiffness: 200 };
   const smoothX = useSpring(mouseX, springConfig);
   const smoothY = useSpring(mouseY, springConfig);
+  
+  const cursorX = useTransform(smoothX, [-0.5, 0.5], ["0vw", "100vw"]);
+  const cursorY = useTransform(smoothY, [-0.5, 0.5], ["0vh", "100vh"]);
+  const cardRotateX = useTransform(smoothY, [-0.5, 0.5], [2, -2]);
+  const cardRotateY = useTransform(smoothX, [-0.5, 0.5], [-2, 2]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     mouseX.set((e.clientX / window.innerWidth) - 0.5);
@@ -129,6 +133,7 @@ export default function LandingPage({
     return () => clearInterval(t)
   }, [])
 
+  // Early return comes AFTER all hooks are declared
   if (!mounted) return null;
 
   return (
@@ -140,7 +145,7 @@ export default function LandingPage({
       {/* Dynamic Cursor Light */}
       <motion.div 
         className="pointer-events-none fixed top-0 left-0 w-[400px] h-[400px] bg-white/5 rounded-full blur-[100px] z-0 mix-blend-screen hidden md:block"
-        style={{ x: useTransform(smoothX, [-0.5, 0.5], ["0vw", "100vw"]), y: useTransform(smoothY, [-0.5, 0.5], ["0vh", "100vh"]), translateX: "-50%", translateY: "-50%" }}
+        style={{ x: cursorX, y: cursorY, translateX: "-50%", translateY: "-50%" }}
       />
 
       {/* --- TERMINAL LOADER OVERLAY --- */}
@@ -313,7 +318,7 @@ export default function LandingPage({
         {previewRumors.length > 0 && (
           <section className="px-4 md:px-10 lg:px-16 pb-24 max-w-[1600px] mx-auto relative z-20">
             <motion.div 
-              style={{ rotateX: useTransform(smoothY, [-0.5, 0.5], [2, -2]), rotateY: useTransform(smoothX, [-0.5, 0.5], [-2, 2]) }}
+              style={{ rotateX: cardRotateX, rotateY: cardRotateY }}
               className="bg-[#0a0a0c] border border-white/5 rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden group hw-accel w-full"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-pink-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
