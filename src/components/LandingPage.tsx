@@ -1,12 +1,12 @@
 'use client'
 
 import * as THREE from 'three'
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useTransform, useSpring, useMotionValue } from 'framer-motion'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Environment, Sparkles } from '@react-three/drei'
+import { Environment, Sparkles, useGLTF } from '@react-three/drei'
 import { EffectComposer, DepthOfField, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import {
   Flame, Trophy, Eye, ArrowRight, TrendingUp,
@@ -46,6 +46,21 @@ const TAGLINES = [
 // ============================================================================
 // 3D SCENE COMPONENTS (BACKGROUND)
 // ============================================================================
+
+// Loads the GLB model from your public/models folder
+function AnimeCharacter() {
+  const { scene } = useGLTF('/models/anime_girl.glb')
+  
+  return (
+    <primitive 
+      object={scene} 
+      position={[0, 0, 0]} 
+      scale={1} 
+      rotation={[0, Math.PI, 0]} // Turns her around to face away
+    />
+  )
+}
+
 function InstancedGrass({ count = 50000 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const materialRef = useRef<THREE.MeshStandardMaterial>(null)
@@ -111,7 +126,6 @@ function CameraController() {
   const { camera } = useThree()
   
   useFrame((state, delta) => {
-    // Sync camera to native HTML scroll
     const scrollY = window.scrollY
     const maxScroll = document.body.scrollHeight - window.innerHeight
     const progress = maxScroll > 0 ? Math.min(scrollY / maxScroll, 1) : 0
@@ -146,11 +160,8 @@ function CinematicScene() {
         <meshStandardMaterial color="#1A0F14" />
       </mesh>
 
-      {/* Placeholder Anime Character */}
-      <mesh position={[0, 0.75, 0]} castShadow>
-        <capsuleGeometry args={[0.4, 0.7, 4, 8]} />
-        <meshStandardMaterial color="#0A0508" roughness={0.8} />
-      </mesh>
+      {/* The actual GLB model loaded here */}
+      <AnimeCharacter />
 
       <Sparkles count={200} scale={20} size={2} speed={0.4} opacity={0.3} color="#FFE4E1" />
       <CameraController />
@@ -181,6 +192,23 @@ export default function LandingPage({
   const [taglineIdx, setTaglineIdx] = useState(0)
   const [mounted, setMounted] = useState(false)
 
+  // Mouse Parallax Engine
+  const mouseX = useMotionValue(0)
+  const mouseY = useMotionValue(0)
+  const springConfig = { damping: 25, stiffness: 200 }
+  const smoothX = useSpring(mouseX, springConfig)
+  const smoothY = useSpring(mouseY, springConfig)
+  
+  const cursorX = useTransform(smoothX, [-0.5, 0.5], ["0vw", "100vw"])
+  const cursorY = useTransform(smoothY, [-0.5, 0.5], ["0vh", "100vh"])
+  const cardRotateX = useTransform(smoothY, [-0.5, 0.5], [2, -2])
+  const cardRotateY = useTransform(smoothX, [-0.5, 0.5], [-2, 2])
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    mouseX.set((e.clientX / window.innerWidth) - 0.5)
+    mouseY.set((e.clientY / window.innerHeight) - 0.5)
+  }, [mouseX, mouseY])
+
   useEffect(() => {
     setMounted(true)
     const t = setInterval(() => setTaglineIdx(i => (i + 1) % TAGLINES.length), 3000)
@@ -190,14 +218,22 @@ export default function LandingPage({
   if (!mounted) return null
 
   return (
-    <div className="relative min-h-screen text-pink-50 selection:bg-pink-400 selection:text-white font-sans overflow-x-hidden bg-[#1A0F14]">
+    <div onMouseMove={handleMouseMove} className="relative min-h-screen text-pink-50 selection:bg-pink-400 selection:text-white font-sans overflow-x-hidden bg-[#1A0F14]">
       
-      {/* 3D Background Layer */}
+      {/* 3D Background Layer wrapped in Suspense to prevent crashing while loading */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Canvas shadows dpr={[1, 1.5]} camera={{ position: [-5, 5, 15], fov: 45 }}>
-          <CinematicScene />
+          <Suspense fallback={null}>
+            <CinematicScene />
+          </Suspense>
         </Canvas>
       </div>
+
+      {/* Dynamic Cursor Light */}
+      <motion.div 
+        className="pointer-events-none fixed top-0 left-0 w-[400px] h-[400px] bg-white/5 rounded-full blur-[100px] z-0 mix-blend-screen hidden md:block"
+        style={{ x: cursorX, y: cursorY, translateX: "-50%", translateY: "-50%" }}
+      />
 
       {/* Functional Foreground Layer */}
       <div className="relative z-10">
@@ -436,7 +472,10 @@ function RumorGlassCard({ rumor, index }: { rumor: PreviewRumor; index: number }
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} viewport={{ once: true }}>
       <Link href="/signup" className="block outline-none">
-        <div className="p-8 rounded-3xl bg-[#1A0F14]/40 backdrop-blur-xl border border-white/10 hover:border-white/30 transition-colors relative overflow-hidden group">
+        <motion.div 
+          style={{ rotateX: 0, rotateY: 0 }} // Simplified for performance on list items
+          className="p-8 rounded-3xl bg-[#1A0F14]/40 backdrop-blur-xl border border-white/10 hover:border-white/30 transition-colors relative overflow-hidden group"
+        >
           
           {/* Heat signature top border */}
           <div className="absolute top-0 left-0 h-[2px] w-full bg-white/5">
@@ -461,7 +500,7 @@ function RumorGlassCard({ rumor, index }: { rumor: PreviewRumor; index: number }
             {rumor.title}
           </h3>
           <span className="text-[9px] text-pink-200/40 uppercase tracking-widest">{formatRelativeTime(rumor.created_at)}</span>
-        </div>
+        </motion.div>
       </Link>
     </motion.div>
   )
