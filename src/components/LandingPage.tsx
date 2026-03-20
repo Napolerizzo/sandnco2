@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense, useCallback, Component, type ReactNode, type ErrorInfo } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -15,6 +15,16 @@ import { formatRelativeTime } from '@/lib/utils'
 
 const HeroScene = lazy(() => import('@/components/three/HeroScene'))
 const IntroAnimation = lazy(() => import('@/components/three/IntroAnimation'))
+
+class SceneErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(error: Error, info: ErrorInfo) { console.warn('3D scene error:', error, info) }
+  render() {
+    if (this.state.hasError) return <div className="w-full h-full bg-[#050505]" />
+    return this.props.children
+  }
+}
 
 type RankKey = keyof typeof RANKS
 const RANK_KEYS = Object.keys(RANKS) as RankKey[]
@@ -145,21 +155,25 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
     <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden">
       {/* Intro Animation Overlay */}
       {mounted && showIntro && (
-        <Suspense fallback={null}>
-          <IntroAnimation onComplete={handleIntroComplete} />
-        </Suspense>
+        <SceneErrorBoundary>
+          <Suspense fallback={null}>
+            <IntroAnimation onComplete={handleIntroComplete} />
+          </Suspense>
+        </SceneErrorBoundary>
       )}
 
       {/* 3D Scene - Fixed Background */}
       {mounted && (
         <div ref={sceneRef} className="fixed inset-0 z-0" style={{ willChange: 'opacity' }}>
-          <Suspense fallback={
-            <div className="w-full h-full bg-[#050505] flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-[#FF2D55] border-t-transparent rounded-full animate-spin" />
-            </div>
-          }>
-            <HeroScene scrollData={{ y: scrollRef.current * (typeof window !== 'undefined' ? document.documentElement.scrollHeight : 0) }} mouseData={mouseRef.current} scrollProgress={scrollRef.current} />
-          </Suspense>
+          <SceneErrorBoundary>
+            <Suspense fallback={
+              <div className="w-full h-full bg-[#050505] flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-[#FF2D55] border-t-transparent rounded-full animate-spin" />
+              </div>
+            }>
+              <HeroScene scrollData={{ y: window.scrollY }} mouseData={mouseRef.current} scrollProgress={scrollRef.current} />
+            </Suspense>
+          </SceneErrorBoundary>
         </div>
       )}
 
