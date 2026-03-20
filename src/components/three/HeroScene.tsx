@@ -3,8 +3,8 @@
 import { useRef, useMemo, useEffect, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { EffectComposer, Bloom, ChromaticAberration, Scanline, Noise, Vignette, Glitch } from '@react-three/postprocessing'
-import { BlendFunction, GlitchMode } from 'postprocessing'
+import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
+import { BlendFunction } from 'postprocessing'
 
 /* ── Color palettes ── */
 const PETAL_COLORS = [
@@ -426,15 +426,16 @@ function PixelHumans() {
   useFrame((state, delta) => {
     if (!groupRef.current) return
     const dt = Math.min(delta, 0.05)
-    groupRef.current.children.forEach((child, i) => {
+    const children = groupRef.current.children
+    for (let i = 0; i < Math.min(children.length, figures.length); i++) {
+      const child = children[i]
       const fig = figures[i]
       child.position.y -= fig.vy * dt
       child.rotation.y = Math.sin(state.clock.elapsedTime * 0.3 + i) * 0.3
-      // Reset when fallen
       if (child.position.y < -15) {
         child.position.y = 20 + Math.random() * 10
       }
-    })
+    }
   })
 
   return (
@@ -521,26 +522,13 @@ function GridFloor() {
   )
 }
 
-/* ── Post-processing effects ── */
+/* ── Post-processing effects (simplified for stability) ── */
 function PostFX() {
-  const chromaticOffset = useMemo(() => new THREE.Vector2(0.0006, 0.0006), [])
-  const glitchDelay = useMemo(() => new THREE.Vector2(8, 15), [])
-  const glitchDuration = useMemo(() => new THREE.Vector2(0.08, 0.25), [])
-  const glitchStrength = useMemo(() => new THREE.Vector2(0.008, 0.025), [])
-
   return (
     <EffectComposer multisampling={0}>
       <Bloom intensity={1.5} luminanceThreshold={0.12} luminanceSmoothing={0.9} mipmapBlur />
-      <ChromaticAberration offset={chromaticOffset} blendFunction={BlendFunction.NORMAL} />
-      <Scanline blendFunction={BlendFunction.OVERLAY} density={1.8} opacity={0.025} />
       <Noise opacity={0.018} blendFunction={BlendFunction.SOFT_LIGHT} />
       <Vignette offset={0.25} darkness={0.7} />
-      <Glitch
-        delay={glitchDelay}
-        duration={glitchDuration}
-        strength={glitchStrength}
-        mode={GlitchMode.SPORADIC}
-      />
     </EffectComposer>
   )
 }
