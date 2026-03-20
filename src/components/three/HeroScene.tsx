@@ -612,8 +612,13 @@ export default function HeroScene({
       <Canvas
         camera={{ position: [0, 2, 15], fov: 60 }}
         dpr={[1, isMobile ? 1 : 1.5]}
-        gl={{ antialias: !isMobile, powerPreference: 'high-performance' }}
+        gl={{ antialias: !isMobile, powerPreference: 'high-performance', failIfMajorPerformanceCaveat: false }}
         style={{ background: '#050505' }}
+        onCreated={({ gl }) => {
+          const canvas = gl.domElement
+          canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault() })
+          canvas.addEventListener('webglcontextrestored', () => { gl.setSize(canvas.clientWidth, canvas.clientHeight) })
+        }}
       >
         <Scene
           scrollData={scrollData}
