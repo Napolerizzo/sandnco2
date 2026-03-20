@@ -190,7 +190,6 @@ function ScreenText({ timeline }: { timeline: React.MutableRefObject<number> }) 
       anchorX="center"
       anchorY="middle"
       position={[0, 0.3, 0.5]}
-      font="https://fonts.gstatic.com/s/syne/v22/8vIS7w4qzmVxsWxjBZRjr0FKM_04uT6kR47NCV5Z.woff2"
     >
       SANDNCO
       <meshStandardMaterial
@@ -279,8 +278,12 @@ export default function IntroAnimation({ onComplete }: { onComplete: () => void 
       <Canvas
         camera={{ position: [0, 0.3, 5], fov: 50 }}
         dpr={[1, 1.5]}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, powerPreference: 'high-performance', failIfMajorPerformanceCaveat: false }}
         style={{ background: '#000' }}
+        onCreated={({ gl }) => {
+          const canvas = gl.domElement
+          canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault() })
+        }}
       >
         <IntroScene isMobile={isMobile} timeline={timeline} />
       </Canvas>

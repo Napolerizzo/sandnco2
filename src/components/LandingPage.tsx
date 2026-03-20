@@ -158,7 +158,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
               <div className="w-8 h-8 border-2 border-[#FF2D55] border-t-transparent rounded-full animate-spin" />
             </div>
           }>
-            <HeroScene mouseData={mouseRef.current} scrollProgress={scrollRef.current} />
+            <HeroScene scrollData={{ y: scrollRef.current * (typeof window !== 'undefined' ? document.documentElement.scrollHeight : 0) }} mouseData={mouseRef.current} scrollProgress={scrollRef.current} />
           </Suspense>
         </div>
       )}
