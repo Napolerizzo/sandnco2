@@ -68,12 +68,18 @@ function SignupContent() {
     if (!username || username.length < 3) { setUsernameAvailable(null); return }
     setCheckingUsername(true)
     const t = setTimeout(async () => {
-      const { data } = await supabase.from('users').select('id').eq('username', username).single()
-      setUsernameAvailable(!data)
+      try {
+        // Use the server-side admin endpoint so RLS never blocks the check
+        const res = await fetch(`/api/auth/check-username?username=${encodeURIComponent(username)}`)
+        const json = await res.json()
+        setUsernameAvailable(json.available ?? false)
+      } catch {
+        setUsernameAvailable(null)
+      }
       setCheckingUsername(false)
     }, 500)
     return () => clearTimeout(t)
-  }, [username, supabase])
+  }, [username])
 
   const pwStrength = getPasswordStrength(password)
 
