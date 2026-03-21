@@ -15,8 +15,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Amount must be between ₹1 and ₹1,00,000' }, { status: 400 })
   }
 
-  // Fetch user profile for prefill
-  const { data: profile } = await supabase
+  const admin = await createAdminClient()
+
+  // Fetch user profile via admin client so RLS never blocks the lookup
+  // (users with NULL status would fail the public-profiles policy otherwise)
+  const { data: profile } = await admin
     .from('users')
     .select('username, email, phone')
     .eq('id', user.id)
@@ -25,8 +28,6 @@ export async function POST(req: NextRequest) {
   if (!profile?.username) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
-
-  const admin = await createAdminClient()
 
   // Create a pending payment record so the webhook can match it
   const { data: pending, error: pendingErr } = await admin
