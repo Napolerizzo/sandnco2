@@ -31,6 +31,7 @@ const NAV_LINKS = [
   { href: '/rumors', icon: Flame, label: 'Rumors' },
   { href: '/challenges', icon: Trophy, label: 'Challenges' },
   { href: '/leaderboard', icon: TrendingUp, label: 'Ranks' },
+  { href: '/sand-grid', icon: Zap, label: 'Sand Grid' },
 ]
 
 export default function Navbar() {
@@ -389,6 +390,7 @@ export default function Navbar() {
                       { icon: TrendingUp, label: 'Leaderboard', href: '/leaderboard' },
                       { icon: MapPin, label: 'City Map (soon)', href: '/map' },
                       { icon: BarChart2, label: 'City Polls (soon)', href: '/polls' },
+                      { icon: Zap, label: 'The Sand Grid ⚡', href: '/sand-grid' },
                     ].map(({ icon: Icon, label, href }) => (
                       <Cmdk.Item key={href} onSelect={() => { router.push(href); setCmdkOpen(false) }}>
                         <Icon style={{ width: 15, height: 15, flexShrink: 0, opacity: 0.6 }} />

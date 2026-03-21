@@ -7,6 +7,9 @@ import {
 } from 'lucide-react'
 import { RANKS, PFP_STYLES, getXPProgress, type RankTier, type PfpStyle } from '@/lib/ranks'
 import { formatRelativeTime } from '@/lib/utils'
+import dynamic from 'next/dynamic'
+
+const DNAEvolution = dynamic(() => import('@/components/three/DNAEvolution'), { ssr: false })
 
 interface Profile {
   id: string
@@ -146,6 +149,44 @@ export default function ProfileClient({
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--subtle)' }}>
               <Calendar size={12} />Joined {formatRelativeTime(profile.created_at)}
             </span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* DNA Evolution */}
+      <motion.div
+        className="card"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30, delay: 0.06 }}
+        style={{ marginBottom: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, overflow: 'hidden' }}
+      >
+        <DNAEvolution
+          username={profile.username}
+          stats={{
+            rumors: profile.rumors_posted,
+            votes: 0,
+            challenges: profile.challenges_won,
+            wins: profile.challenges_won,
+          }}
+          compact
+        />
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>DNA Evolution Strand</p>
+          <p style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+            Each node represents a rumor, vote or challenge. Your strand mutates as you grow.
+          </p>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+            {[
+              { color: '#EC4899', label: 'Rumors' },
+              { color: '#A855F7', label: 'Votes' },
+              { color: '#FFD700', label: 'Challenges' },
+            ].map(n => (
+              <span key={n.label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--subtle)' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: n.color, display: 'inline-block' }} />
+                {n.label}
+              </span>
+            ))}
           </div>
         </div>
       </motion.div>
