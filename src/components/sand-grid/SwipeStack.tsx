@@ -15,10 +15,11 @@ interface MatchCard {
 
 interface SwipeStackProps {
   ageTrack: 'adult' | 'ghost'
+  ownUserId: string
   onStatsUpdate?: () => void
 }
 
-export default function SwipeStack({ ageTrack, onStatsUpdate }: SwipeStackProps) {
+export default function SwipeStack({ ageTrack, ownUserId, onStatsUpdate }: SwipeStackProps) {
   const [profiles, setProfiles] = useState<SandProfile[]>([])
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -28,10 +29,12 @@ export default function SwipeStack({ ageTrack, onStatsUpdate }: SwipeStackProps)
   const [sparks, setSparks] = useState(0)
   const [passes, setPasses] = useState(0)
 
-  const loadProfiles = useCallback(async (p: number) => {
+  const loadProfiles = useCallback(async (p: number, reset = false) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/sand-grid/profiles?page=${p}`)
+      const params = new URLSearchParams({ page: String(p) })
+      if (reset) params.set('reset', '1')
+      const res = await fetch(`/api/sand-grid/profiles?${params}`)
       const data = await res.json()
       if (data.error) { toast.error(data.error); return }
       setProfiles(prev => p === 0 ? data.profiles : [...prev, ...data.profiles])
@@ -47,7 +50,22 @@ export default function SwipeStack({ ageTrack, onStatsUpdate }: SwipeStackProps)
 
   const visibleProfiles = profiles.filter(p => !actioned.includes(p.user_id))
 
+  // When the stack runs dry, loop back from the start
+  useEffect(() => {
+    if (!loading && visibleProfiles.length === 0 && profiles.length > 0) {
+      setActioned([])
+      setPage(0)
+      loadProfiles(0, true)
+    }
+  }, [loading, visibleProfiles.length, profiles.length, loadProfiles])
+
   const handleAction = async (profile: SandProfile, action: 'spark' | 'pass') => {
+    // Own profile card — just dismiss it, no vote recorded
+    if (profile.user_id === ownUserId) {
+      setActioned(prev => [...prev, profile.user_id])
+      return
+    }
+
     setActioned(prev => [...prev, profile.user_id])
     if (action === 'spark') setSparks(s => s + 1)
     else setPasses(p => p + 1)

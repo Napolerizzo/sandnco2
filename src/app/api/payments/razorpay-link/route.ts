@@ -3,6 +3,11 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 const RAZORPAY_PAYMENT_PAGE = 'https://rzp.io/rzp/w4Zfnen'
 
+function generateUsername(email: string): string {
+  const base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 18)
+  return `${base}_${Math.floor(Math.random() * 9000) + 1000}`
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -18,15 +23,41 @@ export async function POST(req: NextRequest) {
   const admin = await createAdminClient()
 
   // Fetch user profile via admin client so RLS never blocks the lookup
-  // (users with NULL status would fail the public-profiles policy otherwise)
-  const { data: profile } = await admin
+  let { data: profile } = await admin
     .from('users')
     .select('username, email, phone')
     .eq('id', user.id)
     .single()
 
+  // If row missing entirely, create it now (trigger may have failed at signup)
+  if (!profile) {
+    const meta = user.user_metadata || {}
+    const email = user.email || ''
+    const username = meta.username || generateUsername(email)
+    const { data: created } = await admin
+      .from('users')
+      .insert({
+        id: user.id,
+        email,
+        username,
+        display_name: meta.display_name || meta.full_name || meta.name || username,
+        pfp_style: meta.pfp_style || 'neon_orb',
+        profile_picture_url: meta.avatar_url || null,
+      })
+      .select('username, email, phone')
+      .single()
+    profile = created
+  }
+
+  // If row exists but username is null (partial trigger failure), patch it
+  if (profile && !profile.username) {
+    const fallback = generateUsername(profile.email || user.email || 'user')
+    await admin.from('users').update({ username: fallback }).eq('id', user.id)
+    profile = { ...profile, username: fallback }
+  }
+
   if (!profile?.username) {
-    return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Could not resolve user profile. Please contact support.' }, { status: 500 })
   }
 
   // Create a pending payment record so the webhook can match it
@@ -52,14 +83,10 @@ export async function POST(req: NextRequest) {
 
   const email = profile.email || user.email || ''
   const phone = profile.phone || ''
-  // Razorpay contact: must be 10 digits, optionally prefixed with +91
   const contact = phone
     ? phone.startsWith('+') ? phone : `+91${phone.replace(/^0+/, '')}`
     : ''
 
-  // Build query string MANUALLY — do NOT use URLSearchParams because it
-  // encodes [ ] to %5B %5D which Razorpay's payment page does not recognise.
-  // Only encode the *values*, keep the bracket key syntax literal.
   const parts: string[] = [
     `prefill[name]=${encodeURIComponent(profile.username)}`,
     `prefill[email]=${encodeURIComponent(email)}`,
@@ -67,9 +94,7 @@ export async function POST(req: NextRequest) {
     `notes[username]=${encodeURIComponent(profile.username)}`,
     `notes[payment_type]=${encodeURIComponent(type)}`,
     `notes[pending_id]=${encodeURIComponent(pending.id)}`,
-    // Amount in paise (100 paise = ₹1)
     `amount=${Math.round(amountNum * 100)}`,
-    // Redirect user back to wallet after payment
     `callback_url=${encodeURIComponent(callbackUrl)}`,
   ]
 
