@@ -14,6 +14,7 @@ import {
 import { RANKS } from '@/lib/ranks'
 import { formatRelativeTime } from '@/lib/utils'
 import HeroBackground from '@/components/three/HeroBackground'
+import { useSupabase } from '@/components/providers/SupabaseProvider'
 
 type RankKey = keyof typeof RANKS
 const RANK_KEYS = Object.keys(RANKS) as RankKey[]
@@ -87,6 +88,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function LandingPage({ previewRumors, userCount, rumorCount }: LandingPageProps) {
   const [mounted, setMounted] = useState(false)
   const [taglineIdx, setTaglineIdx] = useState(0)
+  const { user } = useSupabase()
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -117,18 +119,37 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
               <span className="font-display text-xl font-bold text-gradient">SANDNCO</span>
             </Link>
             <div className="flex items-center gap-3">
-              <Link
-                href="/login"
-                className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white transition-colors"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/signup"
-                className="px-4 py-2 text-sm font-bold rounded-lg bg-gradient-to-r from-[#FF2D55] to-[#FF6B8A] hover:from-[#FF4D7A] hover:to-[#FF8DA6] transition-all shadow-lg shadow-[#FF2D55]/20"
-              >
-                Join the Chaos
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href="/feed"
+                    className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white transition-colors"
+                  >
+                    Feed
+                  </Link>
+                  <Link
+                    href="/settings"
+                    className="px-4 py-2 text-sm font-bold rounded-lg bg-gradient-to-r from-[#FF2D55] to-[#FF6B8A] hover:from-[#FF4D7A] hover:to-[#FF8DA6] transition-all shadow-lg shadow-[#FF2D55]/20"
+                  >
+                    Settings
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="px-4 py-2 text-sm font-bold rounded-lg bg-gradient-to-r from-[#FF2D55] to-[#FF6B8A] hover:from-[#FF4D7A] hover:to-[#FF8DA6] transition-all shadow-lg shadow-[#FF2D55]/20"
+                  >
+                    Join the Chaos
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </nav>
@@ -178,51 +199,79 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
             }}
           />
 
-          {/* Main Title — staggered letter reveal */}
-          <h1
-            className="font-extrabold text-center leading-none mb-4 relative"
-            style={{ fontSize: 'clamp(70px, 14vw, 180px)', fontFamily: "'Syne', sans-serif" }}
-          >
-            {'SANDNCO'.split('').map((char, i) => (
-              <motion.span
-                key={i}
-                initial={{ opacity: 0, y: 80, rotateX: 90, filter: 'blur(16px)' }}
-                animate={{ opacity: 1, y: 0, rotateX: 0, filter: 'blur(0px)' }}
-                transition={{
-                  delay: 0.2 + i * 0.09,
-                  duration: 0.8,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-                className="text-gradient"
-                style={{
-                  display: 'inline-block',
-                  animation: mounted ? `text-flicker ${8 + i}s ${2 + i * 0.5}s infinite` : undefined,
-                }}
-              >
-                {char}
-              </motion.span>
-            ))}
-          </h1>
-
-          {/* Subtitle with scan line */}
+          {/* Main Title — cinematic staggered reveal */}
           <motion.div
-            initial={{ opacity: 0, scaleX: 0 }}
-            animate={{ opacity: 1, scaleX: 1 }}
-            transition={{ delay: 1.0, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
-            className="relative mb-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="relative mb-6"
           >
-            <p className="font-mono text-xs sm:text-sm tracking-[0.3em] text-white/40 uppercase px-6">
-              The City&apos;s Underground
+            {/* Glow behind text */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.8, duration: 1.5, ease: 'easeOut' }}
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'radial-gradient(ellipse at center, rgba(255,45,85,0.2) 0%, transparent 60%)',
+                filter: 'blur(40px)',
+              }}
+            />
+            <h1
+              className="font-extrabold text-center leading-none relative"
+              style={{ fontSize: 'clamp(70px, 14vw, 180px)', fontFamily: "'Syne', sans-serif" }}
+            >
+              {'SANDNCO'.split('').map((char, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: 120, scale: 0.5 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    delay: 0.3 + i * 0.12,
+                    duration: 1.0,
+                    ease: [0.0, 0.0, 0.2, 1],
+                  }}
+                  className="text-gradient"
+                  style={{ display: 'inline-block' }}
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </h1>
+          </motion.div>
+
+          {/* Subtitle — typed out character by character */}
+          <div className="relative mb-8">
+            <p className="font-mono text-xs sm:text-sm tracking-[0.3em] text-white/40 uppercase flex justify-center">
+              {"THE CITY'S UNDERGROUND".split('').map((char, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.3 + i * 0.04, duration: 0.01 }}
+                  style={{ display: char === ' ' ? 'inline' : 'inline-block', width: char === ' ' ? '0.5em' : undefined }}
+                >
+                  {char === ' ' ? '\u00A0' : char}
+                </motion.span>
+              ))}
+              {/* Blinking cursor */}
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 1, 0] }}
+                transition={{ delay: 1.3, duration: 1, repeat: 3, ease: 'steps(2)' }}
+                className="text-[#FF2D55] ml-0.5"
+              >
+                _
+              </motion.span>
             </p>
-            {/* Animated underline */}
             <motion.div
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
-              transition={{ delay: 1.4, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="h-px mt-2 mx-auto bg-gradient-to-r from-transparent via-[#FF2D55]/40 to-transparent"
-              style={{ transformOrigin: 'center' }}
+              transition={{ delay: 2.4, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="h-px mt-3 mx-auto bg-gradient-to-r from-transparent via-[#FF2D55]/30 to-transparent"
+              style={{ transformOrigin: 'center', maxWidth: '300px' }}
             />
-          </motion.div>
+          </div>
 
           {/* Rotating Taglines */}
           <div className="h-8 mb-10 overflow-hidden">
