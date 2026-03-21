@@ -104,7 +104,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
       <div className="relative z-10">
         {/* Navbar */}
         <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-[#050505]/70 border-b border-white/5">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2.5">
               <Image
                 src="/logo.png"
@@ -178,11 +178,10 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
             }}
           />
 
-          {/* Main Title — staggered letter reveal with glitch */}
-          <motion.h1
-            className="glitch-text text-gradient font-display font-extrabold text-center leading-none mb-4 relative"
-            data-text="SANDNCO"
-            style={{ fontSize: 'clamp(70px, 14vw, 180px)' }}
+          {/* Main Title — staggered letter reveal */}
+          <h1
+            className="font-extrabold text-center leading-none mb-4 relative"
+            style={{ fontSize: 'clamp(70px, 14vw, 180px)', fontFamily: "'Syne', sans-serif" }}
           >
             {'SANDNCO'.split('').map((char, i) => (
               <motion.span
@@ -194,6 +193,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
                   duration: 0.8,
                   ease: [0.16, 1, 0.3, 1],
                 }}
+                className="text-gradient"
                 style={{
                   display: 'inline-block',
                   animation: mounted ? `text-flicker ${8 + i}s ${2 + i * 0.5}s infinite` : undefined,
@@ -202,7 +202,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
                 {char}
               </motion.span>
             ))}
-          </motion.h1>
+          </h1>
 
           {/* Subtitle with scan line */}
           <motion.div
@@ -308,7 +308,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
 
         {/* ════════════════════ HOW IT WORKS ════════════════════ */}
         <section id="how-it-works" className="relative bg-[#050505] py-24 sm:py-32 px-4">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -350,7 +350,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
 
         {/* ════════════════════ RANKS ════════════════════ */}
         <section className="relative bg-[#050505] py-24 sm:py-32 px-4">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -549,7 +549,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
                 <h3 className="font-display text-2xl font-bold mb-1">Premium</h3>
                 <p className="text-white/40 text-sm mb-6">Maximum chaos</p>
                 <div className="text-4xl font-display font-extrabold mb-6">
-                  $4.99<span className="text-lg text-white/30 font-normal">/month</span>
+                  ₹80<span className="text-lg text-white/30 font-normal">/month</span>
                 </div>
                 <ul className="space-y-3 mb-8">
                   {['Everything in Free', 'Anonymous posting', 'Custom avatar styles', 'Priority feed placement', 'Exclusive challenges', 'Premium badge'].map(f => (
@@ -631,7 +631,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
 
         {/* ════════════════════ FOOTER ════════════════════ */}
         <footer className="relative bg-[#050505] border-t border-white/5 py-12 px-4">
-          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Image src="/logo.png" alt="SANDNCO" width={28} height={28} className="rounded-md" />
               <span className="font-display font-bold text-gradient">SANDNCO</span>
