@@ -295,7 +295,7 @@ export default function SandSetup({ dob, ageTrack, onComplete }: SandSetupProps)
         </div>
 
         {/* Track badge */}
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div style={{ textAlign: 'center', marginBottom: 12 }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
             padding: '4px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700,
@@ -306,6 +306,25 @@ export default function SandSetup({ dob, ageTrack, onComplete }: SandSetupProps)
             {ageTrack === 'adult' ? '⚡ Adult Track' : '👻 Ghost Mode'}
           </span>
         </div>
+
+        {/* Separate pools notice — shown only on step 0 */}
+        {step === 0 && (
+          <div style={{
+            padding: '10px 14px', borderRadius: 10, marginBottom: 16,
+            background: 'rgba(0,229,255,0.05)',
+            border: '1px solid rgba(0,229,255,0.15)',
+            display: 'flex', gap: 10, alignItems: 'flex-start',
+          }}>
+            <span style={{ fontSize: 15, flexShrink: 0 }}>🔒</span>
+            <p style={{ fontSize: 11, color: 'rgba(0,229,255,0.7)', lineHeight: 1.6, margin: 0 }}>
+              <strong style={{ color: '#00E5FF' }}>Separate pools, always.</strong>
+              {' '}Adult profiles are completely invisible to Ghost Mode users and vice versa — no crossover, ever.
+              {ageTrack === 'ghost' && (
+                <span> Your profile will <strong style={{ color: '#00E5FF' }}>automatically move</strong> to the Adult track when you turn 18.</span>
+              )}
+            </p>
+          </div>
+        )}
 
         <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 4, fontFamily: "'Syne', sans-serif" }}>
           {steps[step].title}

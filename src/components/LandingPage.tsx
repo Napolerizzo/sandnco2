@@ -219,7 +219,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
             />
             <h1
               className="font-extrabold text-center leading-none relative"
-              style={{ fontSize: 'clamp(70px, 14vw, 180px)', fontFamily: "'Syne', sans-serif", whiteSpace: 'nowrap' }}
+              style={{ fontSize: 'clamp(48px, 10vw, 130px)', fontFamily: "'Syne', sans-serif", whiteSpace: 'nowrap' }}
             >
               {'SANDNCO'.split('').map((char, i) => (
                 <motion.span

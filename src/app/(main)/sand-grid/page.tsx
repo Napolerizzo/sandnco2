@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import AgeGate from '@/components/sand-grid/AgeGate'
 import SandSetup from '@/components/sand-grid/SandSetup'
@@ -10,19 +11,26 @@ import toast from 'react-hot-toast'
 type ViewState = 'loading' | 'age-gate' | 'setup' | 'grid' | 'left'
 
 export default function SandGridPage() {
+  const router = useRouter()
   const [view, setView] = useState<ViewState>('loading')
   const [dob, setDob] = useState('')
   const [ageTrack, setAgeTrack] = useState<'adult' | 'ghost'>('adult')
   const [ownProfile, setOwnProfile] = useState<Record<string, unknown> | null>(null)
 
-  // Check if user already has a Sand Grid profile
   useEffect(() => {
     const checkProfile = async () => {
-      // Check localStorage for DOB consent (to avoid re-showing age gate)
       const savedDob = localStorage.getItem('sand_grid_dob')
 
       try {
         const res = await fetch('/api/sand-grid/profile')
+
+        // Auth guard: 401 = not logged in
+        if (res.status === 401) {
+          toast.error('Sign in to access The Sand Grid')
+          router.replace('/login?next=/sand-grid')
+          return
+        }
+
         const data = await res.json()
 
         if (data.profile) {
@@ -30,7 +38,6 @@ export default function SandGridPage() {
           setAgeTrack(data.profile.age_track)
           setView('grid')
         } else if (savedDob) {
-          // Has DOB consent but no profile yet — skip age gate, go to setup
           const track = calcTrack(savedDob)
           if (track) {
             setDob(savedDob)
@@ -48,7 +55,7 @@ export default function SandGridPage() {
       }
     }
     checkProfile()
-  }, [])
+  }, [router])
 
   function calcTrack(dobStr: string): 'adult' | 'ghost' | null {
     const d = new Date(dobStr)
