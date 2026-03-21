@@ -142,7 +142,7 @@ export default function SandGrid({ ownProfile, onEditProfile, onLeave }: SandGri
           {/* ── SWIPE TAB ── */}
           {tab === 'swipe' && (
             <motion.div key="swipe" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <SwipeStack ageTrack={ownProfile.age_track} onStatsUpdate={loadMatches} />
+              <SwipeStack ageTrack={ownProfile.age_track} ownUserId={ownProfile.user_id} onStatsUpdate={loadMatches} />
             </motion.div>
           )}
 

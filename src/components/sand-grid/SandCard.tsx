@@ -15,6 +15,7 @@ export interface SandProfile {
   interests?: string[]
   profile_picture_url: string
   date_of_birth?: string
+  is_own?: boolean
 }
 
 interface SandCardProps {
@@ -40,6 +41,7 @@ export default function SandCard({
   drag = false,
   onDragEnd,
 }: SandCardProps) {
+  const isOwn = profile.is_own === true
   const [expanded, setExpanded] = useState(false)
   const [dragDir, setDragDir] = useState<'spark' | 'pass' | null>(null)
 
@@ -58,25 +60,27 @@ export default function SandCard({
 
   return (
     <motion.div
-      drag={drag ? 'x' : false}
+      drag={drag && !isOwn ? 'x' : false}
       dragConstraints={{ left: -300, right: 300 }}
       dragElastic={0.8}
       onDrag={(_, info) => {
+        if (isOwn) return
         if (info.offset.x > 60) setDragDir('spark')
         else if (info.offset.x < -60) setDragDir('pass')
         else setDragDir(null)
       }}
       onDragEnd={(_, info) => {
+        if (isOwn) return
         if (info.offset.x > 120) onDragEnd?.('spark')
         else if (info.offset.x < -120) onDragEnd?.('pass')
         else setDragDir(null)
       }}
       style={{
         width: '100%', maxWidth: 380, position: 'absolute',
-        cursor: drag ? 'grab' : 'default',
+        cursor: drag && !isOwn ? 'grab' : 'default',
         ...style,
       }}
-      whileDrag={{ cursor: 'grabbing' }}
+      whileDrag={!isOwn ? { cursor: 'grabbing' } : {}}
     >
       <div
         style={{
@@ -156,6 +160,18 @@ export default function SandCard({
           </span>
         </div>
 
+        {/* "This is You" overlay for own profile */}
+        {isOwn && (
+          <div style={{
+            position: 'absolute', top: 16, left: 16, zIndex: 5,
+            padding: '4px 12px', borderRadius: 100, fontSize: 11, fontWeight: 800,
+            background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
+            color: '#fff', backdropFilter: 'blur(8px)', letterSpacing: '0.04em',
+          }}>
+            👤 This is you
+          </div>
+        )}
+
         {/* Bottom content */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 20px 24px', zIndex: 5 }}>
           {/* Name + age */}
@@ -216,8 +232,17 @@ export default function SandCard({
         </div>
       </div>
 
-      {/* Action buttons — only shown on top card */}
-      {isTop && (
+      {/* Own-profile nudge */}
+      {isTop && isOwn && (
+        <div style={{ textAlign: 'center', marginTop: 14, paddingBottom: 4 }}>
+          <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+            This is how others see you · tap <strong style={{ color: 'var(--text)' }}>Edit Profile</strong> to update
+          </p>
+        </div>
+      )}
+
+      {/* Action buttons — only shown on top card that isn't own profile */}
+      {isTop && !isOwn && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 16, paddingBottom: 4 }}>
           {/* Report button (adults only, small) */}
           {ageTrack === 'adult' && onReport && (
