@@ -13,7 +13,7 @@ function calcAgeTrack(dob: string): 'adult' | 'ghost' | null {
   return 'adult'
 }
 
-// GET — fetch own profile
+// GET — fetch own profile, auto-upgrade ghost→adult if user turned 18
 export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -28,7 +28,26 @@ export async function GET() {
   if (error && error.code !== 'PGRST116') {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-  return NextResponse.json({ profile: data || null })
+
+  if (!data) return NextResponse.json({ profile: null })
+
+  // Auto-maturity: if ghost track user has turned 18, upgrade to adult
+  if (data.age_track === 'ghost' && data.date_of_birth) {
+    const currentTrack = calcAgeTrack(data.date_of_birth)
+    if (currentTrack === 'adult') {
+      // Silently upgrade — user is now 18+
+      const admin = await createAdminClient()
+      const { data: upgraded } = await admin
+        .from('sand_profiles')
+        .update({ age_track: 'adult', updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .select()
+        .single()
+      return NextResponse.json({ profile: upgraded || data, matured: true })
+    }
+  }
+
+  return NextResponse.json({ profile: data })
 }
 
 // POST — create or update profile
