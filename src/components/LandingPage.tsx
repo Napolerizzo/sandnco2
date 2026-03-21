@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, lazy, Suspense, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Flame, Trophy, ArrowRight,
@@ -12,9 +13,7 @@ import {
 } from 'lucide-react'
 import { RANKS } from '@/lib/ranks'
 import { formatRelativeTime } from '@/lib/utils'
-
-const HeroBackground = lazy(() => import('@/components/three/HeroBackground'))
-const IntroAnimation = lazy(() => import('@/components/three/IntroAnimation'))
+import HeroBackground from '@/components/three/HeroBackground'
 
 type RankKey = keyof typeof RANKS
 const RANK_KEYS = Object.keys(RANKS) as RankKey[]
@@ -88,49 +87,33 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function LandingPage({ previewRumors, userCount, rumorCount }: LandingPageProps) {
   const [mounted, setMounted] = useState(false)
   const [taglineIdx, setTaglineIdx] = useState(0)
-  const [showIntro, setShowIntro] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-    if (typeof window !== 'undefined' && !sessionStorage.getItem('intro-seen')) {
-      setShowIntro(true)
-    }
-  }, [])
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     const t = setInterval(() => setTaglineIdx(i => (i + 1) % TAGLINES.length), 3000)
     return () => clearInterval(t)
   }, [])
 
-  const handleIntroComplete = useCallback(() => {
-    setShowIntro(false)
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('intro-seen', '1')
-    }
-  }, [])
-
   return (
     <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden">
-      {/* Intro Animation Overlay */}
-      {mounted && showIntro && (
-        <Suspense fallback={null}>
-          <IntroAnimation onComplete={handleIntroComplete} />
-        </Suspense>
-      )}
+      {/* Animated Canvas Background — always render */}
+      {mounted && <HeroBackground />}
 
-      {/* Animated Canvas Background */}
-      {mounted && (
-        <Suspense fallback={null}>
-          <HeroBackground />
-        </Suspense>
-      )}
-
-      {/* Page Content - Scrollable over 3D */}
+      {/* Page Content */}
       <div className="relative z-10">
         {/* Navbar */}
-        <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-[#050505]/60 border-b border-white/5">
+        <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-[#050505]/70 border-b border-white/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2.5">
+              <Image
+                src="/logo.png"
+                alt="SANDNCO"
+                width={36}
+                height={36}
+                className="rounded-lg"
+                priority
+              />
               <span className="font-display text-xl font-bold text-gradient">SANDNCO</span>
             </Link>
             <div className="flex items-center gap-3">
@@ -151,51 +134,105 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
         </nav>
 
         {/* ════════════════════ HERO SECTION ════════════════════ */}
-        <section className="relative min-h-screen flex flex-col items-center justify-center px-4 pt-16">
-          {/* Beta Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="mb-6"
-          >
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold tracking-widest bg-[#FF2D55]/10 text-[#FF2D55] border border-[#FF2D55]/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF2D55] animate-pulse" />
-              BETA
-            </span>
-          </motion.div>
+        <section className="relative min-h-screen flex flex-col items-center justify-center px-4 pt-16 overflow-hidden">
+          {/* Pulsing radial glow behind title */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vh] pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse at center, rgba(255,45,85,0.12) 0%, rgba(168,85,247,0.06) 30%, transparent 70%)',
+              animation: 'glow-pulse 4s ease-in-out infinite',
+            }}
+          />
 
-          {/* Main Title with Glitch */}
+          {/* Orbiting ring */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] sm:w-[700px] sm:h-[700px] rounded-full pointer-events-none"
+            style={{
+              border: '1px solid rgba(255,45,85,0.08)',
+              animation: 'spin 60s linear infinite',
+            }}
+          >
+            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-[#FF2D55] shadow-[0_0_20px_rgba(255,45,85,0.8)]" />
+            <div className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-2 h-2 rounded-full bg-[#00E5FF] shadow-[0_0_15px_rgba(0,229,255,0.7)]" />
+            <div className="absolute -bottom-1 left-1/4 w-2.5 h-2.5 rounded-full bg-[#FFD700] shadow-[0_0_18px_rgba(255,215,0,0.7)]" />
+          </div>
+
+          {/* Second orbiting ring — counter-rotation */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] sm:w-[500px] sm:h-[500px] rounded-full pointer-events-none"
+            style={{
+              border: '1px solid rgba(0,229,255,0.06)',
+              animation: 'spin 45s linear infinite reverse',
+            }}
+          >
+            <div className="absolute -top-1 left-1/3 w-2 h-2 rounded-full bg-[#A855F7] shadow-[0_0_15px_rgba(168,85,247,0.8)]" />
+            <div className="absolute bottom-0 right-1/4 w-1.5 h-1.5 rounded-full bg-[#FF2D55] shadow-[0_0_12px_rgba(255,45,85,0.6)]" />
+          </div>
+
+          {/* Noise grain overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-[0.03]"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+              backgroundSize: '128px 128px',
+            }}
+          />
+
+          {/* Main Title — staggered letter reveal with glitch */}
           <motion.h1
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.7, type: 'spring', stiffness: 100 }}
-            className="glitch-text text-gradient font-display font-extrabold text-center leading-none mb-4"
+            className="glitch-text text-gradient font-display font-extrabold text-center leading-none mb-4 relative"
             data-text="SANDNCO"
             style={{ fontSize: 'clamp(70px, 14vw, 180px)' }}
           >
-            SANDNCO
+            {'SANDNCO'.split('').map((char, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, y: 80, rotateX: 90, filter: 'blur(16px)' }}
+                animate={{ opacity: 1, y: 0, rotateX: 0, filter: 'blur(0px)' }}
+                transition={{
+                  delay: 0.2 + i * 0.09,
+                  duration: 0.8,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+                style={{
+                  display: 'inline-block',
+                  animation: mounted ? `text-flicker ${8 + i}s ${2 + i * 0.5}s infinite` : undefined,
+                }}
+              >
+                {char}
+              </motion.span>
+            ))}
           </motion.h1>
 
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="font-mono text-xs sm:text-sm tracking-[0.3em] text-white/40 uppercase mb-8"
+          {/* Subtitle with scan line */}
+          <motion.div
+            initial={{ opacity: 0, scaleX: 0 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ delay: 1.0, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+            className="relative mb-8"
           >
-            The City&apos;s Underground
-          </motion.p>
+            <p className="font-mono text-xs sm:text-sm tracking-[0.3em] text-white/40 uppercase px-6">
+              The City&apos;s Underground
+            </p>
+            {/* Animated underline */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ delay: 1.4, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="h-px mt-2 mx-auto bg-gradient-to-r from-transparent via-[#FF2D55]/40 to-transparent"
+              style={{ transformOrigin: 'center' }}
+            />
+          </motion.div>
 
           {/* Rotating Taglines */}
           <div className="h-8 mb-10 overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.p
                 key={taglineIdx}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
+                initial={{ opacity: 0, y: 20, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -20, filter: 'blur(6px)' }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                 className="text-center text-white/60 text-base sm:text-lg font-light"
               >
                 {TAGLINES[taglineIdx]}
@@ -205,14 +242,15 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
 
           {/* CTA Buttons */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2 }}
+            transition={{ delay: 1.3, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col sm:flex-row items-center gap-4 mb-12"
           >
             <Link
               href="/signup"
               className="group relative px-8 py-3.5 rounded-xl font-bold text-base bg-gradient-to-r from-[#FF2D55] to-[#FFD700] shadow-lg shadow-[#FF2D55]/30 hover:shadow-[#FF2D55]/50 transition-all duration-300 hover:scale-105"
+              style={{ animation: 'pulse-glow 3s ease-in-out infinite' }}
             >
               <span className="relative z-10 flex items-center gap-2">
                 Enter the Chaos
@@ -222,7 +260,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
             </Link>
             <a
               href="#how-it-works"
-              className="px-6 py-3 rounded-xl font-medium text-sm border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition-all"
+              className="px-6 py-3 rounded-xl font-medium text-sm border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition-all backdrop-blur-sm"
             >
               How it works
             </a>
@@ -232,22 +270,28 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
+            transition={{ delay: 1.6, duration: 0.8 }}
             className="flex flex-wrap justify-center gap-8 sm:gap-12 mb-16"
           >
             {[
-              { label: 'Users', value: userCount, icon: Users },
-              { label: 'Rumors', value: rumorCount, icon: Flame },
-              { label: 'Ranks', value: 10, icon: Crown },
-              { label: 'Cost', value: 'Free', icon: Zap },
-            ].map((stat) => (
-              <div key={stat.label} className="flex flex-col items-center gap-1">
-                <stat.icon className="w-4 h-4 text-[#FF2D55] mb-1" />
+              { label: 'Users', value: userCount, icon: Users, color: '#FF2D55' },
+              { label: 'Rumors', value: rumorCount, icon: Flame, color: '#FFD700' },
+              { label: 'Ranks', value: 10, icon: Crown, color: '#00E5FF' },
+              { label: 'Cost', value: 'Free', icon: Zap, color: '#A855F7' },
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.7 + i * 0.1, duration: 0.5 }}
+                className="flex flex-col items-center gap-1"
+              >
+                <stat.icon className="w-4 h-4 mb-1" style={{ color: stat.color }} />
                 <span className="font-mono text-xl font-bold text-white">
                   {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                 </span>
                 <span className="text-xs text-white/40 uppercase tracking-wider">{stat.label}</span>
-              </div>
+              </motion.div>
             ))}
           </motion.div>
 
@@ -255,7 +299,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 2 }}
+            transition={{ delay: 2.2 }}
             className="absolute bottom-8 left-1/2 -translate-x-1/2"
           >
             <ChevronDown className="w-6 h-6 text-white/20 animate-bounce" />
@@ -589,8 +633,8 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
         <footer className="relative bg-[#050505] border-t border-white/5 py-12 px-4">
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
+              <Image src="/logo.png" alt="SANDNCO" width={28} height={28} className="rounded-md" />
               <span className="font-display font-bold text-gradient">SANDNCO</span>
-              <span className="text-xs text-white/20">Beta</span>
             </div>
             <div className="flex items-center gap-6 text-xs text-white/30">
               <Link href="/legal/terms" className="hover:text-white/60 transition-colors">Terms</Link>
