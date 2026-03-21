@@ -22,10 +22,10 @@ export async function POST(req: NextRequest) {
 
   const admin = await createAdminClient()
 
-  // Fetch user profile via admin client so RLS never blocks the lookup
+  // users table has: username, email — no phone column
   let { data: profile } = await admin
     .from('users')
-    .select('username, email, phone')
+    .select('username, email')
     .eq('id', user.id)
     .single()
 
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const meta = user.user_metadata || {}
     const email = user.email || ''
     const username = meta.username || generateUsername(email)
-    const { data: created } = await admin
+    const { data: created, error: insertErr } = await admin
       .from('users')
       .insert({
         id: user.id,
@@ -44,8 +44,11 @@ export async function POST(req: NextRequest) {
         pfp_style: meta.pfp_style || 'neon_orb',
         profile_picture_url: meta.avatar_url || null,
       })
-      .select('username, email, phone')
+      .select('username, email')
       .single()
+    if (insertErr) {
+      console.error('users insert error:', insertErr)
+    }
     profile = created
   }
 
@@ -57,6 +60,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!profile?.username) {
+    console.error('razorpay-link: could not resolve profile for user', user.id)
     return NextResponse.json({ error: 'Could not resolve user profile. Please contact support.' }, { status: 500 })
   }
 
@@ -82,15 +86,11 @@ export async function POST(req: NextRequest) {
   const callbackUrl = `${appUrl}/wallet?payment=success&ref=${pending.id}`
 
   const email = profile.email || user.email || ''
-  const phone = profile.phone || ''
-  const contact = phone
-    ? phone.startsWith('+') ? phone : `+91${phone.replace(/^0+/, '')}`
-    : ''
 
+  // No phone column in users table — Razorpay will show the contact field blank
   const parts: string[] = [
     `prefill[name]=${encodeURIComponent(profile.username)}`,
     `prefill[email]=${encodeURIComponent(email)}`,
-    ...(contact ? [`prefill[contact]=${encodeURIComponent(contact)}`] : []),
     `notes[username]=${encodeURIComponent(profile.username)}`,
     `notes[payment_type]=${encodeURIComponent(type)}`,
     `notes[pending_id]=${encodeURIComponent(pending.id)}`,
