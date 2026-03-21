@@ -42,15 +42,44 @@ export async function POST(req: NextRequest) {
     const orderId = payment?.order_id as string || ''
     const paymentType = notes.payment_type || 'wallet_deposit'
 
-    // Look up user by username
+    // Look up user by username (primary) → email (fallback) → contact/phone (last resort)
     let userId: string | null = null
+    let resolvedUsername = username
+
     if (username) {
       const { data: userRow } = await admin
         .from('users')
-        .select('id')
+        .select('id, username')
         .eq('username', username)
         .single()
       userId = userRow?.id || null
+    }
+
+    if (!userId && email) {
+      // Fallback: match by email in case notes didn't come through
+      const { data: userRow } = await admin
+        .from('users')
+        .select('id, username')
+        .eq('email', email)
+        .single()
+      if (userRow) {
+        userId = userRow.id
+        resolvedUsername = userRow.username || username
+      }
+    }
+
+    if (!userId && contact) {
+      // Last resort: match by phone number (strip +91 prefix if present)
+      const barePhone = contact.replace(/^\+91/, '').replace(/\D/g, '')
+      const { data: userRow } = await admin
+        .from('users')
+        .select('id, username')
+        .or(`phone.eq.${contact},phone.eq.${barePhone},phone.eq.+91${barePhone}`)
+        .single()
+      if (userRow) {
+        userId = userRow.id
+        resolvedUsername = userRow.username || username
+      }
     }
 
     // Check for duplicate — don't double-credit
@@ -66,7 +95,7 @@ export async function POST(req: NextRequest) {
         event_type: eventType,
         razorpay_payment_id: paymentId,
         razorpay_order_id: orderId,
-        username,
+        username: resolvedUsername,
         email,
         contact,
         amount: amountInr,
@@ -109,7 +138,7 @@ export async function POST(req: NextRequest) {
             balance_before: 0,
             balance_after: 0,
             status: 'completed',
-            description: 'King Membership via Razorpay Payment Link',
+            description: `King Membership via Razorpay — @${resolvedUsername}`,
             razorpay_payment_id: paymentId,
             razorpay_order_id: orderId,
           })
@@ -147,7 +176,7 @@ export async function POST(req: NextRequest) {
             balance_before: currentBalance,
             balance_after: newBalance,
             status: 'completed',
-            description: `Wallet deposit via Razorpay`,
+            description: `Wallet deposit via Razorpay — @${resolvedUsername}`,
             razorpay_payment_id: paymentId,
             razorpay_order_id: orderId,
           })
@@ -175,7 +204,7 @@ export async function POST(req: NextRequest) {
         await admin
           .from('pending_razorpay_payments')
           .update({ status: 'completed' })
-          .eq('username', username)
+          .eq('username', resolvedUsername)
           .eq('status', 'pending')
 
         credited = true
@@ -189,11 +218,11 @@ export async function POST(req: NextRequest) {
       event_type: eventType,
       razorpay_payment_id: paymentId,
       razorpay_order_id: orderId,
-      username,
+      username: resolvedUsername,
       email,
       contact,
       amount: amountInr,
-      status: credited ? 'credited' : 'received',
+      status: credited ? 'credited' : (userId ? 'received' : 'unmatched'),
       credited,
       user_id: userId,
       raw_payload: event,
