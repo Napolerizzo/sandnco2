@@ -1,30 +1,20 @@
 'use client'
 
-import { useState, useEffect, useRef, lazy, Suspense, useCallback, Component, type ReactNode, type ErrorInfo } from 'react'
+import { useState, useEffect, lazy, Suspense, useCallback } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Flame, Trophy, Eye, ArrowRight, TrendingUp,
+  Flame, Trophy, ArrowRight,
   Zap, MapPin, Users, MessageSquare,
-  BarChart2, Lock, Crown, LayoutDashboard,
-  Shield, Star, Sparkles, ChevronDown, ChevronRight,
-  Check, X
+  BarChart2, Crown, LayoutDashboard,
+  Shield, ChevronDown, ChevronRight,
+  Check,
 } from 'lucide-react'
 import { RANKS } from '@/lib/ranks'
 import { formatRelativeTime } from '@/lib/utils'
 
-const HeroScene = lazy(() => import('@/components/three/HeroScene'))
+const HeroBackground = lazy(() => import('@/components/three/HeroBackground'))
 const IntroAnimation = lazy(() => import('@/components/three/IntroAnimation'))
-
-class SceneErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false }
-  static getDerivedStateFromError() { return { hasError: true } }
-  componentDidCatch(error: Error, info: ErrorInfo) { console.warn('3D scene error:', error, info) }
-  render() {
-    if (this.state.hasError) return <div className="w-full h-full bg-[#050505]" />
-    return this.props.children
-  }
-}
 
 type RankKey = keyof typeof RANKS
 const RANK_KEYS = Object.keys(RANKS) as RankKey[]
@@ -99,49 +89,17 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
   const [mounted, setMounted] = useState(false)
   const [taglineIdx, setTaglineIdx] = useState(0)
   const [showIntro, setShowIntro] = useState(false)
-  const mouseRef = useRef({ x: 0, y: 0 })
-  const scrollRef = useRef(0)
-  const sceneRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setMounted(true)
-    // Only show intro once per session
     if (typeof window !== 'undefined' && !sessionStorage.getItem('intro-seen')) {
       setShowIntro(true)
     }
   }, [])
 
-  // Tagline rotation
   useEffect(() => {
     const t = setInterval(() => setTaglineIdx(i => (i + 1) % TAGLINES.length), 3000)
     return () => clearInterval(t)
-  }, [])
-
-  // Mouse tracking
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      mouseRef.current = {
-        x: (e.clientX / window.innerWidth) * 2 - 1,
-        y: -(e.clientY / window.innerHeight) * 2 + 1,
-      }
-    }
-    window.addEventListener('mousemove', handler)
-    return () => window.removeEventListener('mousemove', handler)
-  }, [])
-
-  // Scroll tracking
-  useEffect(() => {
-    const handler = () => {
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight
-      scrollRef.current = maxScroll > 0 ? window.scrollY / maxScroll : 0
-      // Fade scene as user scrolls past hero
-      if (sceneRef.current) {
-        const heroFade = Math.max(0, 1 - window.scrollY / (window.innerHeight * 0.8))
-        sceneRef.current.style.opacity = String(heroFade)
-      }
-    }
-    window.addEventListener('scroll', handler, { passive: true })
-    return () => window.removeEventListener('scroll', handler)
   }, [])
 
   const handleIntroComplete = useCallback(() => {
@@ -155,26 +113,16 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
     <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden">
       {/* Intro Animation Overlay */}
       {mounted && showIntro && (
-        <SceneErrorBoundary>
-          <Suspense fallback={null}>
-            <IntroAnimation onComplete={handleIntroComplete} />
-          </Suspense>
-        </SceneErrorBoundary>
+        <Suspense fallback={null}>
+          <IntroAnimation onComplete={handleIntroComplete} />
+        </Suspense>
       )}
 
-      {/* 3D Scene - Fixed Background */}
+      {/* Animated Canvas Background */}
       {mounted && (
-        <div ref={sceneRef} className="fixed inset-0 z-0" style={{ willChange: 'opacity' }}>
-          <SceneErrorBoundary>
-            <Suspense fallback={
-              <div className="w-full h-full bg-[#050505] flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-[#FF2D55] border-t-transparent rounded-full animate-spin" />
-              </div>
-            }>
-              <HeroScene scrollData={{ y: window.scrollY }} mouseData={mouseRef.current} scrollProgress={scrollRef.current} />
-            </Suspense>
-          </SceneErrorBoundary>
-        </div>
+        <Suspense fallback={null}>
+          <HeroBackground />
+        </Suspense>
       )}
 
       {/* Page Content - Scrollable over 3D */}
