@@ -54,6 +54,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ content: paymentResult.message, paymentAction: paymentResult.action })
   }
 
+  // Check if user mentions payment + add webhook event context for support
+  if (user) {
+    const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || ''
+    const mentionsPayment = ['paid', 'payment', 'wallet', 'credited', 'not credited', 'deducted', 'money'].some(k => lastMsg.includes(k))
+    if (mentionsPayment) {
+      const admin = await createAdminClient()
+      const { data: profile } = await supabase.from('users').select('username').eq('id', user.id).single()
+      if (profile?.username) {
+        const { data: webhookEvents } = await admin
+          .from('razorpay_webhook_events')
+          .select('event_type, amount, credited, status, created_at')
+          .eq('username', profile.username)
+          .order('created_at', { ascending: false })
+          .limit(5)
+        if (webhookEvents && webhookEvents.length > 0) {
+          const paymentSummary = webhookEvents.map(e =>
+            `- ${e.event_type}: ₹${e.amount} | Status: ${e.status} | Credited: ${e.credited ? 'Yes' : 'No'} | Time: ${new Date(e.created_at).toLocaleString('en-IN')}`
+          ).join('\n')
+          userContext += `\n\nRecent payment webhook events for @${profile.username}:\n${paymentSummary}\n(Use this to tell the user the status of their payments accurately.)`
+        }
+      }
+    }
+  }
+
   // Sanitize and trim messages
   const trimmed = messages.slice(-6).map(m => ({
     role: m.role === 'assistant' ? 'assistant' as const : 'user' as const,

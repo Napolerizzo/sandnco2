@@ -219,7 +219,7 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
             />
             <h1
               className="font-extrabold text-center leading-none relative"
-              style={{ fontSize: 'clamp(70px, 14vw, 180px)', fontFamily: "'Syne', sans-serif" }}
+              style={{ fontSize: 'clamp(70px, 14vw, 180px)', fontFamily: "'Syne', sans-serif", whiteSpace: 'nowrap' }}
             >
               {'SANDNCO'.split('').map((char, i) => (
                 <motion.span
@@ -615,6 +615,122 @@ export default function LandingPage({ previewRumors, userCount, rumorCount }: La
                 </Link>
               </motion.div>
             </div>
+          </div>
+        </section>
+
+        {/* ════════════════════ THE SAND GRID ════════════════════ */}
+        <section className="relative py-24 sm:py-32 px-4 overflow-hidden" style={{ background: 'linear-gradient(180deg, #050505 0%, #0a0010 50%, #050505 100%)' }}>
+          {/* Glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse, rgba(168,85,247,0.08) 0%, transparent 60%)', filter: 'blur(60px)' }} />
+
+          <div className="max-w-5xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-100px' }}
+              className="text-center mb-16"
+            >
+              <span className="font-mono text-xs tracking-[0.2em] text-[#A855F7] uppercase">Live Now</span>
+              <h2 className="font-display text-4xl sm:text-5xl font-extrabold mt-3 mb-4">
+                The Sand Grid ⚡
+              </h2>
+              <p className="text-white/50 text-lg max-w-xl mx-auto">
+                Swipe through your city&apos;s grid. Spark with people. Reveal Instagram handles on mutual sparks. Two tracks — adults &amp; Ghost Mode.
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+              {[
+                { icon: '⚡', title: 'Spark / Pass', desc: 'Tinder-like card swipe UI. Drag right to Spark, left to Pass.' },
+                { icon: '👻', title: 'Two Tracks', desc: 'Adult (18+) and Ghost Mode (13–17). Completely separate, never cross.' },
+                { icon: '📸', title: 'Mutual Reveal', desc: 'Instagram handle only shown when both users spark each other.' },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="p-6 rounded-2xl border"
+                  style={{ background: 'rgba(168,85,247,0.04)', borderColor: 'rgba(168,85,247,0.15)' }}
+                >
+                  <div className="text-3xl mb-3">{item.icon}</div>
+                  <h3 className="font-display font-bold text-lg mb-2">{item.title}</h3>
+                  <p className="text-sm text-white/40">{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center"
+            >
+              <Link
+                href="/sand-grid"
+                className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-lg"
+                style={{ background: 'linear-gradient(135deg, #A855F7, #FF2D55)', color: '#fff', textDecoration: 'none' }}
+              >
+                Enter the Sand Grid
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ════════════════════ DNA EVOLUTION ════════════════════ */}
+        <section className="relative py-20 px-4" style={{ background: '#050505' }}>
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-100px' }}
+              className="text-center mb-12"
+            >
+              <span className="font-mono text-xs tracking-[0.2em] text-[#00E5FF] uppercase">Live Now</span>
+              <h2 className="font-display text-4xl sm:text-5xl font-extrabold mt-3 mb-4">
+                DNA Evolution
+              </h2>
+              <p className="text-white/50 text-base max-w-xl mx-auto">
+                Your influence visualized as a living, mutating DNA double-helix. Every rumor, vote, and challenge shapes your strand. Check it on your profile.
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {[
+                { color: '#EC4899', label: 'Romance', desc: 'Pink nodes — romantic rumors' },
+                { color: '#00E5FF', label: 'General', desc: 'Cyan nodes — city stories' },
+                { color: '#FFD700', label: 'Challenges', desc: 'Gold nodes — battles entered' },
+                { color: '#A855F7', label: 'Votes', desc: 'Purple nodes — community reactions' },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.label}
+                  initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08 }}
+                  className="flex items-center gap-4 p-4 rounded-xl"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: item.color, boxShadow: `0 0 12px ${item.color}80`, flexShrink: 0 }} />
+                  <div>
+                    <p className="font-bold text-sm">{item.label}</p>
+                    <p className="text-xs text-white/40">{item.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-center text-white/30 text-sm mt-10"
+            >
+              Visit any user profile to see their DNA strand in full 3D. Yours evolves in real-time.
+            </motion.p>
           </div>
         </section>
 
